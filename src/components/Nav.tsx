@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BookOpen,
   CreditCard,
@@ -10,6 +10,8 @@ import {
   X,
   LayoutDashboard,
   LogOut,
+  Settings,
+  UserRound,
 } from "lucide-react";
 import { NAV } from "@/lib/site-data";
 import { ThemeToggle } from "./ThemeToggle";
@@ -21,8 +23,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
 
 const ADMIN_NAV = [
   { to: "/admin/payments" as const, label: "Payments", icon: CreditCard },
@@ -41,6 +46,11 @@ export function Nav() {
   const { user, loading, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
+  const [profileIdentity, setProfileIdentity] = useState({
+    fullName: "",
+    username: "",
+    avatar: "",
+  });
 
   async function handleSignOut() {
     await signOut();
@@ -48,6 +58,52 @@ export function Nav() {
   }
 
   const dashboardDestination = isAdmin ? "/admin" : "/dashboard";
+  const initials = (profileIdentity.fullName || profileIdentity.username || user?.email || "U")
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  useEffect(() => {
+    if (!user) {
+      setProfileIdentity({ fullName: "", username: "", avatar: "" });
+      return;
+    }
+    let active = true;
+    void supabase
+      .from("profiles")
+      .select("full_name,username,avatar")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) console.error("Could not load profile navigation details:", error);
+        if (active) {
+          setProfileIdentity({
+            fullName: data?.full_name ?? "",
+            username: data?.username ?? "",
+            avatar: "",
+          });
+          if (!data?.avatar) return;
+          if (/^https?:\/\//i.test(data.avatar)) {
+            setProfileIdentity((current) => ({ ...current, avatar: data.avatar ?? "" }));
+            return;
+          }
+          void supabase.storage
+            .from("profile-images")
+            .createSignedUrl(data.avatar, 60 * 60)
+            .then(({ data: signed, error: signedError }) => {
+              if (signedError)
+                console.error("Could not create navigation avatar URL:", signedError);
+              if (active && signed?.signedUrl)
+                setProfileIdentity((current) => ({ ...current, avatar: signed.signedUrl }));
+            });
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   return (
     <header className="no-print fixed inset-x-0 top-0 z-50">
@@ -108,6 +164,46 @@ export function Nav() {
                 >
                   <LogOut className="h-4 w-4" /> Sign out
                 </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Open account menu"
+                      className="inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                    >
+                      <Avatar className="h-9 w-9 border border-gold/40">
+                        <AvatarImage
+                          src={profileIdentity.avatar || undefined}
+                          alt="Your profile photo"
+                        />
+                        <AvatarFallback className="bg-gradient-gold text-xs font-bold text-primary-foreground">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuLabel className="truncate">
+                      {profileIdentity.fullName || user.email}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="cursor-pointer font-medium">
+                        <UserRound className="h-4 w-4 text-gold" /> Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled>
+                      <Settings className="h-4 w-4" /> Settings (coming soon)
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={() => void handleSignOut()}
+                      className="font-medium text-destructive"
+                    >
+                      <LogOut className="h-4 w-4" /> Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             ) : (
               <>
@@ -157,6 +253,13 @@ export function Nav() {
                     className="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-accent/60"
                   >
                     Dashboard
+                  </Link>
+                  <Link
+                    to="/profile"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-accent/60"
+                  >
+                    <UserRound className="h-4 w-4 text-gold" /> Profile
                   </Link>
                   {isAdmin && (
                     <div className="mt-2 border-t border-border pt-2">

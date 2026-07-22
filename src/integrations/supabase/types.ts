@@ -325,31 +325,40 @@ export type Database = {
       };
       profiles: {
         Row: {
-          avatar_url: string | null;
+          avatar: string | null;
+          bio: string | null;
           country: string | null;
           created_at: string;
-          display_name: string | null;
+          full_name: string | null;
           id: string;
           role: "student" | "admin";
+          timezone: string | null;
           updated_at: string;
+          username: string | null;
         };
         Insert: {
-          avatar_url?: string | null;
+          avatar?: string | null;
+          bio?: string | null;
           country?: string | null;
           created_at?: string;
-          display_name?: string | null;
+          full_name?: string | null;
           id: string;
           role?: "student" | "admin";
+          timezone?: string | null;
           updated_at?: string;
+          username?: string | null;
         };
         Update: {
-          avatar_url?: string | null;
+          avatar?: string | null;
+          bio?: string | null;
           country?: string | null;
           created_at?: string;
-          display_name?: string | null;
+          full_name?: string | null;
           id?: string;
           role?: "student" | "admin";
+          timezone?: string | null;
           updated_at?: string;
+          username?: string | null;
         };
         Relationships: [];
       };

@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 type Tab = "learning" | "bookmarks" | "mentorship" | "account" | "billing" | "certificates";
 
-type Profile = { display_name: string | null; avatar_url: string | null; country: string | null };
+type Profile = { full_name: string | null; avatar: string | null; country: string | null };
 type Lesson = { id: string; course_id: string; slug: string; title: string; position: number };
 type LessonProgress = {
   course_id: string;
@@ -76,8 +76,8 @@ function Dashboard() {
   const [tab, setTab] = useState<Tab>("learning");
   const [email, setEmail] = useState("");
   const [profile, setProfile] = useState<Profile>({
-    display_name: "",
-    avatar_url: "",
+    full_name: "",
+    avatar: "",
     country: "",
   });
   const [bookmarkIds, setBookmarkIds] = useState<string[]>([]);
@@ -153,7 +153,7 @@ function Dashboard() {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("display_name,avatar_url,country")
+          .select("full_name,avatar,country")
           .eq("id", user.id)
           .maybeSingle(),
         supabase.from("bookmarks").select("lesson_id").eq("user_id", user.id),
@@ -184,8 +184,8 @@ function Dashboard() {
       ]);
       if (p)
         setProfile({
-          display_name: p.display_name ?? "",
-          avatar_url: p.avatar_url ?? "",
+          full_name: p.full_name ?? "",
+          avatar: p.avatar ?? "",
           country: p.country ?? "",
         });
       setBookmarkIds((bm ?? []).map((b) => b.lesson_id));
@@ -253,7 +253,7 @@ function Dashboard() {
         .trim()
         .min(1)
         .max(80)
-        .parse(profile.display_name ?? "");
+        .parse(profile.full_name ?? "");
       const country = z
         .string()
         .trim()
@@ -263,13 +263,13 @@ function Dashboard() {
         .string()
         .trim()
         .max(500)
-        .parse(profile.avatar_url ?? "");
+        .parse(profile.avatar ?? "");
       if (!user) return;
       const { error } = await supabase.from("profiles").upsert({
         id: user.id,
-        display_name: nm,
+        full_name: nm,
         country: country || null,
-        avatar_url: avatar || null,
+        avatar: avatar || null,
       });
       if (error) throw error;
       toast.success("Profile saved.");
@@ -291,7 +291,7 @@ function Dashboard() {
   );
   const myCourses = COURSES.filter((c) => purchasedSlugs.has(c.slug));
   const bookmarkedLessons = FREE_LESSONS.filter((l) => bookmarkIds.includes(l.id));
-  const initials = (profile.display_name || email || "U").slice(0, 1).toUpperCase();
+  const initials = (profile.full_name || email || "U").slice(0, 1).toUpperCase();
   const courseIdBySlug = Object.fromEntries(
     Object.entries(databaseCourseSlugs).map(([id, courseSlug]) => [courseSlug, id]),
   );
@@ -334,7 +334,7 @@ function Dashboard() {
               Dashboard
             </div>
             <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
-              Welcome{profile.display_name ? `, ${profile.display_name.split(" ")[0]}` : ""}.
+              Welcome{profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">{email}</p>
           </div>
@@ -505,10 +505,10 @@ function Dashboard() {
           <form onSubmit={saveProfile} className="glass max-w-xl rounded-3xl p-6">
             <h2 className="font-display text-xl font-semibold">Profile</h2>
             <div className="mt-4 grid gap-4">
-              <Field label="Display name">
+              <Field label="Full name">
                 <input
-                  value={profile.display_name ?? ""}
-                  onChange={(e) => setProfile((p) => ({ ...p, display_name: e.target.value }))}
+                  value={profile.full_name ?? ""}
+                  onChange={(e) => setProfile((p) => ({ ...p, full_name: e.target.value }))}
                   maxLength={80}
                   className="w-full bg-transparent outline-none"
                 />
@@ -523,8 +523,8 @@ function Dashboard() {
               </Field>
               <Field label="Avatar URL">
                 <input
-                  value={profile.avatar_url ?? ""}
-                  onChange={(e) => setProfile((p) => ({ ...p, avatar_url: e.target.value }))}
+                  value={profile.avatar ?? ""}
+                  onChange={(e) => setProfile((p) => ({ ...p, avatar: e.target.value }))}
                   maxLength={500}
                   placeholder="https://…"
                   className="w-full bg-transparent outline-none"
