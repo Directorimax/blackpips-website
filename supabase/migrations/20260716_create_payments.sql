@@ -4,13 +4,14 @@ create table if not exists public.payments (
     course_id uuid not null references public.courses(id) on delete cascade,
 
     amount numeric(10,2) not null,
-    currency text default 'USD',
+    currency text default 'TZS',
 
     payment_method text,
     provider text,
 
     transaction_id text unique,
     provider_reference text,
+    proof_url text,
 
     status text not null default 'pending'
         check (status in ('pending','paid','failed','cancelled')),

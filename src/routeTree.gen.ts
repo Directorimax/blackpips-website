@@ -13,7 +13,7 @@ import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PaymentRouteImport } from './routes/payment'
+import { Route as PaymentoldRouteImport } from './routes/payment old'
 import { Route as MentorshipRouteImport } from './routes/mentorship'
 import { Route as FreeRouteImport } from './routes/free'
 import { Route as FaqRouteImport } from './routes/faq'
@@ -24,7 +24,22 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CoursesIndexRouteImport } from './routes/courses/index'
+import { Route as AuthIndexRouteImport } from './routes/auth.index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as PaymentSlugRouteImport } from './routes/payment/$slug'
+import { Route as CoursesSlugRouteImport } from './routes/courses/$slug'
+import { Route as CertificatesCertificateIdRouteImport } from './routes/certificates/$certificateId'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AdminStudentsRouteImport } from './routes/admin/students'
+import { Route as AdminPaymentsRouteImport } from './routes/admin/payments'
+import { Route as AdminMentorshipApplicationsRouteImport } from './routes/admin/mentorship-applications'
+import { Route as AdminLessonsRouteImport } from './routes/admin/lessons'
+import { Route as AdminCertificatesRouteImport } from './routes/admin/certificates'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as CoursesSlugIndexRouteImport } from './routes/courses/$slug/index'
+import { Route as CoursesSlugLessonSlugRouteImport } from './routes/courses/$slug/$lessonSlug'
+import { Route as AdminStudentsStudentIdRouteImport } from './routes/admin/students/$studentId'
 
 const ToolsRoute = ToolsRouteImport.update({
   id: '/tools',
@@ -46,9 +61,9 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PaymentRoute = PaymentRouteImport.update({
-  id: '/payment',
-  path: '/payment',
+const PaymentoldRoute = PaymentoldRouteImport.update({
+  id: '/payment old',
+  path: '/payment old',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MentorshipRoute = MentorshipRouteImport.update({
@@ -100,64 +115,183 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CoursesIndexRoute = CoursesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CoursesRoute,
+} as any)
+const AuthIndexRoute = AuthIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentSlugRoute = PaymentSlugRouteImport.update({
+  id: '/payment/$slug',
+  path: '/payment/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesSlugRoute = CoursesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CoursesRoute,
+} as any)
+const CertificatesCertificateIdRoute =
+  CertificatesCertificateIdRouteImport.update({
+    id: '/certificates/$certificateId',
+    path: '/certificates/$certificateId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AdminStudentsRoute = AdminStudentsRouteImport.update({
+  id: '/admin/students',
+  path: '/admin/students',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/admin/payments',
+  path: '/admin/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminMentorshipApplicationsRoute =
+  AdminMentorshipApplicationsRouteImport.update({
+    id: '/admin/mentorship-applications',
+    path: '/admin/mentorship-applications',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminLessonsRoute = AdminLessonsRouteImport.update({
+  id: '/admin/lessons',
+  path: '/admin/lessons',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
+  id: '/admin/certificates',
+  path: '/admin/certificates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const CoursesSlugIndexRoute = CoursesSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CoursesSlugRoute,
+} as any)
+const CoursesSlugLessonSlugRoute = CoursesSlugLessonSlugRouteImport.update({
+  id: '/$lessonSlug',
+  path: '/$lessonSlug',
+  getParentRoute: () => CoursesSlugRoute,
+} as any)
+const AdminStudentsStudentIdRoute = AdminStudentsStudentIdRouteImport.update({
+  id: '/$studentId',
+  path: '/$studentId',
+  getParentRoute: () => AdminStudentsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
-  '/courses': typeof CoursesRoute
+  '/courses': typeof CoursesRouteWithChildren
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
-  '/payment': typeof PaymentRoute
+  '/payment old': typeof PaymentoldRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
   '/tools': typeof ToolsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/lessons': typeof AdminLessonsRoute
+  '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
+  '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
+  '/courses/$slug': typeof CoursesSlugRouteWithChildren
+  '/payment/$slug': typeof PaymentSlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/auth/': typeof AuthIndexRoute
+  '/courses/': typeof CoursesIndexRoute
+  '/admin/students/$studentId': typeof AdminStudentsStudentIdRoute
+  '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
+  '/courses/$slug/': typeof CoursesSlugIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/auth': typeof AuthRoute
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
-  '/courses': typeof CoursesRoute
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
-  '/payment': typeof PaymentRoute
+  '/payment old': typeof PaymentoldRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
   '/tools': typeof ToolsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/lessons': typeof AdminLessonsRoute
+  '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
+  '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
+  '/payment/$slug': typeof PaymentSlugRoute
+  '/admin': typeof AdminIndexRoute
+  '/auth': typeof AuthIndexRoute
+  '/courses': typeof CoursesIndexRoute
+  '/admin/students/$studentId': typeof AdminStudentsStudentIdRoute
+  '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
+  '/courses/$slug': typeof CoursesSlugIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
-  '/courses': typeof CoursesRoute
+  '/courses': typeof CoursesRouteWithChildren
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
-  '/payment': typeof PaymentRoute
+  '/payment old': typeof PaymentoldRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
   '/tools': typeof ToolsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/lessons': typeof AdminLessonsRoute
+  '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
+  '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
+  '/courses/$slug': typeof CoursesSlugRouteWithChildren
+  '/payment/$slug': typeof PaymentSlugRoute
+  '/admin/': typeof AdminIndexRoute
+  '/auth/': typeof AuthIndexRoute
+  '/courses/': typeof CoursesIndexRoute
+  '/admin/students/$studentId': typeof AdminStudentsStudentIdRoute
+  '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
+  '/courses/$slug/': typeof CoursesSlugIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,29 +305,56 @@ export interface FileRouteTypes {
     | '/faq'
     | '/free'
     | '/mentorship'
-    | '/payment'
+    | '/payment old'
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
     | '/tools'
     | '/dashboard'
+    | '/admin/certificates'
+    | '/admin/lessons'
+    | '/admin/mentorship-applications'
+    | '/admin/payments'
+    | '/admin/students'
+    | '/auth/callback'
+    | '/certificates/$certificateId'
+    | '/courses/$slug'
+    | '/payment/$slug'
+    | '/admin/'
+    | '/auth/'
+    | '/courses/'
+    | '/admin/students/$studentId'
+    | '/courses/$slug/$lessonSlug'
+    | '/courses/$slug/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
-    | '/auth'
     | '/blog'
     | '/contact'
-    | '/courses'
     | '/faq'
     | '/free'
     | '/mentorship'
-    | '/payment'
+    | '/payment old'
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
     | '/tools'
     | '/dashboard'
+    | '/admin/certificates'
+    | '/admin/lessons'
+    | '/admin/mentorship-applications'
+    | '/admin/payments'
+    | '/admin/students'
+    | '/auth/callback'
+    | '/certificates/$certificateId'
+    | '/payment/$slug'
+    | '/admin'
+    | '/auth'
+    | '/courses'
+    | '/admin/students/$studentId'
+    | '/courses/$slug/$lessonSlug'
+    | '/courses/$slug'
   id:
     | '__root__'
     | '/'
@@ -206,30 +367,53 @@ export interface FileRouteTypes {
     | '/faq'
     | '/free'
     | '/mentorship'
-    | '/payment'
+    | '/payment old'
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
     | '/tools'
     | '/_authenticated/dashboard'
+    | '/admin/certificates'
+    | '/admin/lessons'
+    | '/admin/mentorship-applications'
+    | '/admin/payments'
+    | '/admin/students'
+    | '/auth/callback'
+    | '/certificates/$certificateId'
+    | '/courses/$slug'
+    | '/payment/$slug'
+    | '/admin/'
+    | '/auth/'
+    | '/courses/'
+    | '/admin/students/$studentId'
+    | '/courses/$slug/$lessonSlug'
+    | '/courses/$slug/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   BlogRoute: typeof BlogRoute
   ContactRoute: typeof ContactRoute
-  CoursesRoute: typeof CoursesRoute
+  CoursesRoute: typeof CoursesRouteWithChildren
   FaqRoute: typeof FaqRoute
   FreeRoute: typeof FreeRoute
   MentorshipRoute: typeof MentorshipRoute
-  PaymentRoute: typeof PaymentRoute
+  PaymentoldRoute: typeof PaymentoldRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TestimonialsRoute: typeof TestimonialsRoute
   ToolsRoute: typeof ToolsRoute
+  AdminCertificatesRoute: typeof AdminCertificatesRoute
+  AdminLessonsRoute: typeof AdminLessonsRoute
+  AdminMentorshipApplicationsRoute: typeof AdminMentorshipApplicationsRoute
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminStudentsRoute: typeof AdminStudentsRouteWithChildren
+  CertificatesCertificateIdRoute: typeof CertificatesCertificateIdRoute
+  PaymentSlugRoute: typeof PaymentSlugRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -262,11 +446,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/payment': {
-      id: '/payment'
-      path: '/payment'
-      fullPath: '/payment'
-      preLoaderRoute: typeof PaymentRouteImport
+    '/payment old': {
+      id: '/payment old'
+      path: '/payment old'
+      fullPath: '/payment old'
+      preLoaderRoute: typeof PaymentoldRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mentorship': {
@@ -339,12 +523,117 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/courses/': {
+      id: '/courses/'
+      path: '/'
+      fullPath: '/courses/'
+      preLoaderRoute: typeof CoursesIndexRouteImport
+      parentRoute: typeof CoursesRoute
+    }
+    '/auth/': {
+      id: '/auth/'
+      path: '/'
+      fullPath: '/auth/'
+      preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment/$slug': {
+      id: '/payment/$slug'
+      path: '/payment/$slug'
+      fullPath: '/payment/$slug'
+      preLoaderRoute: typeof PaymentSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/$slug': {
+      id: '/courses/$slug'
+      path: '/$slug'
+      fullPath: '/courses/$slug'
+      preLoaderRoute: typeof CoursesSlugRouteImport
+      parentRoute: typeof CoursesRoute
+    }
+    '/certificates/$certificateId': {
+      id: '/certificates/$certificateId'
+      path: '/certificates/$certificateId'
+      fullPath: '/certificates/$certificateId'
+      preLoaderRoute: typeof CertificatesCertificateIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/admin/students': {
+      id: '/admin/students'
+      path: '/admin/students'
+      fullPath: '/admin/students'
+      preLoaderRoute: typeof AdminStudentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/admin/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/mentorship-applications': {
+      id: '/admin/mentorship-applications'
+      path: '/admin/mentorship-applications'
+      fullPath: '/admin/mentorship-applications'
+      preLoaderRoute: typeof AdminMentorshipApplicationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/lessons': {
+      id: '/admin/lessons'
+      path: '/admin/lessons'
+      fullPath: '/admin/lessons'
+      preLoaderRoute: typeof AdminLessonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/certificates': {
+      id: '/admin/certificates'
+      path: '/admin/certificates'
+      fullPath: '/admin/certificates'
+      preLoaderRoute: typeof AdminCertificatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/courses/$slug/': {
+      id: '/courses/$slug/'
+      path: '/'
+      fullPath: '/courses/$slug/'
+      preLoaderRoute: typeof CoursesSlugIndexRouteImport
+      parentRoute: typeof CoursesSlugRoute
+    }
+    '/courses/$slug/$lessonSlug': {
+      id: '/courses/$slug/$lessonSlug'
+      path: '/$lessonSlug'
+      fullPath: '/courses/$slug/$lessonSlug'
+      preLoaderRoute: typeof CoursesSlugLessonSlugRouteImport
+      parentRoute: typeof CoursesSlugRoute
+    }
+    '/admin/students/$studentId': {
+      id: '/admin/students/$studentId'
+      path: '/$studentId'
+      fullPath: '/admin/students/$studentId'
+      preLoaderRoute: typeof AdminStudentsStudentIdRouteImport
+      parentRoute: typeof AdminStudentsRoute
     }
   }
 }
@@ -360,22 +649,81 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthIndexRoute: typeof AuthIndexRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
+  AuthIndexRoute: AuthIndexRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
+interface CoursesSlugRouteChildren {
+  CoursesSlugLessonSlugRoute: typeof CoursesSlugLessonSlugRoute
+  CoursesSlugIndexRoute: typeof CoursesSlugIndexRoute
+}
+
+const CoursesSlugRouteChildren: CoursesSlugRouteChildren = {
+  CoursesSlugLessonSlugRoute: CoursesSlugLessonSlugRoute,
+  CoursesSlugIndexRoute: CoursesSlugIndexRoute,
+}
+
+const CoursesSlugRouteWithChildren = CoursesSlugRoute._addFileChildren(
+  CoursesSlugRouteChildren,
+)
+
+interface CoursesRouteChildren {
+  CoursesSlugRoute: typeof CoursesSlugRouteWithChildren
+  CoursesIndexRoute: typeof CoursesIndexRoute
+}
+
+const CoursesRouteChildren: CoursesRouteChildren = {
+  CoursesSlugRoute: CoursesSlugRouteWithChildren,
+  CoursesIndexRoute: CoursesIndexRoute,
+}
+
+const CoursesRouteWithChildren =
+  CoursesRoute._addFileChildren(CoursesRouteChildren)
+
+interface AdminStudentsRouteChildren {
+  AdminStudentsStudentIdRoute: typeof AdminStudentsStudentIdRoute
+}
+
+const AdminStudentsRouteChildren: AdminStudentsRouteChildren = {
+  AdminStudentsStudentIdRoute: AdminStudentsStudentIdRoute,
+}
+
+const AdminStudentsRouteWithChildren = AdminStudentsRoute._addFileChildren(
+  AdminStudentsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   BlogRoute: BlogRoute,
   ContactRoute: ContactRoute,
-  CoursesRoute: CoursesRoute,
+  CoursesRoute: CoursesRouteWithChildren,
   FaqRoute: FaqRoute,
   FreeRoute: FreeRoute,
   MentorshipRoute: MentorshipRoute,
-  PaymentRoute: PaymentRoute,
+  PaymentoldRoute: PaymentoldRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TestimonialsRoute: TestimonialsRoute,
   ToolsRoute: ToolsRoute,
+  AdminCertificatesRoute: AdminCertificatesRoute,
+  AdminLessonsRoute: AdminLessonsRoute,
+  AdminMentorshipApplicationsRoute: AdminMentorshipApplicationsRoute,
+  AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminStudentsRoute: AdminStudentsRouteWithChildren,
+  CertificatesCertificateIdRoute: CertificatesCertificateIdRoute,
+  PaymentSlugRoute: PaymentSlugRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
