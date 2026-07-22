@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, Youtube, Send, Mail } from "lucide-react";
+import { Instagram, Youtube, Send, Mail, MessageCircle } from "lucide-react";
 import { Logo } from "./Logo";
 import { SITE, NAV } from "@/lib/site-data";
 
@@ -7,7 +7,7 @@ export function Footer() {
   return (
     <footer className="no-print border-t border-border/60 bg-background">
       <div className="mx-auto max-w-7xl px-4 py-14">
-        <div className="grid gap-10 md:grid-cols-4">
+        <div className="grid gap-10 md:grid-cols-5">
           <div className="md:col-span-2">
             <Logo />
             <p className="mt-4 max-w-sm text-sm text-muted-foreground">
@@ -37,8 +37,8 @@ export function Footer() {
                 <Send className="h-4 w-4" />
               </a>
               <a
-                href={`mailto:${SITE.email}`}
-                aria-label="Email"
+                href="mailto:support@blackpips.com"
+                aria-label="Email BLACKPIPS support"
                 className="glass inline-flex h-9 w-9 items-center justify-center rounded-full hover:text-gold"
               >
                 <Mail className="h-4 w-4" />
@@ -80,6 +80,38 @@ export function Footer() {
               <li>
                 <Link to="/contact" className="hover:text-foreground">
                   Contact
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold">Support</h4>
+            <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
+              <li>
+                <a
+                  href="mailto:support@blackpips.com"
+                  className="inline-flex items-center gap-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                >
+                  <Mail className="h-4 w-4 shrink-0" /> support@blackpips.com
+                </a>
+              </li>
+              <li>
+                <a
+                  href={SITE.whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                >
+                  <MessageCircle className="h-4 w-4 shrink-0" /> WhatsApp
+                </a>
+              </li>
+              <li>
+                <Link
+                  to="/contact"
+                  className="inline-flex hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                >
+                  Contact us
                 </Link>
               </li>
             </ul>

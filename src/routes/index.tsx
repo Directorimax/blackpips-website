@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Sparkles, TrendingUp, ShieldCheck, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { CandlestickBg } from "@/components/CandlestickBg";
-import { FAQ, JOURNEY, SITE, WHY } from "@/lib/site-data";
+import { FAQ, JOURNEY, WHY } from "@/lib/site-data";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -16,7 +16,6 @@ function Home() {
       <Why />
       <Journey />
       <FaqSection />
-      <Contact />
       <Newsletter />
     </>
   );
@@ -207,38 +206,6 @@ function FaqSection() {
   );
 }
 
-function Contact() {
-  return (
-    <section id="contact" className="mx-auto max-w-4xl px-4 py-24 text-center">
-      <SectionHead
-        eyebrow="Contact"
-        title="Talk to the BLACKPIPS desk"
-        sub="Questions about a course, mentorship or payment? We reply within one business day."
-      />
-      <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <a
-          href={SITE.whatsapp}
-          className="glass inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold hover:text-gold"
-        >
-          WhatsApp
-        </a>
-        <a
-          href={`mailto:${SITE.email}`}
-          className="glass inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold hover:text-gold"
-        >
-          {SITE.email}
-        </a>
-        <Link
-          to="/contact"
-          className="rounded-full bg-gradient-gold px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow"
-        >
-          Open contact form
-        </Link>
-      </div>
-    </section>
-  );
-}
-
 function Newsletter() {
   return (
     <section className="mx-auto max-w-7xl px-4 pb-24">
@@ -246,10 +213,11 @@ function Newsletter() {
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-gold opacity-25 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-gradient-gold opacity-15 blur-3xl" />
         <h2 className="relative font-display text-3xl font-bold sm:text-4xl">
-          Weekly market intelligence, zero noise.
+          Weekly market intelligence. Zero noise.
         </h2>
         <p className="relative mx-auto mt-3 max-w-xl text-muted-foreground">
-          Bias, structure notes and the trades we're watching — sent every Sunday to your inbox.
+          Market bias, structure notes, and educational insights — delivered to your inbox every
+          Sunday.
         </p>
         <form
           onSubmit={(e) => {

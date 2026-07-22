@@ -3,7 +3,7 @@ export const SITE = {
   tagline: "Master Forex Trading with ALC Strategy",
   description:
     "Premium forex education. Learn the complete institutional trading approach — from beginner to advanced — through the ALC strategy.",
-  email: "blackpipsfxtz@gmail.com",
+  email: "support@blackpips.com",
   whatsapp: "https://wa.me/10000000000",
   instagram: "https://www.instagram.com/blackpips/",
   youtube: "https://www.youtube.com/@blackpips8",
