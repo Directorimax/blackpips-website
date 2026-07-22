@@ -47,9 +47,6 @@ export function Nav() {
     navigate({ to: "/auth", replace: true });
   }
 
-  const initial = (user?.user_metadata?.display_name || user?.email || "U")
-    .slice(0, 1)
-    .toUpperCase();
   const dashboardDestination = isAdmin ? "/admin" : "/dashboard";
 
   return (
@@ -107,11 +104,9 @@ export function Nav() {
                 </Link>
                 <button
                   onClick={handleSignOut}
-                  aria-label="Sign out"
-                  className="glass hidden h-9 w-9 items-center justify-center rounded-full font-display text-sm font-bold hover:text-gold sm:inline-flex"
-                  title={user.email ?? "Account"}
+                  className="glass hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold lg:inline-flex"
                 >
-                  {initial}
+                  <LogOut className="h-4 w-4" /> Sign out
                 </button>
               </>
             ) : (
