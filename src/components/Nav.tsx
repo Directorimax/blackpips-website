@@ -10,7 +10,6 @@ import {
   X,
   LayoutDashboard,
   LogOut,
-  Settings,
   UserRound,
 } from "lucide-react";
 import { NAV } from "@/lib/site-data";
@@ -158,12 +157,6 @@ export function Nav() {
                 >
                   <LayoutDashboard className="h-4 w-4" /> Dashboard
                 </Link>
-                <button
-                  onClick={handleSignOut}
-                  className="glass hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold lg:inline-flex"
-                >
-                  <LogOut className="h-4 w-4" /> Sign out
-                </button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -191,9 +184,6 @@ export function Nav() {
                       <Link to="/profile" className="cursor-pointer font-medium">
                         <UserRound className="h-4 w-4 text-gold" /> Profile
                       </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem disabled>
-                      <Settings className="h-4 w-4" /> Settings (coming soon)
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
