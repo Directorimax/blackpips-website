@@ -1,2 +1,16 @@
 User-agent: *
 Allow: /
+
+# Authenticated and operational pages are not crawlable content.
+Disallow: /admin/
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /payment/
+Disallow: /certificates/
+Disallow: /reset-password
+Disallow: /courses/
+Disallow: /free
+Disallow: /mentorship
+
+Sitemap: https://blackpips.com/sitemap.xml

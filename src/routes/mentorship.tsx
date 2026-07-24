@@ -20,17 +20,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/mentorship")({
-  head: () => ({
-    meta: [
-      { title: "Mentorship â€” BlackPips ALC Program" },
-      {
-        name: "description",
-        content: "Apply for BlackPips mentorship: live Zoom coaching and direct mentor support.",
-      },
-    ],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "Forex Mentorship",
+      description:
+        "Apply for BLACKPIPS mentorship and receive structured support through the selected mentorship package.",
+      path: "/mentorship",
+      noindex: true,
+    }),
   component: () => (
     <AuthenticatedRouteGuard>
       <Mentorship />

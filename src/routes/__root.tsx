@@ -16,6 +16,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { createSeoHead } from "@/lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -73,56 +74,36 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BlackPips" },
-      {
-        name: "description",
-        content:
-          "BlackPips Academy is a premium Forex education platform offering comprehensive courses and mentorship.",
-      },
-      { name: "author", content: "BlackPips" },
-      { name: "theme-color", content: "#0b0b12" },
-      { property: "og:title", content: "BlackPips" },
-      {
-        property: "og:description",
-        content:
-          "BlackPips Academy is a premium Forex education platform offering comprehensive courses and mentorship.",
-      },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "BlackPips" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@BlackPips" },
-      { name: "twitter:title", content: "BlackPips" },
-      {
-        name: "twitter:description",
-        content:
-          "BlackPips Academy is a premium Forex education platform offering comprehensive courses and mentorship.",
-      },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7e22b6ed-b695-43ca-9649-3bf9ac222d35/id-preview-03651e51--d65a9077-156e-4b96-9bb8-d7857d211635.lovable.app-1783026998426.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7e22b6ed-b695-43ca-9649-3bf9ac222d35/id-preview-03651e51--d65a9077-156e-4b96-9bb8-d7857d211635.lovable.app-1783026998426.png",
-      },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap",
-      },
-    ],
-  }),
+  head: () => {
+    const seo = createSeoHead({
+      title: "BLACKPIPS",
+      path: "/",
+    });
+
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { name: "author", content: "BlackPips" },
+        { name: "theme-color", content: "#0b0b12" },
+        ...seo.meta,
+      ],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+        { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
+        { rel: "apple-touch-icon", href: "/icon.svg" },
+        { rel: "manifest", href: "/manifest.webmanifest" },
+        ...seo.links,
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap",
+        },
+      ],
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

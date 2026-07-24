@@ -2,16 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/site-data";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/blog")({
-  head: () => ({
-    meta: [
-      { title: "Blog — Forex Education & Market Analysis — BlackPips" },
-      { name: "description", content: "Forex education articles on market structure, liquidity, risk management, psychology and news analysis." },
-      { property: "og:title", content: "BlackPips Blog" },
-      { property: "og:description", content: "Trader-grade essays on structure, liquidity and risk." },
-    ],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "Forex Education Blog",
+      description:
+        "Read BLACKPIPS articles on market structure, liquidity, risk management, trading psychology and news analysis.",
+      path: "/blog",
+    }),
   component: Blog,
 });
 

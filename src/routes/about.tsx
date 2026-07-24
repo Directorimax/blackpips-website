@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Target, Eye, Users, Award } from "lucide-react";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "About BlackPips — The ALC Trading Desk" },
-      { name: "description", content: "The BlackPips story, mission and instructor profile. A premium forex education desk built on the ALC strategy." },
-      { property: "og:title", content: "About BlackPips" },
-      { property: "og:description", content: "Premium forex education. Built by traders, for traders." },
-    ],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "About BLACKPIPS",
+      description:
+        "Learn about BLACKPIPS, its approach to structured forex education and the ALC learning framework.",
+      path: "/about",
+    }),
   component: About,
 });
 

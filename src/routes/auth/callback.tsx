@@ -9,11 +9,16 @@ import {
   getSafeRedirect,
 } from "@/lib/auth-redirect";
 import { sendNotification } from "@/services/email/notification.functions";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/auth/callback")({
-  head: () => ({
-    meta: [{ title: "Signing in — BlackPips" }, { name: "robots", content: "noindex" }],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "Completing sign-in",
+      description: "Completing your BLACKPIPS sign-in.",
+      path: "/auth/callback",
+      noindex: true,
+    }),
   component: AuthCallback,
 });
 

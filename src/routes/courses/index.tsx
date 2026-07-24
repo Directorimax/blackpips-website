@@ -4,18 +4,17 @@ import { useEffect, useState } from "react";
 import { COURSES, formatTZS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/courses/")({
-  head: () => ({
-    meta: [
-      { title: "Premium Courses — BlackPips" },
-      {
-        name: "description",
-        content:
-          "Premium ALC forex courses. Foundations, liquidity, entries and XAUUSD session mastery — with lifetime access.",
-      },
-    ],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "Premium Forex Lessons",
+      description:
+        "Explore BLACKPIPS premium ALC forex lessons covering foundations, liquidity, entries and XAUUSD market structure.",
+      path: "/courses",
+      noindex: true,
+    }),
   component: Courses,
 });
 

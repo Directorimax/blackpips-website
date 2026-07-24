@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>BLACKPIPS</title>
+  <rect width="512" height="512" rx="112" fill="#090909"/>
+  <path d="M112 172h182c58 0 104 39 104 91 0 29-16 54-42 70 33 15 54 43 54 78 0 57-50 101-113 101H112V172Zm76 62v70h94c25 0 42-15 42-35s-17-35-42-35h-94Zm0 132v84h107c28 0 47-17 47-42s-19-42-47-42H188Z" fill="#e3c675"/>
+  <circle cx="400" cy="134" r="26" fill="#c9a44c"/>
+</svg>

@@ -2,16 +2,16 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Mail, MessageCircle, Instagram, Youtube, Send, Clock } from "lucide-react";
 import { SITE } from "@/lib/site-data";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact BlackPips" },
-      { name: "description", content: "Reach the BlackPips desk. WhatsApp, email, Instagram, YouTube, Telegram — or send us a message." },
-      { property: "og:title", content: "Contact BlackPips" },
-      { property: "og:description", content: "We reply within one business day." },
-    ],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "Contact BLACKPIPS",
+      description:
+        "Contact the BLACKPIPS team for help with your account, payment, education or learning access.",
+      path: "/contact",
+    }),
   component: Contact,
 });
 

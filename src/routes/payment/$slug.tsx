@@ -19,14 +19,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/useAuth";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/payment/$slug")({
-  head: () => ({
-    meta: [
-      { title: "Checkout — BlackPips" },
-      { name: "description", content: "Complete your BlackPips course payment via Mobile Money." },
-    ],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "Checkout",
+      description: "Complete your BLACKPIPS course payment.",
+      path: "/payment",
+      noindex: true,
+    }),
   loader: ({ params }) => {
     const course = COURSES.find((c) => c.slug === params.slug);
     if (!course) throw notFound();

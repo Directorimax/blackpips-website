@@ -11,22 +11,19 @@ import {
   getSafeRedirect,
   rememberAuthRedirect,
 } from "@/lib/auth-redirect";
+import { createSeoHead } from "@/lib/seo";
 
 type Mode = "signin" | "signup" | "forgot";
 
 export const Route = createFileRoute("/auth/")({
   validateSearch: z.object({ redirect: z.string().optional() }),
-  head: () => ({
-    meta: [
-      { title: "Sign in — BLACKPIPS" },
-      {
-        name: "description",
-        content:
-          "Sign in or create a BLACKPIPS account to access premium lessons, bookmarks and progress tracking.",
-      },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "Sign in",
+      description: "Sign in or create your BLACKPIPS account.",
+      path: "/auth",
+      noindex: true,
+    }),
   component: AuthPage,
 });
 

@@ -23,11 +23,16 @@ import { mentorshipWhatsAppUrl } from "@/lib/mentorship";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useProfileAvatar } from "@/hooks/useProfileAvatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({
-    meta: [{ title: "Dashboard — BlackPips" }, { name: "robots", content: "noindex" }],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "Dashboard",
+      description: "Your BLACKPIPS learning dashboard.",
+      path: "/dashboard",
+      noindex: true,
+    }),
   component: Dashboard,
 });
 

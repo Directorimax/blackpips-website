@@ -4,8 +4,16 @@ import { useState } from "react";
 import { CandlestickBg } from "@/components/CandlestickBg";
 import { useAuth } from "@/contexts/useAuth";
 import { HOME_FAQ, JOURNEY, WHY } from "@/lib/site-data";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
+  head: () =>
+    createSeoHead({
+      title: "Forex Education and ALC Lessons",
+      description:
+        "Learn structured forex education through BLACKPIPS premium lessons, free learning resources and mentorship.",
+      path: "/",
+    }),
   component: Home,
 });
 

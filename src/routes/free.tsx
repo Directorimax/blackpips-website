@@ -6,23 +6,17 @@ import { FREE_LESSONS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/free")({
-  head: () => ({
-    meta: [
-      { title: "Free Forex Lessons — BlackPips" },
-      {
-        name: "description",
-        content:
-          "Free forex education videos — beginner to advanced. Search, filter and start learning the ALC framework today.",
-      },
-      { property: "og:title", content: "Free Forex Lessons — BlackPips" },
-      {
-        property: "og:description",
-        content: "Beginner, intermediate and advanced forex lessons — free to watch.",
-      },
-    ],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "Free Forex Lessons",
+      description:
+        "Access BLACKPIPS free forex lessons and build your understanding of market structure, trading concepts and the ALC framework.",
+      path: "/free",
+      noindex: true,
+    }),
   component: () => (
     <AuthenticatedRouteGuard>
       <Free />
