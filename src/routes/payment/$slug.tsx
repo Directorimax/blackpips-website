@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/useAuth";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { createSeoHead } from "@/lib/seo";
+import { sendNotification } from "@/services/email/notification.functions";
 
 export const Route = createFileRoute("/payment/$slug")({
   head: () =>
@@ -220,6 +221,13 @@ function Checkout() {
         .single();
       if (error) throw error;
       setSubmittedPayment(data);
+      try {
+        await sendNotification({
+          data: { type: "payment_submitted", resourceId: data.id },
+        });
+      } catch {
+        console.error("Payment review notification could not be queued.");
+      }
     } catch (error) {
       if (uploadedPath) {
         const { error: rollbackError } = await supabase.storage
@@ -261,7 +269,7 @@ function Checkout() {
             <div className="text-[11px] font-semibold uppercase tracking-widest text-gold">
               Complete payment
             </div>
-            <h1 className="mt-1 truncate font-display text-2xl font-bold sm:text-3xl">
+            <h1 className="mt-1 break-words font-display text-2xl font-bold sm:text-3xl">
               {course.title}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -287,8 +295,10 @@ function Checkout() {
               <button
                 key={m.key}
                 onClick={() => setMethod(m.key)}
+                disabled={submitting || authLoading}
                 className={cn(
                   "group relative overflow-hidden rounded-2xl border p-4 text-left transition-all",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
                   active
                     ? "border-gold/60 bg-gold/5 shadow-glow"
                     : "border-border bg-card hover:border-gold/30 hover:-translate-y-0.5",
@@ -390,6 +400,7 @@ function Checkout() {
             id="txid"
             value={txId}
             onChange={(e) => setTxId(e.target.value)}
+            disabled={submitting || authLoading}
             placeholder="e.g. CJ1A2B3C4D"
             className="mt-3 w-full rounded-xl border border-border bg-background/60 px-4 py-3 font-mono text-sm outline-none transition focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
           />
@@ -411,6 +422,7 @@ function Checkout() {
           onClick={() => inputRef.current?.click()}
           className={cn(
             "group relative cursor-pointer overflow-hidden rounded-3xl border-2 border-dashed p-6 text-center transition",
+            (submitting || authLoading) && "pointer-events-none cursor-not-allowed opacity-60",
             dragOver
               ? "border-gold bg-gold/5"
               : file
@@ -424,6 +436,7 @@ function Checkout() {
             accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={(e) => onFiles(e.target.files)}
+            disabled={submitting || authLoading}
           />
           {file ? (
             <div className="flex items-center gap-3 text-left">
@@ -438,11 +451,12 @@ function Checkout() {
               </div>
               <button
                 type="button"
+                disabled={submitting || authLoading}
                 onClick={(e) => {
                   e.stopPropagation();
                   setFile(null);
                 }}
-                className="shrink-0 rounded-full p-1.5 text-muted-foreground transition hover:bg-background hover:text-foreground"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-muted-foreground transition hover:bg-background hover:text-foreground"
                 aria-label="Remove file"
               >
                 <X className="h-4 w-4" />
@@ -619,7 +633,7 @@ function DetailField({
         <button
           type="button"
           onClick={() => onCopy(label, value)}
-          className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition hover:bg-background hover:text-gold"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-muted-foreground transition hover:bg-background hover:text-gold"
           aria-label={`Copy ${label}`}
         >
           {isCopied ? <Check className="h-4 w-4 text-gold" /> : <Copy className="h-4 w-4" />}

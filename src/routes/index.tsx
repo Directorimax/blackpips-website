@@ -86,7 +86,7 @@ function Hero() {
         </div>
 
         <div
-          className="animate-float-up mx-auto mt-16 grid max-w-3xl grid-cols-3 gap-4 text-center"
+          className="animate-float-up mx-auto mt-16 grid max-w-3xl grid-cols-3 gap-2 text-center sm:gap-4"
           style={{ animationDelay: "0.35s" }}
         >
           {[
@@ -94,7 +94,7 @@ function Hero() {
             { k: "98%", v: "Completion" },
             { k: "4.9★", v: "Avg rating" },
           ].map((s) => (
-            <div key={s.v} className="glass rounded-2xl px-4 py-5">
+            <div key={s.v} className="glass rounded-2xl px-2 py-5 sm:px-4">
               <div className="text-gradient-gold font-display text-2xl font-bold sm:text-3xl">
                 {s.k}
               </div>

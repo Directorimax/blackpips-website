@@ -264,6 +264,7 @@ function PremiumLesson() {
         <LessonBookmarkAction
           bookmarked={bookmarked}
           disabled={bookmarkLoading || bookmarkSaving}
+          saving={bookmarkSaving}
           onToggle={toggleBookmark}
         />
       </header>
@@ -504,10 +505,12 @@ function CompletionAction({
 function LessonBookmarkAction({
   bookmarked,
   disabled,
+  saving,
   onToggle,
 }: {
   bookmarked: boolean;
   disabled: boolean;
+  saving: boolean;
   onToggle: () => void;
 }) {
   return (
@@ -519,12 +522,14 @@ function LessonBookmarkAction({
       aria-label={bookmarked ? "Remove saved lesson" : "Save lesson"}
       className="glass mt-5 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {bookmarked ? (
+      {saving ? (
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+      ) : bookmarked ? (
         <BookmarkCheck className="h-4 w-4 fill-gold text-gold" aria-hidden="true" />
       ) : (
         <Bookmark className="h-4 w-4" aria-hidden="true" />
       )}
-      {bookmarked ? "Saved" : "Save lesson"}
+      {saving ? "Saving…" : bookmarked ? "Saved" : "Save lesson"}
     </button>
   );
 }

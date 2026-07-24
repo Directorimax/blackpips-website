@@ -40,6 +40,7 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { user, loading } = useAuth();
   const destination = getSafeRedirect(redirect) ?? DEFAULT_AUTH_DESTINATION;
 
@@ -49,6 +50,8 @@ function AuthPage() {
   }, [destination, loading, navigate, user]);
 
   async function handleGoogle() {
+    if (busy || googleLoading) return;
+    setGoogleLoading(true);
     setBusy(true);
     try {
       rememberAuthRedirect(destination);
@@ -59,8 +62,9 @@ function AuthPage() {
       if (error) throw error;
     } catch (error) {
       console.error("Google sign-in could not start:", error);
-      toast.error(error instanceof Error ? error.message : "Google sign-in could not start.");
+      toast.error("Google sign-in could not start. Please try again.");
       setBusy(false);
+      setGoogleLoading(false);
     }
   }
 
@@ -152,10 +156,11 @@ function AuthPage() {
             <button
               type="button"
               onClick={handleGoogle}
-              disabled={busy}
+              disabled={busy || googleLoading}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold transition hover:bg-accent/50 disabled:opacity-60"
             >
-              <GoogleIcon /> Continue with Google
+              {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
+              {googleLoading ? "Connecting to Google…" : "Continue with Google"}
             </button>
             <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
               <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
@@ -172,6 +177,7 @@ function AuthPage() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                disabled={busy}
                 required
                 maxLength={80}
                 className="glass w-full rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-gold/40"
@@ -187,6 +193,7 @@ function AuthPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={busy}
                 required
                 autoComplete="email"
                 className="w-full bg-transparent text-sm outline-none"
@@ -205,6 +212,7 @@ function AuthPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={busy}
                   required
                   minLength={8}
                   autoComplete={mode === "signup" ? "new-password" : "current-password"}
@@ -214,6 +222,7 @@ function AuthPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((visible) => !visible)}
+                  disabled={busy}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:text-gold focus:outline-none focus:ring-2 focus:ring-gold/50"
                 >
@@ -229,23 +238,34 @@ function AuthPage() {
             className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02] disabled:opacity-60"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {mode === "signup"
-              ? "Create account"
-              : mode === "forgot"
-                ? "Send reset link"
-                : "Sign in"}
+            {busy
+              ? mode === "signup"
+                ? "Creating account…"
+                : mode === "forgot"
+                  ? "Sending reset link…"
+                  : "Signing in…"
+              : mode === "signup"
+                ? "Create account"
+                : mode === "forgot"
+                  ? "Send reset link"
+                  : "Sign in"}
           </button>
         </form>
 
         <div className="mt-5 flex flex-col items-center gap-1 text-xs text-muted-foreground">
           {mode === "signin" && (
             <>
-              <button onClick={() => setMode("forgot")} className="hover:text-foreground">
+              <button
+                disabled={busy}
+                onClick={() => setMode("forgot")}
+                className="hover:text-foreground disabled:opacity-60"
+              >
                 Forgot password?
               </button>
               <div>
                 New here?{" "}
                 <button
+                  disabled={busy}
                   onClick={() => setMode("signup")}
                   className="font-semibold text-gold hover:underline"
                 >
@@ -258,6 +278,7 @@ function AuthPage() {
             <div>
               Already have an account?{" "}
               <button
+                disabled={busy}
                 onClick={() => setMode("signin")}
                 className="font-semibold text-gold hover:underline"
               >
@@ -266,7 +287,11 @@ function AuthPage() {
             </div>
           )}
           {mode === "forgot" && (
-            <button onClick={() => setMode("signin")} className="hover:text-foreground">
+            <button
+              disabled={busy}
+              onClick={() => setMode("signin")}
+              className="hover:text-foreground disabled:opacity-60"
+            >
               Back to sign in
             </button>
           )}

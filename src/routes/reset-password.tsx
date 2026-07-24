@@ -157,7 +157,6 @@ function ResetPassword() {
       setPassword("");
       setConfirmPassword("");
 
-      // End the temporary recovery session so the learner signs in normally.
       await supabase.auth.signOut();
 
       navigate({ to: "/auth", replace: true });

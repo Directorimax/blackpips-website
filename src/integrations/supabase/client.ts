@@ -54,6 +54,8 @@ function createSupabaseClient() {
       storage: typeof window !== "undefined" ? localStorage : undefined,
       persistSession: true,
       autoRefreshToken: true,
+      // Callback routes exchange PKCE codes explicitly so the verifier is read
+      // exactly once from this browser client's localStorage-backed session.
       detectSessionInUrl: false,
       flowType: "pkce",
     },

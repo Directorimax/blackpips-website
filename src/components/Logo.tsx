@@ -6,6 +6,10 @@ export function Logo({ className = "" }: { className?: string }) {
       <img
         src={logo}
         alt="BlackPips logo"
+        width={40}
+        height={40}
+        fetchPriority="high"
+        decoding="async"
         className="h-10 w-auto object-contain drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]"
       />
       <span className="font-display text-lg font-bold tracking-tight text-foreground">

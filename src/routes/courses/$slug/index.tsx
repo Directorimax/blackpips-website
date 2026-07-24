@@ -95,7 +95,9 @@ function CourseLessons() {
         <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gold">
           <BookOpen className="h-4 w-4" /> Premium course
         </div>
-        <h1 className="mt-3 font-display text-4xl font-bold">{course.title}</h1>
+        <h1 className="mt-3 break-words font-display text-3xl font-bold sm:text-4xl">
+          {course.title}
+        </h1>
         <p className="mt-3 text-sm text-muted-foreground">
           Choose a lesson to continue your learning.
         </p>

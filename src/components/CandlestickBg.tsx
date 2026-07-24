@@ -11,23 +11,47 @@ export function CandlestickBg() {
     if (!ctx) return;
 
     let raf = 0;
-    let w = 0, h = 0;
+    let w = 0,
+      h = 0;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      w = rect.width; h = rect.height;
-      canvas.width = w * dpr; canvas.height = h * dpr;
+      w = rect.width;
+      h = rect.height;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
     window.addEventListener("resize", resize);
 
-    const bull = () => getComputedStyle(document.documentElement).getPropertyValue("--bull").trim() || "oklch(0.7 0.17 155)";
-    const bear = () => getComputedStyle(document.documentElement).getPropertyValue("--bear").trim() || "oklch(0.62 0.22 25)";
-    const gold = () => getComputedStyle(document.documentElement).getPropertyValue("--gold").trim() || "oklch(0.82 0.15 85)";
+    const colors = {
+      bull: "oklch(0.7 0.17 155)",
+      bear: "oklch(0.62 0.22 25)",
+      gold: "oklch(0.82 0.15 85)",
+    };
+    const refreshColors = () => {
+      const styles = getComputedStyle(document.documentElement);
+      colors.bull = styles.getPropertyValue("--bull").trim() || colors.bull;
+      colors.bear = styles.getPropertyValue("--bear").trim() || colors.bear;
+      colors.gold = styles.getPropertyValue("--gold").trim() || colors.gold;
+    };
+    refreshColors();
+    const themeObserver = new MutationObserver(refreshColors);
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
 
-    type Candle = { x: number; open: number; close: number; high: number; low: number; up: boolean };
+    type Candle = {
+      x: number;
+      open: number;
+      close: number;
+      high: number;
+      low: number;
+      up: boolean;
+    };
     const spacing = 22;
     let candles: Candle[] = [];
     let last = 0.5;
@@ -50,6 +74,7 @@ export function CandlestickBg() {
     init();
 
     let t = 0;
+    let paused = document.hidden;
     const draw = () => {
       ctx.clearRect(0, 0, w, h);
 
@@ -57,7 +82,10 @@ export function CandlestickBg() {
       ctx.strokeStyle = "rgba(255,255,255,0.03)";
       ctx.lineWidth = 1;
       for (let y = 0; y < h; y += 40) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
       }
 
       // move
@@ -68,7 +96,7 @@ export function CandlestickBg() {
         candles.push(genCandle(nx));
       }
 
-      const bullC = bull(), bearC = bear(), goldC = gold();
+      const { bull: bullC, bear: bearC, gold: goldC } = colors;
 
       for (const c of candles) {
         const cx = c.x;
@@ -82,7 +110,10 @@ export function CandlestickBg() {
         ctx.strokeStyle = c.up ? bullC : bearC;
         ctx.globalAlpha = 0.55;
         ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, bot); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx, top);
+        ctx.lineTo(cx, bot);
+        ctx.stroke();
 
         ctx.fillStyle = c.up ? bullC : bearC;
         ctx.globalAlpha = 0.75;
@@ -95,23 +126,41 @@ export function CandlestickBg() {
       ctx.lineWidth = 1.2;
       ctx.setLineDash([2, 6]);
       const yLine = h * 0.5 + Math.sin(t * 0.008) * 30;
-      ctx.beginPath(); ctx.moveTo(0, yLine); ctx.lineTo(w, yLine); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, yLine);
+      ctx.lineTo(w, yLine);
+      ctx.stroke();
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
 
       t++;
-      raf = requestAnimationFrame(draw);
+      if (!paused) raf = requestAnimationFrame(draw);
     };
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduced) raf = requestAnimationFrame(draw);
     else draw();
 
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+    const onVisibilityChange = () => {
+      paused = document.hidden;
+      if (paused) {
+        cancelAnimationFrame(raf);
+      } else if (!reduced) {
+        raf = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      themeObserver.disconnect();
+    };
   }, []);
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       <canvas ref={ref} className="h-full w-full opacity-70" />
       <div className="absolute inset-0 bg-hero-glow" />
       <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-background" />

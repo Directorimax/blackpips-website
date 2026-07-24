@@ -33,8 +33,6 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 
 export const requireSupabaseAuth = createMiddleware({ type: "function" }).server(
   async ({ next }) => {
-    console.info("[email-trace] Server auth middleware entered");
-
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
 
@@ -44,10 +42,6 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
         ...(!SUPABASE_PUBLISHABLE_KEY ? ["SUPABASE_PUBLISHABLE_KEY"] : []),
       ];
       const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Connect Supabase in Lovable Cloud.`;
-      console.error(
-        "[email-trace] Server auth middleware stopped: missing Supabase configuration",
-        { missing },
-      );
       console.error(`[Supabase] ${message}`);
       throw new Error(message);
     }
@@ -55,32 +49,25 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
     const request = getRequest();
 
     if (!request?.headers) {
-      console.error("[email-trace] Server auth middleware stopped: request headers unavailable");
       throw new Error("Unauthorized: No request headers available");
     }
 
     const authHeader = request.headers.get("authorization");
 
     if (!authHeader) {
-      console.error("[email-trace] Server auth middleware stopped: authorization header missing");
       throw new Error("Unauthorized: No authorization header provided");
     }
 
     if (!authHeader.startsWith("Bearer ")) {
-      console.error(
-        "[email-trace] Server auth middleware stopped: authorization scheme is not Bearer",
-      );
       throw new Error("Unauthorized: Only Bearer tokens are supported");
     }
 
     const token = authHeader.replace("Bearer ", "");
     if (!token) {
-      console.error("[email-trace] Server auth middleware stopped: bearer token is empty");
       throw new Error("Unauthorized: No token provided");
     }
 
     if (token.split(".").length !== 3) {
-      console.error("[email-trace] Server auth middleware stopped: bearer token is not a JWT");
       throw new Error("Unauthorized: Invalid token");
     }
 
@@ -100,19 +87,12 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
 
     const { data, error } = await supabase.auth.getClaims(token);
     if (error || !data?.claims) {
-      console.error(
-        "[email-trace] Server auth middleware stopped: Supabase claim validation failed",
-        error,
-      );
       throw new Error("Unauthorized: Invalid token");
     }
 
     if (!data.claims.sub) {
-      console.error("[email-trace] Server auth middleware stopped: authenticated subject missing");
       throw new Error("Unauthorized: No user ID found in token");
     }
-
-    console.info("[email-trace] Server auth middleware verified user", { userId: data.claims.sub });
 
     return next({
       context: {

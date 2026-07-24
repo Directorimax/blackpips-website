@@ -186,7 +186,7 @@ function AdminLessons() {
     });
     if (error) {
       console.error("Could not save lesson", error);
-      toast.error(error.message || "Could not save lesson.");
+      toast.error("Could not save lesson. Please review the fields and try again.");
     } else {
       toast.success(form.id ? "Lesson updated." : "Lesson created.");
       setSelectedCourseId(form.courseId);

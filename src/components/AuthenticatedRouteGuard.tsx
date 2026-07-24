@@ -1,8 +1,8 @@
 import { useEffect, type ReactNode } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/useAuth";
 import { getSafeRedirect } from "@/lib/auth-redirect";
+import { ContentSkeleton } from "@/components/ContentSkeleton";
 
 export function AuthenticatedRouteGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -23,11 +23,8 @@ export function AuthenticatedRouteGuard({ children }: { children: ReactNode }) {
 
   if (loading || !user) {
     return (
-      <div
-        className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4"
-        aria-live="polite"
-      >
-        <Loader2 className="h-6 w-6 animate-spin text-gold" />
+      <div className="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-4xl items-center px-4">
+        <ContentSkeleton className="w-full" lines={4} label="Checking your session" />
       </div>
     );
   }

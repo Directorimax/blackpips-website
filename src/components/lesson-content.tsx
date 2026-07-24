@@ -227,7 +227,7 @@ function renderInline(text: string) {
           key={match.index}
           href={match[3]}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className="font-medium text-gold underline decoration-gold/50 underline-offset-4 hover:text-gold/80"
         >
           {match[2]}

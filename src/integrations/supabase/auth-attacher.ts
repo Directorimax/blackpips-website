@@ -8,10 +8,6 @@ export const attachSupabaseAuth = createMiddleware({ type: "function" }).client(
   async ({ next }) => {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
-    console.info("[email-trace] Client auth middleware forwarding server function", {
-      hasSession: Boolean(data.session),
-      hasAccessToken: Boolean(token),
-    });
     return next({
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });

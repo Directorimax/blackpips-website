@@ -13,7 +13,6 @@ import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PaymentoldRouteImport } from './routes/payment old'
 import { Route as MentorshipRouteImport } from './routes/mentorship'
 import { Route as FreeRouteImport } from './routes/free'
 import { Route as FaqRouteImport } from './routes/faq'
@@ -60,11 +59,6 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PaymentoldRoute = PaymentoldRouteImport.update({
-  id: '/payment old',
-  path: '/payment old',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MentorshipRoute = MentorshipRouteImport.update({
@@ -214,7 +208,6 @@ export interface FileRoutesByFullPath {
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
-  '/payment old': typeof PaymentoldRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
@@ -245,7 +238,6 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
-  '/payment old': typeof PaymentoldRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
@@ -279,7 +271,6 @@ export interface FileRoutesById {
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
-  '/payment old': typeof PaymentoldRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
@@ -314,7 +305,6 @@ export interface FileRouteTypes {
     | '/faq'
     | '/free'
     | '/mentorship'
-    | '/payment old'
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
@@ -345,7 +335,6 @@ export interface FileRouteTypes {
     | '/faq'
     | '/free'
     | '/mentorship'
-    | '/payment old'
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
@@ -378,7 +367,6 @@ export interface FileRouteTypes {
     | '/faq'
     | '/free'
     | '/mentorship'
-    | '/payment old'
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
@@ -413,7 +401,6 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   FreeRoute: typeof FreeRoute
   MentorshipRoute: typeof MentorshipRoute
-  PaymentoldRoute: typeof PaymentoldRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TestimonialsRoute: typeof TestimonialsRoute
@@ -456,13 +443,6 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/payment old': {
-      id: '/payment old'
-      path: '/payment old'
-      fullPath: '/payment old'
-      preLoaderRoute: typeof PaymentoldRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mentorship': {
@@ -732,7 +712,6 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   FreeRoute: FreeRoute,
   MentorshipRoute: MentorshipRoute,
-  PaymentoldRoute: PaymentoldRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TestimonialsRoute: TestimonialsRoute,

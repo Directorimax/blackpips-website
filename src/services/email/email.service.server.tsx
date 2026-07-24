@@ -6,6 +6,9 @@ import { CourseUnlockedEmail } from "@/emails/CourseUnlockedEmail";
 import { MentorshipApprovedEmail } from "@/emails/MentorshipApprovedEmail";
 import { MentorshipRejectedEmail } from "@/emails/MentorshipRejectedEmail";
 import { CertificateEarnedEmail } from "@/emails/CertificateEarnedEmail";
+import { AdminPaymentSubmittedEmail } from "@/emails/AdminPaymentSubmittedEmail";
+import { AdminMentorshipSubmittedEmail } from "@/emails/AdminMentorshipSubmittedEmail";
+import { PaymentRejectedEmail } from "@/emails/PaymentRejectedEmail";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { formatTZS } from "@/lib/site-data";
 
@@ -15,7 +18,10 @@ type NotificationType =
   | "course_unlocked"
   | "mentorship_approved"
   | "mentorship_rejected"
-  | "certificate_earned";
+  | "certificate_earned"
+  | "payment_submitted"
+  | "payment_rejected"
+  | "mentorship_submitted";
 
 type NotificationRequest = { type: NotificationType; resourceId: string; actorId: string };
 type Recipient = { userId: string; email: string; name: string };
@@ -23,89 +29,53 @@ type NotificationLog = { id: string; status: string };
 
 const APP_URL = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const SUPPORT_EMAIL = process.env.BLACKPIPS_SUPPORT_EMAIL ?? "support@blackpips.com";
+const ADMIN_NOTIFICATION_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL;
 const WHATSAPP_URL = "https://wa.me/255693413655";
 
 export async function sendNotification(
   request: NotificationRequest,
 ): Promise<{ delivered: boolean }> {
+  const prepared = await prepareNotification(request);
+  if (!prepared) return { delivered: false };
+
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+
+  if (!apiKey || !from) {
+    console.error("[email] Resend configuration is missing.");
+    throw new Error("Resend email configuration is incomplete.");
+  }
+
+  const log = await reserveDelivery(prepared.type, prepared.resourceId, prepared.recipient.email);
+  if (!log) return { delivered: false };
+
   try {
-    console.info("[email] Preparing notification", {
-      type: request.type,
-      resourceId: request.resourceId,
+    const resend = new Resend(apiKey);
+    const result = await resend.emails.send({
+      from,
+      to: [prepared.recipient.email],
+      subject: prepared.subject,
+      react: prepared.react,
     });
-    const prepared = await prepareNotification(request);
-    if (!prepared) {
-      console.warn("[email] No email was prepared for notification request", {
-        type: request.type,
-        resourceId: request.resourceId,
-      });
-      return { delivered: false };
-    }
-
-    console.info("[email] Email template selected", {
-      type: prepared.type,
-      resourceId: prepared.resourceId,
-    });
-
-    const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.RESEND_FROM_EMAIL;
-    console.info("[email] Runtime email configuration", {
-      hasResendApiKey: Boolean(apiKey),
-      hasResendFromEmail: Boolean(from),
-      hasAppUrl: Boolean(process.env.APP_URL),
-      hasSupportEmail: Boolean(process.env.BLACKPIPS_SUPPORT_EMAIL),
-    });
-    if (!apiKey || !from) {
-      console.warn(
-        "[email] Skipping notification because RESEND_API_KEY or RESEND_FROM_EMAIL is missing.",
-      );
-      return { delivered: false };
-    }
-
-    const log = await reserveDelivery(prepared.type, prepared.resourceId, prepared.recipient.email);
-    if (!log) {
-      console.info("[email] Delivery skipped because this event is already reserved or sent", {
-        type: prepared.type,
-        resourceId: prepared.resourceId,
-      });
-      return { delivered: false };
-    }
-
+    if (result.error) throw new Error(result.error.message);
+    await updateDelivery(log.id, "sent", null);
+    return { delivered: true };
+  } catch (error) {
+    console.error("[email] Resend request failed.");
     try {
-      const resend = new Resend(apiKey);
-      console.info("[email] Resend client initialized", { type: prepared.type });
-      console.info("[email] Resend request started", {
-        type: prepared.type,
-        resourceId: prepared.resourceId,
-        subject: prepared.subject,
-      });
-      const result = await resend.emails.send({
-        from,
-        to: [prepared.recipient.email],
-        subject: prepared.subject,
-        react: prepared.react,
-      });
-      console.info("[email] Resend response", {
-        type: prepared.type,
-        id: result.data?.id ?? null,
-        error: result.error?.message ?? null,
-      });
-      if (result.error) throw new Error(result.error.message);
-      await updateDelivery(log.id, "sent", null);
-      return { delivered: true };
-    } catch (error) {
-      console.error("[email] Resend request threw an error", error);
       await updateDelivery(
         log.id,
         "failed",
         error instanceof Error ? error.message : "Unknown provider error",
       );
-      throw error;
+    } catch (deliveryLogError) {
+      console.error("[email] Failed to record the delivery failure.");
+      throw new AggregateError(
+        [error, deliveryLogError],
+        "Resend delivery failed and the notification log could not be updated.",
+      );
     }
-  } catch (error) {
-    // Notifications are deliberately non-blocking: business actions have already succeeded.
-    console.error("[email] Notification delivery failed:", error);
-    return { delivered: false };
+    throw error;
   }
 }
 
@@ -124,7 +94,115 @@ async function prepareNotification(
       return prepareMentorshipDecision(request);
     case "certificate_earned":
       return prepareCertificateEarned(request);
+    case "payment_submitted":
+      return preparePaymentSubmitted(request);
+    case "payment_rejected":
+      return preparePaymentRejected(request);
+    case "mentorship_submitted":
+      return prepareMentorshipSubmitted(request);
   }
+}
+
+async function preparePaymentSubmitted(
+  request: NotificationRequest,
+): Promise<PreparedNotification | null> {
+  if (!ADMIN_NOTIFICATION_EMAIL || request.actorId === "") return null;
+  const { data: payment } = await supabaseAdmin
+    .from("payments")
+    .select("id,user_id,course_id,amount,currency,transaction_id,proof_url,created_at")
+    .eq("id", request.resourceId)
+    .maybeSingle();
+  if (!payment || payment.user_id !== request.actorId) return null;
+  const [recipient, course] = await Promise.all([
+    getRecipient(payment.user_id),
+    supabaseAdmin.from("courses").select("title").eq("id", payment.course_id).maybeSingle(),
+  ]);
+  if (!recipient || !course.data) return null;
+  return {
+    type: "payment_submitted",
+    resourceId: payment.id,
+    recipient: { userId: "admin", email: ADMIN_NOTIFICATION_EMAIL, name: "BlackPips admin" },
+    subject: "New course access request — BlackPips",
+    react: (
+      <AdminPaymentSubmittedEmail
+        learnerName={recipient.name}
+        learnerEmail={recipient.email}
+        courseName={course.data.title}
+        amount={
+          payment.currency === "TZS"
+            ? formatTZS(Number(payment.amount))
+            : `${payment.currency} ${payment.amount}`
+        }
+        reference={payment.transaction_id ?? "Not provided"}
+        reviewUrl={`${APP_URL}/admin/payments`}
+      />
+    ),
+  };
+}
+
+async function preparePaymentRejected(
+  request: NotificationRequest,
+): Promise<PreparedNotification | null> {
+  if (!(await isAdmin(request.actorId))) return null;
+  const { data: payment } = await supabaseAdmin
+    .from("payments")
+    .select("id,user_id,course_id,status,rejection_reason")
+    .eq("id", request.resourceId)
+    .eq("status", "rejected")
+    .maybeSingle();
+  if (!payment) return null;
+  const [recipient, course] = await Promise.all([
+    getRecipient(payment.user_id),
+    supabaseAdmin.from("courses").select("title").eq("id", payment.course_id).maybeSingle(),
+  ]);
+  if (!recipient || !course.data) return null;
+  return {
+    type: "payment_rejected",
+    resourceId: payment.id,
+    recipient,
+    subject: "Update on your BlackPips course request",
+    react: (
+      <PaymentRejectedEmail
+        studentName={recipient.name}
+        courseName={course.data.title}
+        reason={payment.rejection_reason}
+        dashboardUrl={`${APP_URL}/dashboard`}
+      />
+    ),
+  };
+}
+
+async function prepareMentorshipSubmitted(
+  request: NotificationRequest,
+): Promise<PreparedNotification | null> {
+  if (!ADMIN_NOTIFICATION_EMAIL || request.actorId === "") return null;
+  const { data: application } = await supabaseAdmin
+    .from("mentorship_applications")
+    .select("id,user_id,full_name,email,whatsapp_number,mentorship_package_id")
+    .eq("id", request.resourceId)
+    .maybeSingle();
+  if (!application || application.user_id !== request.actorId) return null;
+  const { data: packageData } = await supabaseAdmin
+    .from("mentorship_packages")
+    .select("name")
+    .eq("id", application.mentorship_package_id)
+    .maybeSingle();
+  if (!packageData) return null;
+  return {
+    type: "mentorship_submitted",
+    resourceId: application.id,
+    recipient: { userId: "admin", email: ADMIN_NOTIFICATION_EMAIL, name: "BlackPips admin" },
+    subject: "New mentorship application — BlackPips",
+    react: (
+      <AdminMentorshipSubmittedEmail
+        learnerName={application.full_name}
+        learnerEmail={application.email}
+        whatsapp={application.whatsapp_number}
+        packageName={packageData.name}
+        reviewUrl={`${APP_URL}/admin/mentorship-applications`}
+      />
+    ),
+  };
 }
 
 async function prepareWelcome(request: NotificationRequest): Promise<PreparedNotification | null> {
@@ -151,7 +229,7 @@ async function preparePaymentApproved(
     .eq("status", "approved")
     .maybeSingle();
   if (error || !payment) {
-    if (error) console.error("[email] Unable to load approved payment:", error);
+    if (error) console.error("[email] Unable to load approved payment.");
     return null;
   }
   const [recipient, course] = await Promise.all([
@@ -216,7 +294,7 @@ async function prepareMentorshipDecision(
     .eq("id", request.resourceId)
     .maybeSingle();
   if (error || !application || application.status !== request.type.replace("mentorship_", "")) {
-    if (error) console.error("[email] Unable to load mentorship application:", error);
+    if (error) console.error("[email] Unable to load mentorship application.");
     return null;
   }
   const { data: packageData } = await supabaseAdmin
@@ -267,7 +345,7 @@ async function prepareCertificateEarned(
     !certificate ||
     (certificate.user_id !== request.actorId && !(await isAdmin(request.actorId)))
   ) {
-    if (error) console.error("[email] Unable to load certificate:", error);
+    if (error) console.error("[email] Unable to load certificate.");
     return null;
   }
   const [recipient, course] = await Promise.all([
@@ -294,7 +372,7 @@ async function prepareCertificateEarned(
 async function getRecipient(userId: string): Promise<Recipient | null> {
   const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
   if (error || !data.user?.email) {
-    if (error) console.error("[email] Unable to load recipient:", error);
+    if (error) console.error("[email] Unable to load recipient.");
     return null;
   }
   const metadata = data.user.user_metadata ?? {};
@@ -312,7 +390,7 @@ async function isAdmin(userId: string): Promise<boolean> {
     .select("role")
     .eq("id", userId)
     .maybeSingle();
-  if (error) console.error("[email] Unable to check administrator role:", error);
+  if (error) console.error("[email] Unable to check administrator role.");
   return data?.role === "admin";
 }
 
@@ -321,7 +399,6 @@ async function reserveDelivery(
   resourceId: string,
   recipientEmail: string,
 ): Promise<NotificationLog | null> {
-  console.info("[email] Checking notification delivery log", { type, resourceId });
   const { data: existing, error: existingError } = await supabaseAdmin
     .from("email_notifications")
     .select("id,status")
@@ -329,27 +406,10 @@ async function reserveDelivery(
     .eq("resource_id", resourceId)
     .maybeSingle();
   if (existingError) {
-    console.error("[email] Delivery-log lookup failed", { type, resourceId, error: existingError });
+    console.error("[email] Delivery-log lookup failed.");
     throw existingError;
   }
-  if (existing?.status === "sent" || existing?.status === "processing") {
-    if (type === "welcome") {
-      console.info("[email] Welcome notification skipped", {
-        userId: resourceId,
-        existingStatus: existing.status,
-        isNewForWelcomeDelivery: false,
-      });
-    }
-    return null;
-  }
-
-  if (type === "welcome") {
-    console.info("[email] Welcome notification requested", {
-      userId: resourceId,
-      isNewForWelcomeDelivery: !existing,
-      retryingFailedDelivery: existing?.status === "failed",
-    });
-  }
+  if (existing?.status === "sent" || existing?.status === "processing") return null;
 
   const { data, error } = await supabaseAdmin
     .from("email_notifications")
@@ -366,10 +426,9 @@ async function reserveDelivery(
     .select("id,status")
     .single();
   if (error) {
-    console.error("[email] Delivery-log insert failed", { type, resourceId, error });
+    console.error("[email] Delivery-log insert failed.");
     throw error;
   }
-  console.info("[email] Delivery-log row created", { type, resourceId, notificationId: data.id });
   return data;
 }
 
@@ -382,7 +441,10 @@ async function updateDelivery(id: string, status: "sent" | "failed", errorMessag
       sent_at: status === "sent" ? new Date().toISOString() : null,
     })
     .eq("id", id);
-  if (error) console.error("[email] Unable to update delivery log:", error);
+  if (error) {
+    console.error("[email] Unable to update delivery log.");
+    throw error;
+  }
 }
 
 type PreparedNotification = {

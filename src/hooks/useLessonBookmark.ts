@@ -66,7 +66,7 @@ export function useLessonBookmark(lessonId: string | null) {
       setBookmarked(wasBookmarked);
       toast.error(wasBookmarked ? "Could not remove saved lesson." : "Could not save lesson.");
     } else if (!wasBookmarked) {
-      toast.success("Saved successfully");
+      toast.success("Lesson saved.");
     }
 
     setSaving(false);

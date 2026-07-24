@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { PlayCircle, Search, Bookmark } from "lucide-react";
+import { PlayCircle, Search, Bookmark, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { FREE_LESSONS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,7 +89,7 @@ function Free() {
       if (error) {
         logBookmarkError("removal", error);
         setBookmarks(bookmarks);
-        toast.error("Could not remove");
+        toast.error("Could not remove saved lesson.");
       }
     } else {
       const { error } = await supabase
@@ -98,9 +98,9 @@ function Free() {
       if (error) {
         logBookmarkError("save", error);
         setBookmarks(bookmarks);
-        toast.error("Could not save");
+        toast.error("Could not save lesson.");
       } else {
-        toast.success("Saved successfully");
+        toast.success("Lesson saved.");
       }
     }
     setSavingBookmarkId(null);
@@ -121,7 +121,7 @@ function Free() {
 
       <div className="mt-10 flex flex-col gap-3 md:flex-row md:items-center">
         <div className="glass flex flex-1 items-center gap-2 rounded-full px-4 py-2.5">
-          <Search className="h-4 w-4 text-muted-foreground" />
+          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -134,7 +134,7 @@ function Free() {
             <button
               key={l}
               onClick={() => setLevel(l)}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${level === l ? "bg-gradient-gold text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground"}`}
+              className={`min-h-10 rounded-full px-4 py-2 text-xs font-semibold transition ${level === l ? "bg-gradient-gold text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground"}`}
             >
               {l}
             </button>
@@ -176,9 +176,13 @@ function Free() {
                     disabled={savingBookmarkId === l.id}
                     aria-pressed={saved}
                     aria-label={saved ? "Remove saved lesson" : "Save lesson"}
-                    className={`glass grid h-8 w-8 place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-60 ${saved ? "text-gold" : "hover:text-gold"}`}
+                    className={`glass grid h-10 w-10 place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-60 ${saved ? "text-gold" : "hover:text-gold"}`}
                   >
-                    <Bookmark className={`h-3.5 w-3.5 ${saved ? "fill-gold" : ""}`} />
+                    {savingBookmarkId === l.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Bookmark className={`h-3.5 w-3.5 ${saved ? "fill-gold" : ""}`} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -186,8 +190,11 @@ function Free() {
           );
         })}
         {filtered.length === 0 && (
-          <div className="col-span-full py-16 text-center text-sm text-muted-foreground">
-            No lessons match your search.
+          <div className="glass col-span-full rounded-3xl px-6 py-14 text-center">
+            <h2 className="font-display text-lg font-semibold">No matching lessons</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Try another search term or reset the level filter to see more lessons.
+            </p>
           </div>
         )}
       </div>

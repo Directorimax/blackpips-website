@@ -90,14 +90,12 @@ function AdminPayments() {
     const { error } = await supabase.rpc("approve_payment", { p_payment_id: selected.id });
     if (error) {
       console.error("Could not approve payment:", error);
-      toast.error(error.message);
+      toast.error("We could not approve this payment. Please try again.");
     } else {
-      void Promise.all([
+      await Promise.all([
         sendNotification({ data: { type: "payment_approved", resourceId: selected.id } }),
         sendNotification({ data: { type: "course_unlocked", resourceId: selected.id } }),
-      ]).catch((notificationError) =>
-        console.error("Payment notifications could not be queued:", notificationError),
-      );
+      ]).catch(() => console.error("Payment notifications could not be queued."));
       toast.success("Payment approved and course access granted.");
       setSelected(null);
       await loadPayments();
@@ -114,8 +112,11 @@ function AdminPayments() {
     });
     if (error) {
       console.error("Could not reject payment:", error);
-      toast.error(error.message);
+      toast.error("We could not reject this payment. Please try again.");
     } else {
+      void sendNotification({ data: { type: "payment_rejected", resourceId: rejecting.id } }).catch(
+        () => console.error("Payment rejection notification could not be queued."),
+      );
       toast.success("Payment rejected.");
       setRejecting(null);
       setReason("");

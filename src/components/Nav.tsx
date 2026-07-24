@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   BookOpen,
   CreditCard,
@@ -53,8 +54,13 @@ export function Nav() {
   });
 
   async function handleSignOut() {
-    await signOut();
-    navigate({ to: "/auth", replace: true });
+    try {
+      await signOut();
+      navigate({ to: "/auth", replace: true });
+    } catch (error) {
+      console.error("Could not sign out:", error);
+      toast.error("We could not sign you out. Please try again.");
+    }
   }
 
   const dashboardDestination = isAdmin ? "/admin" : "/dashboard";
@@ -93,7 +99,7 @@ export function Nav() {
   return (
     <header className="no-print fixed inset-x-0 top-0 z-50">
       <div className="mx-auto mt-3 max-w-7xl px-4">
-        <div className="glass flex items-center justify-between rounded-full px-4 py-2.5 shadow-elegant">
+        <div className="glass flex items-center justify-between rounded-full px-3 py-2.5 shadow-elegant sm:px-4">
           <Link to="/" className="shrink-0" onClick={() => setOpen(false)}>
             <Logo />
           </Link>
@@ -150,7 +156,7 @@ export function Nav() {
                       aria-label="Open account menu"
                       className="inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
                     >
-                      <Avatar className="h-9 w-9 border border-gold/40">
+                      <Avatar className="h-10 w-10 border border-gold/40">
                         <AvatarImage src={avatarUrl || undefined} alt="Your profile photo" />
                         <AvatarFallback className="bg-gradient-gold text-xs font-bold text-primary-foreground">
                           {initials}
@@ -195,7 +201,7 @@ export function Nav() {
               </>
             )}
             <button
-              className="glass inline-flex h-9 w-9 items-center justify-center rounded-full xl:hidden"
+              className="glass inline-flex h-10 w-10 items-center justify-center rounded-full xl:hidden"
               onClick={() => setOpen((v) => !v)}
               aria-label="Menu"
             >
@@ -212,7 +218,7 @@ export function Nav() {
                   key={n.to}
                   to={n.to}
                   onClick={() => setOpen(false)}
-                  className="rounded-xl px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                  className="flex min-h-11 items-center rounded-xl px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                 >
                   {n.label}
                 </Link>
@@ -223,14 +229,14 @@ export function Nav() {
                   <Link
                     to={dashboardDestination}
                     onClick={() => setOpen(false)}
-                    className="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-accent/60"
+                    className="flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-semibold hover:bg-accent/60"
                   >
                     Dashboard
                   </Link>
                   <Link
                     to="/profile"
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-accent/60"
+                    className="flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-accent/60"
                   >
                     <UserRound className="h-4 w-4 text-gold" /> Profile
                   </Link>
@@ -246,7 +252,7 @@ export function Nav() {
                             key={item.to}
                             to={item.to}
                             onClick={() => setOpen(false)}
-                            className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-gold hover:bg-gold/10"
+                            className="flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-gold hover:bg-gold/10"
                           >
                             <Icon className="h-4 w-4" /> {item.label}
                           </Link>
@@ -256,7 +262,7 @@ export function Nav() {
                   )}
                   <button
                     onClick={handleSignOut}
-                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                    className="flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                   >
                     <LogOut className="h-4 w-4" /> Sign out
                   </button>
@@ -265,7 +271,7 @@ export function Nav() {
                 <Link
                   to="/auth"
                   onClick={() => setOpen(false)}
-                  className="rounded-xl px-3 py-2 text-sm font-semibold hover:bg-accent/60"
+                  className="flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-semibold hover:bg-accent/60"
                 >
                   Sign in / Get started
                 </Link>

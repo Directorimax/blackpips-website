@@ -16,6 +16,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ContentSkeleton } from "@/components/ContentSkeleton";
 import {
   getProfileAvatarUrl,
   notifyProfileAvatarChanged,
@@ -383,8 +384,8 @@ function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="grid min-h-[calc(100vh-8rem)] place-items-center">
-        <Loader2 className="h-6 w-6 animate-spin text-gold" />
+      <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-5xl items-center px-4">
+        <ContentSkeleton className="w-full" lines={5} label="Loading your profile" />
       </div>
     );
   }
@@ -404,7 +405,7 @@ function ProfilePage() {
               type="button"
               onClick={() => inputRef.current?.click()}
               aria-label="Upload profile photo"
-              className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full border border-gold/40 bg-card text-gold shadow-elegant transition hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              className="absolute -bottom-1 -right-1 grid h-10 w-10 place-items-center rounded-full border border-gold/40 bg-card text-gold shadow-elegant transition hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
             >
               <Camera className="h-4 w-4" />
             </button>
@@ -459,7 +460,7 @@ function ProfilePage() {
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
-              className="glass inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold hover:text-gold disabled:opacity-60"
+              className="glass inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold hover:text-gold disabled:opacity-60"
             >
               <Upload className="h-4 w-4" />{" "}
               {uploading ? "Uploading photo…" : profile.avatar ? "Replace photo" : "Upload photo"}
@@ -469,9 +470,14 @@ function ProfilePage() {
                 type="button"
                 onClick={() => void removeAvatar()}
                 disabled={uploading}
-                className="inline-flex items-center gap-2 rounded-full border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive disabled:opacity-60"
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive disabled:opacity-60"
               >
-                <Trash2 className="h-4 w-4" /> Remove photo
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                {uploading ? "Updating photo…" : "Remove photo"}
               </button>
             )}
           </div>
@@ -545,15 +551,16 @@ function ProfilePage() {
               type="button"
               disabled={!hasChanges || saving}
               onClick={() => setProfile(savedProfile)}
-              className="glass rounded-full px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
+              className="glass min-h-11 rounded-full px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               disabled={!hasChanges || saving || uploading}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
             >
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save changes
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {saving ? "Saving changes…" : "Save changes"}
             </button>
           </div>
         </form>
@@ -603,9 +610,10 @@ function ProfilePage() {
           )}
           <button
             disabled={!canChangePassword}
-            className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+            className="mt-7 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
           >
-            {changingPassword && <Loader2 className="h-4 w-4 animate-spin" />} Update password
+            {changingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+            {changingPassword ? "Updating password…" : "Update password"}
           </button>
         </form>
       </div>
@@ -655,7 +663,7 @@ function PasswordField({
           type="button"
           onClick={onToggle}
           aria-label={visible ? "Hide password" : "Show password"}
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
         >
           {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>

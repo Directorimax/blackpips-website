@@ -26,7 +26,7 @@ function Contact() {
       </header>
 
       <div className="mt-12 grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 glass rounded-3xl p-8">
+        <div className="lg:col-span-2 glass rounded-3xl p-6 sm:p-8">
           {sent ? (
             <div className="grid place-items-center py-16 text-center">
               <div className="text-gradient-gold font-display text-3xl font-bold">Message received</div>
@@ -46,7 +46,7 @@ function Contact() {
                 <span className="text-xs font-semibold text-muted-foreground">Message</span>
                 <textarea rows={6} required className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-gold/60" />
               </label>
-              <button className="mt-2 justify-self-start rounded-full bg-gradient-gold px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow">Send message</button>
+              <button className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-gradient-gold px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow sm:w-auto">Send message</button>
             </form>
           )}
         </div>
@@ -54,11 +54,11 @@ function Contact() {
         <aside className="space-y-3">
           <a href={SITE.whatsapp} className="glass flex items-center gap-3 rounded-2xl p-4 transition hover:-translate-y-0.5">
             <IconChip><MessageCircle className="h-4 w-4" /></IconChip>
-            <div><div className="text-sm font-semibold">WhatsApp</div><div className="text-xs text-muted-foreground">Fastest reply</div></div>
+            <div className="min-w-0"><div className="text-sm font-semibold">WhatsApp</div><div className="text-xs text-muted-foreground">Fastest reply</div></div>
           </a>
           <a href={`mailto:${SITE.email}`} className="glass flex items-center gap-3 rounded-2xl p-4 transition hover:-translate-y-0.5">
             <IconChip><Mail className="h-4 w-4" /></IconChip>
-            <div><div className="text-sm font-semibold">Email</div><div className="text-xs text-muted-foreground">{SITE.email}</div></div>
+            <div className="min-w-0"><div className="text-sm font-semibold">Email</div><div className="break-words text-xs text-muted-foreground">{SITE.email}</div></div>
           </a>
           <a href={SITE.instagram} className="glass flex items-center gap-3 rounded-2xl p-4 transition hover:-translate-y-0.5">
             <IconChip><Instagram className="h-4 w-4" /></IconChip>

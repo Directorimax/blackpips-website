@@ -142,6 +142,8 @@ function CertificatePage() {
               alt="BlackPips logo"
               width={48}
               height={48}
+              loading="lazy"
+              decoding="async"
               className="certificate-logo"
             />
             <span>

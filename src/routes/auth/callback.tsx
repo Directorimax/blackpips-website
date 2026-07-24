@@ -55,12 +55,6 @@ function AuthCallback() {
           hashParams.get("error_description") ??
           hashParams.get("error");
 
-        console.log("[auth] OAuth callback reached", {
-          hasCode: Boolean(code),
-          hasHashAccessToken: Boolean(hashParams.get("access_token")),
-          pathname: window.location.pathname,
-        });
-
         if (callbackError) {
           throw new Error(callbackError);
         }
@@ -70,11 +64,6 @@ function AuthCallback() {
         if (code) {
           const { data: exchangeData, error: exchangeError } =
             await supabase.auth.exchangeCodeForSession(code);
-
-          console.log("[auth] OAuth provider response", {
-            hasSession: Boolean(exchangeData.session),
-            error: exchangeError?.message ?? null,
-          });
 
           if (exchangeError) {
             throw exchangeError;
@@ -94,32 +83,15 @@ function AuthCallback() {
         }
 
         const user = data.session.user;
-        const provider = user.app_metadata.provider ?? "unknown";
-
-        console.log("[auth] OAuth session established", {
-          provider,
-          userId: user.id,
-        });
 
         setStatus("Preparing your BlackPips account...");
 
         try {
-          console.log("[auth] Calling welcome notification server function", {
-            provider,
-            userId: user.id,
-          });
-
-          const notificationResult = await sendNotification({
+          await sendNotification({
             data: {
               type: "welcome",
               resourceId: user.id,
             },
-          });
-
-          console.log("[auth] Welcome notification requested", {
-            provider,
-            userId: user.id,
-            delivered: notificationResult.delivered,
           });
         } catch (notificationError) {
           // Email failure must never prevent successful authentication.
@@ -129,10 +101,6 @@ function AuthCallback() {
         const callbackRedirect = getSafeRedirect(searchParams.get("redirect"));
 
         const destination = callbackRedirect ?? consumeAuthRedirect() ?? DEFAULT_AUTH_DESTINATION;
-
-        console.log("[auth] Redirecting after OAuth", {
-          destination,
-        });
 
         if (active) {
           navigate({

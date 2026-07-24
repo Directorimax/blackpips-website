@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createSeoHead } from "@/lib/seo";
+import { sendNotification } from "@/services/email/notification.functions";
 
 export const Route = createFileRoute("/mentorship")({
   head: () =>
@@ -119,7 +120,7 @@ function Mentorship() {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError) throw authError;
       if (!authData.user) throw new Error("Your session has expired. Please sign in again.");
-      const { error } = await supabase.rpc("submit_mentorship_application", {
+      const { data: applicationId, error } = await supabase.rpc("submit_mentorship_application", {
         p_mentorship_package_id: selectedPackage.id,
         p_full_name: form.full_name.trim(),
         p_email: form.email.trim(),
@@ -133,6 +134,13 @@ function Mentorship() {
         p_notes: form.notes.trim() || null,
       });
       if (error) throw error;
+      try {
+        await sendNotification({
+          data: { type: "mentorship_submitted", resourceId: applicationId },
+        });
+      } catch {
+        console.error("Mentorship review notification could not be queued.");
+      }
       toast.success("Mentorship application received.");
       setSelectedPackage(null);
       setForm((current) => ({ ...EMPTY_FORM, email: current.email }));
@@ -285,7 +293,7 @@ function Mentorship() {
               availability before discussing scheduling or payment.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={submitApplication} className="mt-2 grid gap-4">
+          <form onSubmit={submitApplication} className="mt-2 grid gap-4" aria-busy={submitting}>
             <div className="rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3">
               <div className="text-[10px] font-semibold uppercase tracking-widest text-gold">
                 Selected Mentorship Package
@@ -396,6 +404,7 @@ function Mentorship() {
             </ApplicationField>
             <button
               disabled={submitting}
+              aria-busy={submitting}
               className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-gold px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
