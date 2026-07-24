@@ -4,6 +4,26 @@ function isVideoId(value: string | null) {
   return Boolean(value && /^[A-Za-z0-9_-]{6,}$/.test(value));
 }
 
+function getYouTubeVideoId(videoUrl: string | null | undefined): string | null {
+  const originalUrl = videoUrl?.trim();
+  if (!originalUrl) return null;
+  try {
+    const parsed = new URL(originalUrl);
+    if (parsed.protocol !== "https:") return null;
+    if (parsed.hostname.toLowerCase() === "youtu.be") return parsed.pathname.split("/")[1] ?? null;
+    if (!youtubeHosts.has(parsed.hostname.toLowerCase())) return null;
+    if (parsed.pathname === "/watch") return parsed.searchParams.get("v");
+    return parsed.pathname.split("/").filter(Boolean).at(-1) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function getVideoThumbnailUrl(videoUrl: string | null | undefined): string | null {
+  const videoId = getYouTubeVideoId(videoUrl);
+  return isVideoId(videoId) ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
+}
+
 /**
  * Returns a safe URL for iframe playback, or null when the provider URL is not
  * one that this application can embed. The original submitted URL is never

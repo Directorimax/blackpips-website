@@ -29,6 +29,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      free_lesson_bookmarks: {
+        Row: {
+          created_at: string;
+          id: string;
+          lesson_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          lesson_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          lesson_id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       courses: {
         Row: {
           id: string;

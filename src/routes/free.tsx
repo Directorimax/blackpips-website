@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { PlayCircle, Search, Bookmark, BookmarkCheck } from "lucide-react";
+import { PlayCircle, Search, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 import { FREE_LESSONS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,12 +32,25 @@ export const Route = createFileRoute("/free")({
 
 const LEVELS = ["All", "Beginner", "Advanced"] as const;
 
+function logBookmarkError(
+  action: string,
+  error: { code?: string; message?: string; details?: string; hint?: string },
+) {
+  console.error(`[bookmarks] Free lesson ${action} failed`, {
+    code: error.code,
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+  });
+}
+
 function Free() {
   const navigate = useNavigate();
   const { user } = useSession();
   const [q, setQ] = useState("");
   const [level, setLevel] = useState<(typeof LEVELS)[number]>("All");
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const [savingBookmarkId, setSavingBookmarkId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -45,7 +58,7 @@ function Free() {
       return;
     }
     supabase
-      .from("bookmarks")
+      .from("free_lesson_bookmarks")
       .select("lesson_id")
       .eq("user_id", user.id)
       .then(({ data }) => {
@@ -66,30 +79,37 @@ function Free() {
       navigate({ to: "/auth" });
       return;
     }
+    if (savingBookmarkId) return;
     const has = bookmarks.has(id);
     const next = new Set(bookmarks);
     if (has) next.delete(id);
     else next.add(id);
     setBookmarks(next);
+    setSavingBookmarkId(id);
     if (has) {
       const { error } = await supabase
-        .from("bookmarks")
+        .from("free_lesson_bookmarks")
         .delete()
         .eq("user_id", user.id)
         .eq("lesson_id", id);
       if (error) {
+        logBookmarkError("removal", error);
         setBookmarks(bookmarks);
         toast.error("Could not remove");
       }
     } else {
       const { error } = await supabase
-        .from("bookmarks")
-        .insert({ user_id: user.id, lesson_id: id });
+        .from("free_lesson_bookmarks")
+        .upsert({ user_id: user.id, lesson_id: id }, { onConflict: "user_id,lesson_id" });
       if (error) {
+        logBookmarkError("save", error);
         setBookmarks(bookmarks);
         toast.error("Could not save");
+      } else {
+        toast.success("Saved successfully");
       }
     }
+    setSavingBookmarkId(null);
   }
 
   return (
@@ -157,15 +177,14 @@ function Free() {
                 <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
                   <span className="text-xs text-muted-foreground">Free</span>
                   <button
-                    onClick={() => toggleBookmark(l.id)}
-                    aria-label={saved ? "Remove bookmark" : "Bookmark"}
-                    className={`glass grid h-8 w-8 place-items-center rounded-full transition ${saved ? "text-gold" : "hover:text-gold"}`}
+                    type="button"
+                    onClick={() => void toggleBookmark(l.id)}
+                    disabled={savingBookmarkId === l.id}
+                    aria-pressed={saved}
+                    aria-label={saved ? "Remove saved lesson" : "Save lesson"}
+                    className={`glass grid h-8 w-8 place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-60 ${saved ? "text-gold" : "hover:text-gold"}`}
                   >
-                    {saved ? (
-                      <BookmarkCheck className="h-3.5 w-3.5" />
-                    ) : (
-                      <Bookmark className="h-3.5 w-3.5" />
-                    )}
+                    <Bookmark className={`h-3.5 w-3.5 ${saved ? "fill-gold" : ""}`} />
                   </button>
                 </div>
               </div>

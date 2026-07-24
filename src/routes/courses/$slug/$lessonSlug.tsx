@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  Bookmark,
+  BookmarkCheck,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -24,6 +26,7 @@ import { useAuth } from "@/contexts/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
 import { sendNotification } from "@/services/email/notification.functions";
+import { useLessonBookmark } from "@/hooks/useLessonBookmark";
 
 export const Route = createFileRoute("/courses/$slug/$lessonSlug")({
   component: () => (
@@ -58,6 +61,12 @@ function PremiumLesson() {
   const [saving, setSaving] = useState(false);
   const [mobileCurriculumOpen, setMobileCurriculumOpen] = useState(false);
   const readingProgress = useReadingProgress();
+  const {
+    bookmarked,
+    loading: bookmarkLoading,
+    saving: bookmarkSaving,
+    toggleBookmark,
+  } = useLessonBookmark(lesson?.id ?? null);
 
   useEffect(() => {
     if (!user) return;
@@ -251,6 +260,11 @@ function PremiumLesson() {
           completedCount={completedCount}
           totalCount={curriculum.length}
           percentage={progressPercent}
+        />
+        <LessonBookmarkAction
+          bookmarked={bookmarked}
+          disabled={bookmarkLoading || bookmarkSaving}
+          onToggle={toggleBookmark}
         />
       </header>
 
@@ -483,6 +497,34 @@ function CompletionAction({
     >
       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
       {saving ? "Saving…" : "Mark as completed"}
+    </button>
+  );
+}
+
+function LessonBookmarkAction({
+  bookmarked,
+  disabled,
+  onToggle,
+}: {
+  bookmarked: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => void onToggle()}
+      disabled={disabled}
+      aria-pressed={bookmarked}
+      aria-label={bookmarked ? "Remove saved lesson" : "Save lesson"}
+      className="glass mt-5 inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {bookmarked ? (
+        <BookmarkCheck className="h-4 w-4 fill-gold text-gold" aria-hidden="true" />
+      ) : (
+        <Bookmark className="h-4 w-4" aria-hidden="true" />
+      )}
+      {bookmarked ? "Saved" : "Save lesson"}
     </button>
   );
 }

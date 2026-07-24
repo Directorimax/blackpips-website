@@ -17,6 +17,7 @@ import {
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { COURSES, FREE_LESSONS, formatTZS } from "@/lib/site-data";
+import { getVideoThumbnailUrl } from "@/lib/video-url";
 import { useAuth } from "@/contexts/useAuth";
 import { mentorshipWhatsAppUrl } from "@/lib/mentorship";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -33,13 +34,14 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 type Tab = "learning" | "bookmarks" | "mentorship" | "account" | "billing" | "certificates";
 
 type Profile = { full_name: string | null; avatar: string | null; country: string | null };
-type Lesson = { id: string; course_id: string; slug: string; title: string; position: number };
+type Lesson = { id: string; course_id: string; slug: string; title: string; position: number; video_url: string | null };
 type LessonProgress = {
   course_id: string;
   lesson_id: string;
   last_viewed_at: string;
   is_completed: boolean;
 };
+type Bookmark = { lesson_id: string; created_at: string };
 type PaymentSubmission = {
   id: string;
   course_id: string;
@@ -71,6 +73,18 @@ type CourseCertificate = {
   pdf_generated: boolean;
 };
 
+function logBookmarkError(
+  action: string,
+  error: { code?: string; message?: string; details?: string; hint?: string },
+) {
+  console.error(`[bookmarks] Dashboard ${action} failed`, {
+    code: error.code,
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+  });
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   const { user, signOut: sharedSignOut } = useAuth();
@@ -83,7 +97,8 @@ function Dashboard() {
     avatar: "",
     country: "",
   });
-  const [bookmarkIds, setBookmarkIds] = useState<string[]>([]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [freeBookmarks, setFreeBookmarks] = useState<Bookmark[]>([]);
   const [purchasedCourseIds, setPurchasedCourseIds] = useState<string[]>([]);
   const [databaseCourseSlugs, setDatabaseCourseSlugs] = useState<Record<string, string>>({});
   const [databaseCourseTitles, setDatabaseCourseTitles] = useState<Record<string, string>>({});
@@ -146,7 +161,8 @@ function Dashboard() {
       void refreshCertificates();
       const [
         { data: p },
-        { data: bm },
+        { data: bm, error: bookmarksError },
+        { data: freeBm, error: freeBookmarksError },
         { data: purchases },
         { data: databaseCourses },
         { data: lessonData, error: lessonsError },
@@ -159,7 +175,12 @@ function Dashboard() {
           .select("full_name,avatar,country")
           .eq("id", user.id)
           .maybeSingle(),
-        supabase.from("bookmarks").select("lesson_id").eq("user_id", user.id),
+        supabase
+          .from("bookmarks")
+          .select("lesson_id,created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase.from("free_lesson_bookmarks").select("lesson_id,created_at").eq("user_id", user.id),
         supabase
           .from("purchases")
           .select("course_id,amount,payment_status,created_at")
@@ -168,7 +189,7 @@ function Dashboard() {
         supabase.from("courses").select("id,slug,title"),
         supabase
           .from("lessons")
-          .select("id,course_id,slug,title,position")
+          .select("id,course_id,slug,title,position,video_url")
           .eq("is_published", true)
           .order("position", { ascending: true }),
         supabase
@@ -191,7 +212,10 @@ function Dashboard() {
           avatar: p.avatar ?? "",
           country: p.country ?? "",
         });
-      setBookmarkIds((bm ?? []).map((b) => b.lesson_id));
+      if (bookmarksError) logBookmarkError("load", bookmarksError);
+      if (freeBookmarksError) logBookmarkError("free bookmark load", freeBookmarksError);
+      setBookmarks(bm ?? []);
+      setFreeBookmarks(freeBm ?? []);
       setPurchasedCourseIds((purchases ?? []).map((purchase) => purchase.course_id));
       setDatabaseCourseSlugs(
         Object.fromEntries((databaseCourses ?? []).map((course) => [course.id, course.slug])),
@@ -236,15 +260,23 @@ function Dashboard() {
     navigate({ to: "/auth", replace: true });
   }
 
-  async function removeBookmark(lessonId: string) {
+  async function removeBookmark(lessonId: string, source: "premium" | "free") {
     if (!user) return;
+    const previous = bookmarks;
+    const previousFree = freeBookmarks;
+    if (source === "premium") setBookmarks((current) => current.filter((bookmark) => bookmark.lesson_id !== lessonId));
+    else setFreeBookmarks((current) => current.filter((bookmark) => bookmark.lesson_id !== lessonId));
     const { error } = await supabase
-      .from("bookmarks")
+      .from(source === "premium" ? "bookmarks" : "free_lesson_bookmarks")
       .delete()
       .eq("user_id", user.id)
       .eq("lesson_id", lessonId);
-    if (error) return toast.error("Could not remove bookmark");
-    setBookmarkIds((prev) => prev.filter((id) => id !== lessonId));
+    if (error) {
+      logBookmarkError("removal", error);
+      if (source === "premium") setBookmarks(previous);
+      else setFreeBookmarks(previousFree);
+      return toast.error("Could not remove bookmark");
+    }
   }
 
   async function saveProfile(e: React.FormEvent) {
@@ -293,12 +325,38 @@ function Dashboard() {
     purchasedCourseIds.map((id) => databaseCourseSlugs[id]).filter(Boolean),
   );
   const myCourses = COURSES.filter((c) => purchasedSlugs.has(c.slug));
-  const bookmarkedLessons = FREE_LESSONS.filter((l) => bookmarkIds.includes(l.id));
   const initials = (profile.full_name || email || "U").slice(0, 1).toUpperCase();
   const courseIdBySlug = Object.fromEntries(
     Object.entries(databaseCourseSlugs).map(([id, courseSlug]) => [courseSlug, id]),
   );
   const lessonById = new Map(publishedLessons.map((lesson) => [lesson.id, lesson]));
+  const bookmarkedLessons = bookmarks.flatMap((bookmark) => {
+    const lesson = lessonById.get(bookmark.lesson_id);
+    const courseSlug = lesson ? databaseCourseSlugs[lesson.course_id] : undefined;
+    if (!lesson || !courseSlug) return [];
+
+    const progress = lessonProgress.find((item) => item.lesson_id === lesson.id);
+    return [
+      {
+        ...lesson,
+        courseSlug,
+        courseTitle: databaseCourseTitles[lesson.course_id] ?? "Premium course",
+        bookmarkCreatedAt: bookmark.created_at,
+        progressLabel: progress?.is_completed ? "Completed" : "Not started",
+        thumbnail: getVideoThumbnailUrl(lesson.video_url),
+        source: "premium" as "premium" | "free",
+      },
+    ];
+  }).concat(
+    freeBookmarks.flatMap((bookmark) => {
+      const lesson = FREE_LESSONS.find((item) => item.id === bookmark.lesson_id);
+      if (!lesson) {
+        console.error("[bookmarks] Unresolved free lesson ID:", bookmark.lesson_id);
+        return [];
+      }
+      return [{ ...lesson, courseSlug: "", course_id: "", position: 0, video_url: null, courseTitle: "Free lesson", progressLabel: lesson.level, thumbnail: null, source: "free" as "premium" | "free", bookmarkCreatedAt: bookmark.created_at, slug: lesson.id }];
+    }),
+  ).sort((a, b) => b.bookmarkCreatedAt.localeCompare(a.bookmarkCreatedAt));
   const recentProgress = lessonProgress
     .filter(
       (progress) =>
@@ -475,30 +533,42 @@ function Dashboard() {
 
         {tab === "bookmarks" && (
           <div>
-            <h2 className="font-display text-xl font-semibold">Saved free lessons</h2>
+            <h2 className="font-display text-xl font-semibold">Saved lessons</h2>
             {bookmarkedLessons.length === 0 ? (
               <EmptyState
-                title="Nothing bookmarked yet"
-                body="Save any free lesson from the library to find it here."
-                ctaTo="/free"
-                ctaLabel="Explore free lessons"
+                title="No bookmarked lessons yet."
+                body="Save a premium lesson to return to it from your dashboard."
+                ctaTo="/courses"
+                ctaLabel="Explore premium lessons"
               />
             ) : (
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {bookmarkedLessons.map((l) => (
-                  <article key={l.id} className="rounded-2xl border border-border bg-card p-5">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gold">
-                      {l.level}
-                    </span>
-                    <h3 className="mt-2 font-display text-base font-semibold">{l.title}</h3>
-                    <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{l.duration}</span>
-                      <button
-                        onClick={() => removeBookmark(l.id)}
-                        className="inline-flex items-center gap-1 hover:text-foreground"
-                      >
-                        <BookmarkX className="h-3.5 w-3.5" /> Remove
-                      </button>
+                  <article
+                    key={l.id}
+                    className="overflow-hidden rounded-2xl border border-border bg-card"
+                  >
+                    <div className="relative aspect-video bg-gradient-to-br from-accent to-secondary">
+                      <div className="absolute inset-0 bg-hero-glow opacity-70" />
+                      {l.thumbnail ? <img src={l.thumbnail} alt="" className="absolute inset-0 h-full w-full object-cover object-center" /> : <div className="absolute inset-0 grid place-items-center"><PlayCircle className="h-9 w-9 text-gold" aria-hidden="true" /></div>}
+                    </div>
+                    <div className="p-5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-gold">
+                        {l.courseTitle}
+                      </span>
+                      <h3 className="mt-2 font-display text-base font-semibold">{l.title}</h3>
+                      <p className="mt-2 text-xs text-muted-foreground">{l.progressLabel}</p>
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        {l.source === "premium" ? <Link to="/courses/$slug/$lessonSlug" params={{ slug: l.courseSlug, lessonSlug: l.slug }} className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"><PlayCircle className="h-3.5 w-3.5" /> Continue</Link> : <Link to="/free" className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"><PlayCircle className="h-3.5 w-3.5" /> Continue</Link>}
+                        <button
+                          type="button"
+                          onClick={() => void removeBookmark(l.id, l.source)}
+                          aria-label={`Remove ${l.title} from saved lessons`}
+                          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <BookmarkX className="h-3.5 w-3.5" /> Remove
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}
