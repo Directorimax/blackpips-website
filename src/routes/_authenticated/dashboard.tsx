@@ -20,6 +20,8 @@ import { COURSES, FREE_LESSONS, formatTZS } from "@/lib/site-data";
 import { useAuth } from "@/contexts/useAuth";
 import { mentorshipWhatsAppUrl } from "@/lib/mentorship";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useProfileAvatar } from "@/hooks/useProfileAvatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -73,6 +75,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const { user, signOut: sharedSignOut } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
+  const { avatarUrl } = useProfileAvatar();
   const [tab, setTab] = useState<Tab>("learning");
   const [email, setEmail] = useState("");
   const [profile, setProfile] = useState<Profile>({
@@ -326,9 +329,12 @@ function Dashboard() {
     <div className="mx-auto max-w-7xl px-4 py-16">
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div className="flex items-center gap-4">
-          <div className="grid h-14 w-14 place-items-center rounded-full bg-gradient-gold font-display text-xl font-bold text-primary-foreground shadow-glow">
-            {initials}
-          </div>
+          <Avatar className="h-14 w-14 border border-gold/40 shadow-glow">
+            <AvatarImage src={avatarUrl ?? undefined} alt="Your profile photo" />
+            <AvatarFallback className="bg-gradient-gold font-display text-xl font-bold text-primary-foreground">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-gold">
               Dashboard

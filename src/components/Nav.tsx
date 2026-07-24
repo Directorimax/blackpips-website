@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useProfileAvatar } from "@/hooks/useProfileAvatar";
 import { supabase } from "@/integrations/supabase/client";
 
 const ADMIN_NAV = [
@@ -45,10 +46,10 @@ export function Nav() {
   const { user, loading, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
+  const { avatarUrl } = useProfileAvatar();
   const [profileIdentity, setProfileIdentity] = useState({
     fullName: "",
     username: "",
-    avatar: "",
   });
 
   async function handleSignOut() {
@@ -66,13 +67,13 @@ export function Nav() {
 
   useEffect(() => {
     if (!user) {
-      setProfileIdentity({ fullName: "", username: "", avatar: "" });
+      setProfileIdentity({ fullName: "", username: "" });
       return;
     }
     let active = true;
     void supabase
       .from("profiles")
-      .select("full_name,username,avatar")
+      .select("full_name,username")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -81,22 +82,7 @@ export function Nav() {
           setProfileIdentity({
             fullName: data?.full_name ?? "",
             username: data?.username ?? "",
-            avatar: "",
           });
-          if (!data?.avatar) return;
-          if (/^https?:\/\//i.test(data.avatar)) {
-            setProfileIdentity((current) => ({ ...current, avatar: data.avatar ?? "" }));
-            return;
-          }
-          void supabase.storage
-            .from("profile-images")
-            .createSignedUrl(data.avatar, 60 * 60)
-            .then(({ data: signed, error: signedError }) => {
-              if (signedError)
-                console.error("Could not create navigation avatar URL:", signedError);
-              if (active && signed?.signedUrl)
-                setProfileIdentity((current) => ({ ...current, avatar: signed.signedUrl }));
-            });
         }
       });
     return () => {
@@ -165,10 +151,7 @@ export function Nav() {
                       className="inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
                     >
                       <Avatar className="h-9 w-9 border border-gold/40">
-                        <AvatarImage
-                          src={profileIdentity.avatar || undefined}
-                          alt="Your profile photo"
-                        />
+                        <AvatarImage src={avatarUrl || undefined} alt="Your profile photo" />
                         <AvatarFallback className="bg-gradient-gold text-xs font-bold text-primary-foreground">
                           {initials}
                         </AvatarFallback>

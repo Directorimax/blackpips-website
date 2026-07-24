@@ -16,6 +16,11 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  getProfileAvatarUrl,
+  notifyProfileAvatarChanged,
+  PROFILE_IMAGE_BUCKET,
+} from "@/lib/profile-avatar";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -24,7 +29,6 @@ export const Route = createFileRoute("/_authenticated/profile")({
   component: ProfilePage,
 });
 
-const PROFILE_IMAGE_BUCKET = "profile-images";
 const MAX_PROFILE_IMAGE_SIZE = 5 * 1024 * 1024;
 const usernameSchema = z
   .string()
@@ -71,18 +75,6 @@ function logStorageError(action: string, error: unknown) {
     statusCode: storageError.statusCode,
     cause: storageError.cause,
   });
-}
-
-async function getAvatarPreviewUrl(avatar: string | null) {
-  if (!avatar || /^https?:\/\//i.test(avatar)) return avatar;
-  const { data, error } = await supabase.storage
-    .from(PROFILE_IMAGE_BUCKET)
-    .createSignedUrl(avatar, 60 * 60);
-  if (error) {
-    console.error("Could not create profile image URL:", error);
-    return null;
-  }
-  return data.signedUrl;
 }
 
 function ProfilePage() {
@@ -135,7 +127,7 @@ function ProfilePage() {
       };
       setProfile(nextProfile);
       setSavedProfile(nextProfile);
-      void getAvatarPreviewUrl(nextProfile.avatar).then(setAvatarPreview);
+      void getProfileAvatarUrl(nextProfile.avatar).then(setAvatarPreview);
       setLoading(false);
     }
 
@@ -299,7 +291,8 @@ function ProfilePage() {
       const nextProfile = { ...profile, avatar: path };
       setProfile(nextProfile);
       setSavedProfile({ ...savedProfile, avatar: path });
-      setAvatarPreview(await getAvatarPreviewUrl(path));
+      setAvatarPreview(await getProfileAvatarUrl(path));
+      notifyProfileAvatarChanged(user.id, path);
       toast.success("Profile photo updated.");
     } catch (error) {
       console.error("Could not upload profile image:", error);
@@ -343,6 +336,7 @@ function ProfilePage() {
       setProfile(nextProfile);
       setSavedProfile({ ...savedProfile, avatar: null });
       setAvatarPreview(null);
+      notifyProfileAvatarChanged(user.id, null);
       toast.success("Profile photo removed.");
     } catch (error) {
       console.error("Could not remove profile image:", error);

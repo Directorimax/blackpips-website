@@ -214,32 +214,118 @@ export const MENTORSHIP = [
   },
 ] as const;
 
-export const FAQ = [
+export type FaqItem = { q: string; a: string };
+export type FaqGroup = { title: string; items: readonly FaqItem[] };
+
+export const FAQ_GROUPS: readonly FaqGroup[] = [
   {
-    q: "Do I need prior trading experience?",
-    a: "No. The Foundations track assumes zero experience and walks you from candles to full ALC execution.",
+    title: "Getting Started",
+    items: [
+      {
+        q: "Do I need a BLACKPIPS account?",
+        a: "Yes. Create a BLACKPIPS account and sign in to access the free learning area and manage your learning.",
+      },
+      {
+        q: "How do I access the lessons?",
+        a: "Create a BLACKPIPS account and sign in to access the free learning area. Premium lessons require approved premium access.",
+      },
+    ],
   },
   {
-    q: "How long do I keep access?",
-    a: "Every course and mentorship tier includes lifetime access and all future updates to that curriculum.",
+    title: "Courses",
+    items: [
+      {
+        q: "Can I download the lesson videos?",
+        a: "Lessons are designed to be viewed through the BLACKPIPS platform. Download availability depends on the individual lesson.",
+      },
+      {
+        q: "Do you offer certificates?",
+        a: "Certificates are planned for eligible course completions. More information will be provided when the certificate feature is officially available.",
+      },
+    ],
   },
   {
-    q: "What markets does ALC work on?",
-    a: "The framework is instrument-agnostic. It's most commonly applied to forex majors and XAUUSD.",
+    title: "Payments",
+    items: [
+      {
+        q: "Which payment methods do you accept?",
+        a: "Available payment methods are displayed during checkout. Options may vary depending on your location.",
+      },
+      {
+        q: "What happens after I make a payment?",
+        a: "After payment, your submission is reviewed and your account access is updated once approval is complete.",
+      },
+    ],
   },
   {
-    q: "Which payment methods do you accept?",
-    a: "Visa, Mastercard, Apple Pay and Google Pay. Mobile Money is enabled in selected regions.",
+    title: "Premium Access",
+    items: [
+      {
+        q: "How long do I have access to premium lessons?",
+        a: "Once your premium payment has been approved, you receive lifetime access to the premium lessons included in your purchase through your BLACKPIPS account.",
+      },
+      {
+        q: "Is mentor support included with premium lessons?",
+        a: "Yes. After completing the premium lessons, eligible premium learners are guaranteed access to mentor support to help them understand the material and improve their learning process.",
+      },
+    ],
   },
   {
-    q: "Can I get a refund?",
-    a: "Because content is unlocked instantly, sales are final. Preview free lessons before you buy.",
+    title: "Mentorship",
+    items: [
+      {
+        q: "How do I apply for mentorship?",
+        a: "Sign in to your BLACKPIPS account and submit a mentorship application through the mentorship section.",
+      },
+      {
+        q: "Is every mentorship application accepted?",
+        a: "No. Applications are reviewed individually, and availability may be limited.",
+      },
+      {
+        q: "When will I receive a response?",
+        a: "BLACKPIPS will contact you after your application has been reviewed.",
+      },
+      {
+        q: "What support do I receive through mentorship?",
+        a: "Accepted mentorship students receive guaranteed mentor support throughout their mentorship programme, according to the structure, schedule and scope of the selected mentorship package.",
+      },
+    ],
   },
   {
-    q: "Do you provide signals?",
-    a: "No. BlackPips is strictly an education platform — we teach you to read the market yourself.",
+    title: "Trading and Risk",
+    items: [
+      {
+        q: "Do you provide trading signals?",
+        a: "No. BLACKPIPS focuses on forex education, market understanding and developing an independent trading process.",
+      },
+    ],
   },
-];
+  {
+    title: "Support",
+    items: [
+      {
+        q: "Can I request a refund?",
+        a: "Refund eligibility depends on the circumstances and applicable BLACKPIPS terms. Contact support@blackpips.com for assistance.",
+      },
+      {
+        q: "How can I contact support?",
+        a: "Email support@blackpips.com for help with your BLACKPIPS account, payments or learning access.",
+      },
+    ],
+  },
+] as const;
+
+export const FAQ: readonly FaqItem[] = FAQ_GROUPS.flatMap((group) => group.items);
+
+const HOME_FAQ_QUESTIONS = new Set([
+  "Do I need a BLACKPIPS account?",
+  "How do I access the lessons?",
+  "Which payment methods do you accept?",
+  "How do I apply for mentorship?",
+  "How can I contact support?",
+]);
+
+export const HOME_FAQ = FAQ.filter((item) => HOME_FAQ_QUESTIONS.has(item.q));
 
 export const TESTIMONIALS_DATA = [
   {

@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Sparkles, TrendingUp, ShieldCheck, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { CandlestickBg } from "@/components/CandlestickBg";
-import { FAQ, JOURNEY, WHY } from "@/lib/site-data";
+import { useAuth } from "@/contexts/useAuth";
+import { HOME_FAQ, JOURNEY, WHY } from "@/lib/site-data";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -22,6 +23,8 @@ function Home() {
 }
 
 function Hero() {
+  const { user } = useAuth();
+
   return (
     <section className="relative -mt-24 flex min-h-[92vh] items-center overflow-hidden">
       <CandlestickBg />
@@ -47,19 +50,31 @@ function Hero() {
           className="animate-float-up mt-9 flex flex-wrap items-center justify-center gap-3"
           style={{ animationDelay: "0.25s" }}
         >
-          <Link
-            to="/auth"
-            className="shine group inline-flex items-center gap-2 rounded-full bg-gradient-gold px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"
-          >
-            Create your account
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-          <Link
-            to="/auth"
-            className="glass inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold hover:text-gold"
-          >
-            Sign in
-          </Link>
+          {user ? (
+            <Link
+              to="/free"
+              className="shine group inline-flex items-center gap-2 rounded-full bg-gradient-gold px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"
+            >
+              Start Learning for Free
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/auth"
+                className="shine group inline-flex items-center gap-2 rounded-full bg-gradient-gold px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"
+              >
+                Create your account
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <Link
+                to="/auth"
+                className="glass inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold hover:text-gold"
+              >
+                Sign in
+              </Link>
+            </>
+          )}
         </div>
 
         <div
@@ -186,7 +201,7 @@ function FaqSection() {
       <div className="mx-auto max-w-3xl px-4">
         <SectionHead eyebrow="FAQ" title="Answers, not marketing" />
         <div className="mt-10 space-y-3">
-          {FAQ.map((f, i) => (
+          {HOME_FAQ.map((f, i) => (
             <div key={f.q} className="glass rounded-2xl">
               <button
                 onClick={() => setOpen(open === i ? null : i)}
@@ -200,6 +215,14 @@ function FaqSection() {
               {open === i && <div className="px-5 pb-5 text-sm text-muted-foreground">{f.a}</div>}
             </div>
           ))}
+        </div>
+        <div className="mt-8 flex justify-center">
+          <Link
+            to="/faq"
+            className="glass inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          >
+            View All FAQs
+          </Link>
         </div>
       </div>
     </section>
