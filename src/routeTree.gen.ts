@@ -23,9 +23,13 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ToolsIndexRouteImport } from './routes/tools.index'
 import { Route as CoursesIndexRouteImport } from './routes/courses/index'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as ToolsTradingJournalRouteImport } from './routes/tools/trading-journal'
+import { Route as ToolsPipCalculatorRouteImport } from './routes/tools/pip-calculator'
+import { Route as ToolsMarketSessionsRouteImport } from './routes/tools/market-sessions'
 import { Route as PaymentSlugRouteImport } from './routes/payment/$slug'
 import { Route as CoursesSlugRouteImport } from './routes/courses/$slug'
 import { Route as CertificatesCertificateIdRouteImport } from './routes/certificates/$certificateId'
@@ -110,6 +114,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ToolsIndexRoute = ToolsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ToolsRoute,
+} as any)
 const CoursesIndexRoute = CoursesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -124,6 +133,21 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsTradingJournalRoute = ToolsTradingJournalRouteImport.update({
+  id: '/trading-journal',
+  path: '/trading-journal',
+  getParentRoute: () => ToolsRoute,
+} as any)
+const ToolsPipCalculatorRoute = ToolsPipCalculatorRouteImport.update({
+  id: '/pip-calculator',
+  path: '/pip-calculator',
+  getParentRoute: () => ToolsRoute,
+} as any)
+const ToolsMarketSessionsRoute = ToolsMarketSessionsRouteImport.update({
+  id: '/market-sessions',
+  path: '/market-sessions',
+  getParentRoute: () => ToolsRoute,
 } as any)
 const PaymentSlugRoute = PaymentSlugRouteImport.update({
   id: '/payment/$slug',
@@ -211,7 +235,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
-  '/tools': typeof ToolsRoute
+  '/tools': typeof ToolsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/admin/certificates': typeof AdminCertificatesRoute
@@ -223,9 +247,13 @@ export interface FileRoutesByFullPath {
   '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
   '/courses/$slug': typeof CoursesSlugRouteWithChildren
   '/payment/$slug': typeof PaymentSlugRoute
+  '/tools/market-sessions': typeof ToolsMarketSessionsRoute
+  '/tools/pip-calculator': typeof ToolsPipCalculatorRoute
+  '/tools/trading-journal': typeof ToolsTradingJournalRoute
   '/admin/': typeof AdminIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/courses/': typeof CoursesIndexRoute
+  '/tools/': typeof ToolsIndexRoute
   '/admin/students/$studentId': typeof AdminStudentsStudentIdRoute
   '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
   '/courses/$slug/': typeof CoursesSlugIndexRoute
@@ -241,7 +269,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
-  '/tools': typeof ToolsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/admin/certificates': typeof AdminCertificatesRoute
@@ -252,9 +279,13 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
   '/payment/$slug': typeof PaymentSlugRoute
+  '/tools/market-sessions': typeof ToolsMarketSessionsRoute
+  '/tools/pip-calculator': typeof ToolsPipCalculatorRoute
+  '/tools/trading-journal': typeof ToolsTradingJournalRoute
   '/admin': typeof AdminIndexRoute
   '/auth': typeof AuthIndexRoute
   '/courses': typeof CoursesIndexRoute
+  '/tools': typeof ToolsIndexRoute
   '/admin/students/$studentId': typeof AdminStudentsStudentIdRoute
   '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
   '/courses/$slug': typeof CoursesSlugIndexRoute
@@ -274,7 +305,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
-  '/tools': typeof ToolsRoute
+  '/tools': typeof ToolsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/admin/certificates': typeof AdminCertificatesRoute
@@ -286,9 +317,13 @@ export interface FileRoutesById {
   '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
   '/courses/$slug': typeof CoursesSlugRouteWithChildren
   '/payment/$slug': typeof PaymentSlugRoute
+  '/tools/market-sessions': typeof ToolsMarketSessionsRoute
+  '/tools/pip-calculator': typeof ToolsPipCalculatorRoute
+  '/tools/trading-journal': typeof ToolsTradingJournalRoute
   '/admin/': typeof AdminIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/courses/': typeof CoursesIndexRoute
+  '/tools/': typeof ToolsIndexRoute
   '/admin/students/$studentId': typeof AdminStudentsStudentIdRoute
   '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
   '/courses/$slug/': typeof CoursesSlugIndexRoute
@@ -320,9 +355,13 @@ export interface FileRouteTypes {
     | '/certificates/$certificateId'
     | '/courses/$slug'
     | '/payment/$slug'
+    | '/tools/market-sessions'
+    | '/tools/pip-calculator'
+    | '/tools/trading-journal'
     | '/admin/'
     | '/auth/'
     | '/courses/'
+    | '/tools/'
     | '/admin/students/$studentId'
     | '/courses/$slug/$lessonSlug'
     | '/courses/$slug/'
@@ -338,7 +377,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
-    | '/tools'
     | '/dashboard'
     | '/profile'
     | '/admin/certificates'
@@ -349,9 +387,13 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/certificates/$certificateId'
     | '/payment/$slug'
+    | '/tools/market-sessions'
+    | '/tools/pip-calculator'
+    | '/tools/trading-journal'
     | '/admin'
     | '/auth'
     | '/courses'
+    | '/tools'
     | '/admin/students/$studentId'
     | '/courses/$slug/$lessonSlug'
     | '/courses/$slug'
@@ -382,9 +424,13 @@ export interface FileRouteTypes {
     | '/certificates/$certificateId'
     | '/courses/$slug'
     | '/payment/$slug'
+    | '/tools/market-sessions'
+    | '/tools/pip-calculator'
+    | '/tools/trading-journal'
     | '/admin/'
     | '/auth/'
     | '/courses/'
+    | '/tools/'
     | '/admin/students/$studentId'
     | '/courses/$slug/$lessonSlug'
     | '/courses/$slug/'
@@ -404,7 +450,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TestimonialsRoute: typeof TestimonialsRoute
-  ToolsRoute: typeof ToolsRoute
+  ToolsRoute: typeof ToolsRouteWithChildren
   AdminCertificatesRoute: typeof AdminCertificatesRoute
   AdminLessonsRoute: typeof AdminLessonsRoute
   AdminMentorshipApplicationsRoute: typeof AdminMentorshipApplicationsRoute
@@ -515,6 +561,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tools/': {
+      id: '/tools/'
+      path: '/'
+      fullPath: '/tools/'
+      preLoaderRoute: typeof ToolsIndexRouteImport
+      parentRoute: typeof ToolsRoute
+    }
     '/courses/': {
       id: '/courses/'
       path: '/'
@@ -535,6 +588,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/tools/trading-journal': {
+      id: '/tools/trading-journal'
+      path: '/trading-journal'
+      fullPath: '/tools/trading-journal'
+      preLoaderRoute: typeof ToolsTradingJournalRouteImport
+      parentRoute: typeof ToolsRoute
+    }
+    '/tools/pip-calculator': {
+      id: '/tools/pip-calculator'
+      path: '/pip-calculator'
+      fullPath: '/tools/pip-calculator'
+      preLoaderRoute: typeof ToolsPipCalculatorRouteImport
+      parentRoute: typeof ToolsRoute
+    }
+    '/tools/market-sessions': {
+      id: '/tools/market-sessions'
+      path: '/market-sessions'
+      fullPath: '/tools/market-sessions'
+      preLoaderRoute: typeof ToolsMarketSessionsRouteImport
+      parentRoute: typeof ToolsRoute
     }
     '/payment/$slug': {
       id: '/payment/$slug'
@@ -689,6 +763,22 @@ const CoursesRouteChildren: CoursesRouteChildren = {
 const CoursesRouteWithChildren =
   CoursesRoute._addFileChildren(CoursesRouteChildren)
 
+interface ToolsRouteChildren {
+  ToolsMarketSessionsRoute: typeof ToolsMarketSessionsRoute
+  ToolsPipCalculatorRoute: typeof ToolsPipCalculatorRoute
+  ToolsTradingJournalRoute: typeof ToolsTradingJournalRoute
+  ToolsIndexRoute: typeof ToolsIndexRoute
+}
+
+const ToolsRouteChildren: ToolsRouteChildren = {
+  ToolsMarketSessionsRoute: ToolsMarketSessionsRoute,
+  ToolsPipCalculatorRoute: ToolsPipCalculatorRoute,
+  ToolsTradingJournalRoute: ToolsTradingJournalRoute,
+  ToolsIndexRoute: ToolsIndexRoute,
+}
+
+const ToolsRouteWithChildren = ToolsRoute._addFileChildren(ToolsRouteChildren)
+
 interface AdminStudentsRouteChildren {
   AdminStudentsStudentIdRoute: typeof AdminStudentsStudentIdRoute
 }
@@ -715,7 +805,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TestimonialsRoute: TestimonialsRoute,
-  ToolsRoute: ToolsRoute,
+  ToolsRoute: ToolsRouteWithChildren,
   AdminCertificatesRoute: AdminCertificatesRoute,
   AdminLessonsRoute: AdminLessonsRoute,
   AdminMentorshipApplicationsRoute: AdminMentorshipApplicationsRoute,

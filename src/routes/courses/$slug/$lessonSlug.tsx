@@ -15,6 +15,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
+import { ProtectedLessonVideo } from "@/components/ProtectedLessonVideo";
 import {
   LessonArticle,
   LessonNotes,
@@ -46,6 +47,7 @@ type Lesson = {
 };
 type Course = { id: string; slug: string; title: string };
 type LessonProgress = { lesson_id: string; is_completed: boolean };
+type Profile = { full_name: string | null };
 
 function PremiumLesson() {
   const { slug, lessonSlug } = Route.useParams();
@@ -60,6 +62,7 @@ function PremiumLesson() {
   const [lessonUnavailable, setLessonUnavailable] = useState(false);
   const [saving, setSaving] = useState(false);
   const [mobileCurriculumOpen, setMobileCurriculumOpen] = useState(false);
+  const [viewerName, setViewerName] = useState("");
   const readingProgress = useReadingProgress();
   const {
     bookmarked,
@@ -82,15 +85,15 @@ function PremiumLesson() {
       setCurriculum([]);
       setCompletedLessonIds(new Set());
 
-      const { data: courseData, error: courseError } = await supabase
-        .from("courses")
-        .select("id,slug,title")
-        .eq("slug", slug)
-        .maybeSingle();
+      const [{ data: courseData, error: courseError }, { data: profileData }] = await Promise.all([
+        supabase.from("courses").select("id,slug,title").eq("slug", slug).maybeSingle(),
+        supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
+      ]);
       if (courseError || !courseData) {
         if (active) setLoading(false);
         return;
       }
+      if (active) setViewerName((profileData as Profile | null)?.full_name?.trim() ?? "");
 
       const { data: purchase } = await supabase
         .from("purchases")
@@ -165,6 +168,55 @@ function PremiumLesson() {
     };
   }, [lessonSlug, slug, user]);
 
+  useEffect(() => {
+    const userId = user?.id;
+    const courseId = course?.id;
+    const lessonId = lesson?.id;
+    if (!userId || !courseId || !lessonId || !allowed) return;
+    let active = true;
+
+    const verifyAccess = async () => {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || authData.user?.id !== userId) {
+        if (active) setAllowed(false);
+        return;
+      }
+      const [
+        { data: purchase, error: purchaseError },
+        { data: accessibleLesson, error: lessonError },
+      ] = await Promise.all([
+        supabase
+          .from("purchases")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("course_id", courseId)
+          .maybeSingle(),
+        supabase
+          .from("lessons")
+          .select("id")
+          .eq("id", lessonId)
+          .eq("course_id", courseId)
+          .eq("is_published", true)
+          .maybeSingle(),
+      ]);
+      if (active && (purchaseError || lessonError || !purchase || !accessibleLesson))
+        setAllowed(false);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void verifyAccess();
+    };
+    const interval = window.setInterval(() => void verifyAccess(), 60_000);
+    window.addEventListener("focus", verifyAccess);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", verifyAccess);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [allowed, course?.id, lesson?.id, user?.id]);
+
   const currentLessonIndex = lesson ? curriculum.findIndex((item) => item.id === lesson.id) : -1;
   const previousLesson = currentLessonIndex > 0 ? curriculum[currentLessonIndex - 1] : undefined;
   const nextLesson =
@@ -177,6 +229,15 @@ function PremiumLesson() {
     ? Math.round((completedCount / curriculum.length) * 100)
     : 0;
   const embeddableVideoUrl = getEmbeddableVideoUrl(lesson?.video_url);
+  const metadataName =
+    typeof user?.user_metadata.full_name === "string" ? user.user_metadata.full_name.trim() : "";
+  const videoViewer = user
+    ? {
+        fullName: viewerName || metadataName || user.email || "BlackPips learner",
+        email: user.email || "No email available",
+        id: user.id,
+      }
+    : null;
 
   async function markComplete() {
     if (!user || !course || !lesson || completed || saving) return;
@@ -297,15 +358,11 @@ function PremiumLesson() {
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <main className="min-w-0">
           <div className="aspect-video rounded-3xl border border-border bg-secondary/50 p-3 sm:p-5">
-            {embeddableVideoUrl ? (
-              <iframe
-                title={lesson.title}
+            {embeddableVideoUrl && videoViewer ? (
+              <ProtectedLessonVideo
                 src={embeddableVideoUrl}
-                className="h-full w-full rounded-2xl"
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="strict-origin-when-cross-origin"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                title={lesson.title}
+                viewer={videoViewer}
               />
             ) : lesson.video_url ? (
               <VideoFallback url={lesson.video_url} />

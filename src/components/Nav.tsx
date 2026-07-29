@@ -1,5 +1,6 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   BookOpen,
@@ -8,6 +9,10 @@ import {
   Menu,
   UsersRound,
   Award,
+  Calculator,
+  ChevronDown,
+  Clock,
+  NotebookPen,
   X,
   LayoutDashboard,
   LogOut,
@@ -42,11 +47,34 @@ const ADMIN_NAV = [
   { to: "/admin/certificates" as const, label: "Certificates", icon: Award },
 ];
 
+const TOOL_NAV = [
+  {
+    to: "/tools/pip-calculator" as const,
+    label: "Pip Calculator",
+    description: "Estimate pip values",
+    icon: Calculator,
+  },
+  {
+    to: "/tools/market-sessions" as const,
+    label: "Market Sessions",
+    description: "Check global session hours",
+    icon: Clock,
+  },
+  {
+    to: "/tools/trading-journal" as const,
+    label: "Trading Journal",
+    description: "Review your trade decisions",
+    icon: NotebookPen,
+  },
+] as const;
+
 export function Nav() {
   const [open, setOpen] = useState(false);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
+  const location = useLocation();
   const { avatarUrl } = useProfileAvatar();
   const [profileIdentity, setProfileIdentity] = useState({
     fullName: "",
@@ -64,6 +92,8 @@ export function Nav() {
   }
 
   const dashboardDestination = isAdmin ? "/admin" : "/dashboard";
+  const toolsActive = location.pathname.startsWith("/tools");
+  const activeToolPath = location.pathname;
   const initials = (profileIdentity.fullName || profileIdentity.username || user?.email || "U")
     .split(/\s+/)
     .map((part) => part[0])
@@ -105,16 +135,20 @@ export function Nav() {
           </Link>
 
           <nav className="hidden min-w-0 items-center gap-1 xl:flex">
-            {NAV.map((n) => (
-              <Link
-                key={n.to}
-                to={n.to}
-                activeOptions={{ exact: n.to === "/" }}
-                className="rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:bg-accent/60"
-              >
-                {n.label}
-              </Link>
-            ))}
+            {NAV.map((n) =>
+              n.to === "/tools" ? (
+                <ToolsDropdown key={n.to} activePath={activeToolPath} active={toolsActive} />
+              ) : (
+                <Link
+                  key={n.to}
+                  to={n.to}
+                  activeOptions={{ exact: n.to === "/" }}
+                  className="rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground data-[status=active]:bg-accent/60 data-[status=active]:text-foreground"
+                >
+                  {n.label}
+                </Link>
+              ),
+            )}
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
@@ -213,16 +247,29 @@ export function Nav() {
         {open && (
           <div className="glass animate-float-up mt-2 rounded-2xl p-3 xl:hidden">
             <div className="grid gap-1">
-              {NAV.map((n) => (
-                <Link
-                  key={n.to}
-                  to={n.to}
-                  onClick={() => setOpen(false)}
-                  className="flex min-h-11 items-center rounded-xl px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-                >
-                  {n.label}
-                </Link>
-              ))}
+              {NAV.map((n) =>
+                n.to === "/tools" ? (
+                  <MobileToolsMenu
+                    key={n.to}
+                    activePath={activeToolPath}
+                    open={mobileToolsOpen}
+                    onOpenChange={setMobileToolsOpen}
+                    onSelect={() => {
+                      setMobileToolsOpen(false);
+                      setOpen(false);
+                    }}
+                  />
+                ) : (
+                  <Link
+                    key={n.to}
+                    to={n.to}
+                    onClick={() => setOpen(false)}
+                    className="flex min-h-11 items-center rounded-xl px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                  >
+                    {n.label}
+                  </Link>
+                ),
+              )}
               <div className="my-1 h-px bg-border" />
               {user ? (
                 <>
@@ -282,4 +329,199 @@ export function Nav() {
       </div>
     </header>
   );
+}
+
+function ToolsDropdown({ activePath, active }: { activePath: string; active: boolean }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useDismissToolsMenu(open, menuRef, () => setOpen(false));
+
+  function focusItem(index: number) {
+    window.requestAnimationFrame(() => {
+      const items = menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+      items?.[index]?.focus();
+    });
+  }
+
+  function onMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    );
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      const nextIndex = (currentIndex + direction + items.length) % items.length;
+      items[nextIndex]?.focus();
+    }
+  }
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setOpen(true);
+            focusItem(event.key === "ArrowDown" ? 0 : TOOL_NAV.length - 1);
+          }
+        }}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls="tools-navigation-menu"
+        className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${active ? "bg-accent/60 text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+      >
+        Tools
+        <ChevronDown
+          className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            id="tools-navigation-menu"
+            role="menu"
+            aria-label="Trading tools"
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+            onKeyDown={onMenuKeyDown}
+            className="absolute left-1/2 top-[calc(100%+0.75rem)] z-[70] w-72 -translate-x-1/2 rounded-2xl border border-gold/40 bg-popover/[0.98] p-2 text-popover-foreground shadow-[0_18px_45px_rgb(31_27_17_/_0.16)] backdrop-blur-sm dark:shadow-[0_18px_45px_rgb(0_0_0_/_0.42)]"
+          >
+            <p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-widest text-foreground dark:text-gold">
+              Trader tools
+            </p>
+            {TOOL_NAV.map((tool) => {
+              const Icon = tool.icon;
+              const isActive = activePath === tool.to;
+              return (
+                <Link
+                  key={tool.to}
+                  to={tool.to}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-3 outline-none transition focus-visible:ring-2 focus-visible:ring-gold ${isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gold/15 text-foreground dark:text-gold">
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold">{tool.label}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {tool.description}
+                    </span>
+                  </span>
+                </Link>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function MobileToolsMenu({
+  activePath,
+  open,
+  onOpenChange,
+  onSelect,
+}: {
+  activePath: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  useDismissToolsMenu(open, menuRef, () => onOpenChange(false));
+
+  return (
+    <div ref={menuRef} className="rounded-xl">
+      <button
+        type="button"
+        onClick={() => onOpenChange(!open)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onOpenChange(false);
+        }}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls="mobile-tools-navigation-menu"
+        className="flex min-h-11 w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+      >
+        Tools
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            id="mobile-tools-navigation-menu"
+            role="menu"
+            aria-label="Trading tools"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="overflow-hidden"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") onOpenChange(false);
+            }}
+          >
+            <div className="ml-3 grid gap-1 border-l border-gold/25 py-1 pl-3">
+              {TOOL_NAV.map((tool) => {
+                const Icon = tool.icon;
+                const isActive = activePath === tool.to;
+                return (
+                  <Link
+                    key={tool.to}
+                    to={tool.to}
+                    role="menuitem"
+                    onClick={onSelect}
+                    className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-gold ${isActive ? "bg-gold/15 text-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0 text-gold" aria-hidden="true" />
+                    <span>{tool.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function useDismissToolsMenu(
+  open: boolean,
+  menuRef: React.RefObject<HTMLElement | null>,
+  onDismiss: () => void,
+) {
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) onDismiss();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onDismiss();
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown, { passive: true });
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onDismiss, open, menuRef]);
 }

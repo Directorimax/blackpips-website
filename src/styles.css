@@ -263,6 +263,28 @@
   background: var(--gold);
 }
 
+/* Scoped journal scrolling only — avoids changing scrolling elsewhere in the app. */
+.journal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--gold) 58%, var(--muted))
+    color-mix(in oklab, var(--background) 82%, transparent);
+}
+.journal-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.journal-scrollbar::-webkit-scrollbar-track {
+  background: color-mix(in oklab, var(--background) 82%, transparent);
+  border-radius: 999px;
+}
+.journal-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--gold) 52%, var(--muted));
+  border-radius: 999px;
+}
+.journal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+
 .admin-input {
   width: 100%;
   border: 1px solid var(--border);

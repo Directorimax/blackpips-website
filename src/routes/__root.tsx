@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { createSeoHead } from "@/lib/seo";
 
@@ -129,14 +130,16 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AuthProvider>
-          <Nav />
-          <main className="pt-24">
-            <Outlet />
-          </main>
-          <Footer />
-          <Toaster />
-        </AuthProvider>
+        <TooltipProvider>
+          <AuthProvider>
+            <Nav />
+            <main className="pt-24">
+              <Outlet />
+            </main>
+            <Footer />
+            <Toaster />
+          </AuthProvider>
+        </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
