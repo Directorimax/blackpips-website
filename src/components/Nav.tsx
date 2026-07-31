@@ -11,6 +11,7 @@ import {
   Award,
   Calculator,
   ChevronDown,
+  ClipboardList,
   Clock,
   NotebookPen,
   X,
@@ -66,6 +67,12 @@ const TOOL_NAV = [
     description: "Review your trade decisions",
     icon: NotebookPen,
   },
+  {
+    to: "/dashboard/trading-plan" as const,
+    label: "Trading Plan",
+    description: "Define your trading rules",
+    icon: ClipboardList,
+  },
 ] as const;
 
 export function Nav() {
@@ -92,7 +99,8 @@ export function Nav() {
   }
 
   const dashboardDestination = isAdmin ? "/admin" : "/dashboard";
-  const toolsActive = location.pathname.startsWith("/tools");
+  const toolsActive =
+    location.pathname.startsWith("/tools") || location.pathname === "/dashboard/trading-plan";
   const activeToolPath = location.pathname;
   const initials = (profileIdentity.fullName || profileIdentity.username || user?.email || "U")
     .split(/\s+/)

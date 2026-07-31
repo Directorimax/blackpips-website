@@ -42,8 +42,10 @@ import { Route as AdminCertificatesRouteImport } from './routes/admin/certificat
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as CoursesSlugIndexRouteImport } from './routes/courses/$slug/index'
+import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as CoursesSlugLessonSlugRouteImport } from './routes/courses/$slug/$lessonSlug'
 import { Route as AdminStudentsStudentIdRouteImport } from './routes/admin/students/$studentId'
+import { Route as AuthenticatedDashboardTradingPlanRouteImport } from './routes/_authenticated/dashboard.trading-plan'
 
 const ToolsRoute = ToolsRouteImport.update({
   id: '/tools',
@@ -211,6 +213,12 @@ const CoursesSlugIndexRoute = CoursesSlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CoursesSlugRoute,
 } as any)
+const AuthenticatedDashboardIndexRoute =
+  AuthenticatedDashboardIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const CoursesSlugLessonSlugRoute = CoursesSlugLessonSlugRouteImport.update({
   id: '/$lessonSlug',
   path: '/$lessonSlug',
@@ -221,6 +229,12 @@ const AdminStudentsStudentIdRoute = AdminStudentsStudentIdRouteImport.update({
   path: '/$studentId',
   getParentRoute: () => AdminStudentsRoute,
 } as any)
+const AuthenticatedDashboardTradingPlanRoute =
+  AuthenticatedDashboardTradingPlanRouteImport.update({
+    id: '/trading-plan',
+    path: '/trading-plan',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -236,7 +250,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
   '/tools': typeof ToolsRouteWithChildren
-  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/lessons': typeof AdminLessonsRoute
@@ -254,8 +268,10 @@ export interface FileRoutesByFullPath {
   '/auth/': typeof AuthIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/tools/': typeof ToolsIndexRoute
+  '/dashboard/trading-plan': typeof AuthenticatedDashboardTradingPlanRoute
   '/admin/students/$studentId': typeof AdminStudentsStudentIdRoute
   '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
+  '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/courses/$slug/': typeof CoursesSlugIndexRoute
 }
 export interface FileRoutesByTo {
@@ -269,7 +285,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/lessons': typeof AdminLessonsRoute
@@ -286,8 +301,10 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthIndexRoute
   '/courses': typeof CoursesIndexRoute
   '/tools': typeof ToolsIndexRoute
+  '/dashboard/trading-plan': typeof AuthenticatedDashboardTradingPlanRoute
   '/admin/students/$studentId': typeof AdminStudentsStudentIdRoute
   '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
+  '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/courses/$slug': typeof CoursesSlugIndexRoute
 }
 export interface FileRoutesById {
@@ -306,7 +323,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
   '/tools': typeof ToolsRouteWithChildren
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/lessons': typeof AdminLessonsRoute
@@ -324,8 +341,10 @@ export interface FileRoutesById {
   '/auth/': typeof AuthIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/tools/': typeof ToolsIndexRoute
+  '/_authenticated/dashboard/trading-plan': typeof AuthenticatedDashboardTradingPlanRoute
   '/admin/students/$studentId': typeof AdminStudentsStudentIdRoute
   '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
+  '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/courses/$slug/': typeof CoursesSlugIndexRoute
 }
 export interface FileRouteTypes {
@@ -362,8 +381,10 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/courses/'
     | '/tools/'
+    | '/dashboard/trading-plan'
     | '/admin/students/$studentId'
     | '/courses/$slug/$lessonSlug'
+    | '/dashboard/'
     | '/courses/$slug/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -377,7 +398,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
-    | '/dashboard'
     | '/profile'
     | '/admin/certificates'
     | '/admin/lessons'
@@ -394,8 +414,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/courses'
     | '/tools'
+    | '/dashboard/trading-plan'
     | '/admin/students/$studentId'
     | '/courses/$slug/$lessonSlug'
+    | '/dashboard'
     | '/courses/$slug'
   id:
     | '__root__'
@@ -431,8 +453,10 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/courses/'
     | '/tools/'
+    | '/_authenticated/dashboard/trading-plan'
     | '/admin/students/$studentId'
     | '/courses/$slug/$lessonSlug'
+    | '/_authenticated/dashboard/'
     | '/courses/$slug/'
   fileRoutesById: FileRoutesById
 }
@@ -694,6 +718,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesSlugIndexRouteImport
       parentRoute: typeof CoursesSlugRoute
     }
+    '/_authenticated/dashboard/': {
+      id: '/_authenticated/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/courses/$slug/$lessonSlug': {
       id: '/courses/$slug/$lessonSlug'
       path: '/$lessonSlug'
@@ -708,16 +739,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStudentsStudentIdRouteImport
       parentRoute: typeof AdminStudentsRoute
     }
+    '/_authenticated/dashboard/trading-plan': {
+      id: '/_authenticated/dashboard/trading-plan'
+      path: '/trading-plan'
+      fullPath: '/dashboard/trading-plan'
+      preLoaderRoute: typeof AuthenticatedDashboardTradingPlanRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
   }
 }
 
+interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardTradingPlanRoute: typeof AuthenticatedDashboardTradingPlanRoute
+  AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+}
+
+const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
+  {
+    AuthenticatedDashboardTradingPlanRoute:
+      AuthenticatedDashboardTradingPlanRoute,
+    AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  }
+
+const AuthenticatedDashboardRouteWithChildren =
+  AuthenticatedDashboardRoute._addFileChildren(
+    AuthenticatedDashboardRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
 }
 
