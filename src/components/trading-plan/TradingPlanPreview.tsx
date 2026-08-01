@@ -66,9 +66,7 @@ export function TradingPlanPreview({ draft }: { draft: TradingPlanDraft }) {
         <div className="grid gap-3">
           {routine.map(([label, value]) => (
             <div key={label} className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {label}
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gold">{label}</p>
               <p className="mt-1 whitespace-pre-line break-words text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
                 {value}
               </p>

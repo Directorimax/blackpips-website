@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Instagram, Youtube, Send, Mail, MessageCircle } from "lucide-react";
 import { Logo } from "./Logo";
 import { SITE, NAV } from "@/lib/site-data";
+import { AvailabilityAwareContactLink } from "@/components/contact/AvailabilityAwareContactLink";
 
 export function Footer() {
   return (
@@ -15,13 +16,13 @@ export function Footer() {
               ALC strategy — beginner to advanced.
             </p>
             <div className="mt-5 flex gap-2">
-              <a
+              <AvailabilityAwareContactLink
                 href={SITE.instagram}
                 aria-label="Instagram"
                 className="glass inline-flex h-9 w-9 items-center justify-center rounded-full hover:text-gold"
               >
                 <Instagram className="h-4 w-4" />
-              </a>
+              </AvailabilityAwareContactLink>
               <a
                 href={SITE.youtube}
                 aria-label="YouTube"
@@ -36,13 +37,13 @@ export function Footer() {
               >
                 <Send className="h-4 w-4" />
               </a>
-              <a
-                href="mailto:support@blackpips.com"
+              <AvailabilityAwareContactLink
+                href={`mailto:${SITE.email}`}
                 aria-label="Email BLACKPIPS support"
                 className="glass inline-flex h-9 w-9 items-center justify-center rounded-full hover:text-gold"
               >
                 <Mail className="h-4 w-4" />
-              </a>
+              </AvailabilityAwareContactLink>
             </div>
           </div>
 
@@ -89,22 +90,22 @@ export function Footer() {
             <h4 className="text-sm font-semibold">Support</h4>
             <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
               <li>
-                <a
-                  href="mailto:support@blackpips.com"
+                <AvailabilityAwareContactLink
+                  href={`mailto:${SITE.email}`}
                   className="inline-flex items-center gap-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
                 >
-                  <Mail className="h-4 w-4 shrink-0" /> support@blackpips.com
-                </a>
+                  <Mail className="h-4 w-4 shrink-0" /> {SITE.email}
+                </AvailabilityAwareContactLink>
               </li>
               <li>
-                <a
+                <AvailabilityAwareContactLink
                   href={SITE.whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
                 >
                   <MessageCircle className="h-4 w-4 shrink-0" /> WhatsApp
-                </a>
+                </AvailabilityAwareContactLink>
               </li>
               <li>
                 <Link

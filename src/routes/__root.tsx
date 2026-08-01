@@ -17,6 +17,7 @@ import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ContactAvailabilityProvider } from "@/contexts/ContactAvailabilityContext";
 import { createSeoHead } from "@/lib/seo";
 
 function NotFoundComponent() {
@@ -131,14 +132,16 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
-          <AuthProvider>
-            <Nav />
-            <main className="pt-24">
-              <Outlet />
-            </main>
-            <Footer />
-            <Toaster />
-          </AuthProvider>
+          <ContactAvailabilityProvider>
+            <AuthProvider>
+              <Nav />
+              <main className="pt-24">
+                <Outlet />
+              </main>
+              <Footer />
+              <Toaster />
+            </AuthProvider>
+          </ContactAvailabilityProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

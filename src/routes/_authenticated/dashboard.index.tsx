@@ -24,6 +24,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { useProfileAvatar } from "@/hooks/useProfileAvatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createSeoHead } from "@/lib/seo";
+import { AvailabilityAwareContactLink } from "@/components/contact/AvailabilityAwareContactLink";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () =>
@@ -903,14 +904,14 @@ function MentorshipStatus({
         </div>
       )}
       {application.status === "approved" && (
-        <a
+        <AvailabilityAwareContactLink
           href={mentorshipWhatsAppUrl(application.package_name)}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow"
         >
           <MessageCircle className="h-4 w-4" /> Chat on WhatsApp
-        </a>
+        </AvailabilityAwareContactLink>
       )}
     </div>
   );
