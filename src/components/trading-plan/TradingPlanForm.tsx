@@ -8,7 +8,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useRef, type ChangeEvent } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -29,6 +29,7 @@ import { TradingPlanPreview } from "./TradingPlanPreview";
 import { TradingPlanSaveBar } from "./TradingPlanSaveBar";
 import { TradingPlanSection } from "./TradingPlanSection";
 import type { SetTradingPlanDraft, TradingPlanDraft } from "./types";
+import { useDesktopAccordionInteraction } from "./useDesktopAccordionInteraction";
 
 const styles = ["Scalping", "Day Trading", "Swing Trading", "Position Trading"];
 
@@ -214,6 +215,12 @@ function PsychologyRuleBuilder({
 }) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const addRule = () => {
+    const existingBlankRuleIndex = rules.findIndex((rule) => !rule.trim());
+    if (existingBlankRuleIndex >= 0) {
+      window.requestAnimationFrame(() => inputRefs.current[existingBlankRuleIndex]?.focus());
+      return;
+    }
+
     const next = [...rules, ""];
     onChange(next);
     window.requestAnimationFrame(() => inputRefs.current[next.length - 1]?.focus());
@@ -246,7 +253,7 @@ function PsychologyRuleBuilder({
           </p>
         ) : (
           rules.map((rule, index) => (
-            <div key={index} className="flex min-w-0 items-center gap-2">
+            <div key={index} className="flex min-w-0 items-start gap-2 sm:items-center">
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
                 {index + 1}
               </span>
@@ -257,7 +264,7 @@ function PsychologyRuleBuilder({
                 value={rule}
                 onChange={(event) => updateRule(index, event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter") {
+                  if (event.key === "Enter" && index === rules.length - 1 && rule.trim()) {
                     event.preventDefault();
                     addRule();
                   }
@@ -301,10 +308,12 @@ export function TradingPlanForm({
   onSave: () => void;
 }) {
   const completion = getPlanCompletion(draft);
-  const [expanded, setExpanded] = useState<PlanSectionName | null>("Trader Profile");
-  const toggleSection = (section: PlanSectionName) => {
-    setExpanded((current) => (current === section ? null : section));
-  };
+  const {
+    openSection: expanded,
+    onSectionMouseEnter,
+    onSectionMouseLeave,
+    onSectionClick,
+  } = useDesktopAccordionInteraction<PlanSectionName>();
   const toggleTimeframe = (timeframe: TradingPlanTimeframe) =>
     setDraft(
       "preferred_timeframes",
@@ -322,7 +331,9 @@ export function TradingPlanForm({
           icon={<UserRound className="h-5 w-5" />}
           complete={completion.completed["Trader Profile"]}
           expanded={expanded === "Trader Profile"}
-          onExpandedChange={() => toggleSection("Trader Profile")}
+          onExpandedChange={() => onSectionClick("Trader Profile")}
+          onMouseEnter={() => onSectionMouseEnter("Trader Profile")}
+          onMouseLeave={onSectionMouseLeave}
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-1.5 text-sm font-medium">
@@ -396,7 +407,9 @@ export function TradingPlanForm({
           icon={<ShieldCheck className="h-5 w-5" />}
           complete={completion.completed["Risk Management"]}
           expanded={expanded === "Risk Management"}
-          onExpandedChange={() => toggleSection("Risk Management")}
+          onExpandedChange={() => onSectionClick("Risk Management")}
+          onMouseEnter={() => onSectionMouseEnter("Risk Management")}
+          onMouseLeave={onSectionMouseLeave}
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <NumberField
@@ -438,7 +451,9 @@ export function TradingPlanForm({
           icon={<BrainCircuit className="h-5 w-5" />}
           complete={completion.completed["Psychology Rules"]}
           expanded={expanded === "Psychology Rules"}
-          onExpandedChange={() => toggleSection("Psychology Rules")}
+          onExpandedChange={() => onSectionClick("Psychology Rules")}
+          onMouseEnter={() => onSectionMouseEnter("Psychology Rules")}
+          onMouseLeave={onSectionMouseLeave}
         >
           <PsychologyRuleBuilder
             rules={draft.psychology_rules_list}
@@ -451,7 +466,9 @@ export function TradingPlanForm({
           icon={<CalendarDays className="h-5 w-5" />}
           complete={completion.completed["Daily Routine"]}
           expanded={expanded === "Daily Routine"}
-          onExpandedChange={() => toggleSection("Daily Routine")}
+          onExpandedChange={() => onSectionClick("Daily Routine")}
+          onMouseEnter={() => onSectionMouseEnter("Daily Routine")}
+          onMouseLeave={onSectionMouseLeave}
         >
           <div className="grid gap-4">
             <TextField
@@ -483,7 +500,9 @@ export function TradingPlanForm({
           icon={<Target className="h-5 w-5" />}
           complete={completion.completed["Additional Notes"]}
           expanded={expanded === "Additional Notes"}
-          onExpandedChange={() => toggleSection("Additional Notes")}
+          onExpandedChange={() => onSectionClick("Additional Notes")}
+          onMouseEnter={() => onSectionMouseEnter("Additional Notes")}
+          onMouseLeave={onSectionMouseLeave}
         >
           <TextField
             label="Notes"
