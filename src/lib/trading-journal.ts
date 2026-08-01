@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sanitizePlainText } from "@/lib/text-security";
 
 export const journalMarketTypes = [
   "forex",
@@ -27,41 +28,47 @@ export const journalResultConfig: Record<JournalResult, { label: string; badgeCl
   };
 
 const optionalNonNegativeNumber = z.number().finite().nonnegative().nullable().optional();
-const optionalText = z.string().trim().max(5_000).nullable().optional();
+const safeText = z.string().trim().max(5_000).transform(sanitizePlainText);
+const optionalText = safeText.nullable().optional();
 
-export const tradingJournalEntrySchema = z.object({
-  trade_at: z.string().datetime(),
-  pair: z
-    .string()
-    .trim()
-    .min(1)
-    .max(24)
-    .transform((value) => value.toUpperCase()),
-  market_type: z.enum(journalMarketTypes),
-  direction: z.enum(journalDirections),
-  timeframe: z.string().trim().min(1).max(32),
-  strategy: z.string().trim().min(1).max(120),
-  session: z.enum(journalSessions),
-  entry_price: optionalNonNegativeNumber,
-  stop_loss: optionalNonNegativeNumber,
-  take_profit: optionalNonNegativeNumber,
-  exit_price: optionalNonNegativeNumber,
-  lot_size: z.number().finite().positive().max(10_000),
-  risk_percent: optionalNonNegativeNumber,
-  reward_percent: optionalNonNegativeNumber,
-  risk_reward_ratio: optionalNonNegativeNumber,
-  result: z.enum(journalResults),
-  profit_loss: z.number().finite().nullable().optional(),
-  emotion_before: optionalText,
-  emotion_after: optionalText,
-  confidence: z.number().int().min(1).max(5).nullable().optional(),
-  mistakes: optionalText,
-  lessons: optionalText,
-  notes: optionalText,
-  before_image_url: z.string().trim().max(512).nullable().optional(),
-  after_image_url: z.string().trim().max(512).nullable().optional(),
-  tags: z.array(z.string().trim().min(1).max(30)).max(20).default([]),
-});
+export const tradingJournalEntrySchema = z
+  .object({
+    trade_at: z.string().datetime(),
+    pair: z
+      .string()
+      .trim()
+      .min(1)
+      .max(24)
+      .transform((value) => value.toUpperCase()),
+    market_type: z.enum(journalMarketTypes),
+    direction: z.enum(journalDirections),
+    timeframe: z.string().trim().min(1).max(32),
+    strategy: z.string().trim().min(1).max(120),
+    session: z.enum(journalSessions),
+    entry_price: optionalNonNegativeNumber,
+    stop_loss: optionalNonNegativeNumber,
+    take_profit: optionalNonNegativeNumber,
+    exit_price: optionalNonNegativeNumber,
+    lot_size: z.number().finite().positive().max(10_000),
+    risk_percent: optionalNonNegativeNumber,
+    reward_percent: optionalNonNegativeNumber,
+    risk_reward_ratio: optionalNonNegativeNumber,
+    result: z.enum(journalResults),
+    profit_loss: z.number().finite().nullable().optional(),
+    emotion_before: optionalText,
+    emotion_after: optionalText,
+    confidence: z.number().int().min(1).max(5).nullable().optional(),
+    mistakes: optionalText,
+    lessons: optionalText,
+    notes: optionalText,
+    before_image_url: z.string().trim().max(512).nullable().optional(),
+    after_image_url: z.string().trim().max(512).nullable().optional(),
+    tags: z
+      .array(z.string().trim().min(1).max(30).transform(sanitizePlainText))
+      .max(20)
+      .default([]),
+  })
+  .strict();
 
 export const tradingJournalEntryPatchSchema = tradingJournalEntrySchema.partial();
 

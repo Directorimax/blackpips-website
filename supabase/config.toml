@@ -1,1 +1,13 @@
 project_id = "ickerkgpntvokzvldmcj"
+
+[auth]
+site_url = "https://blackpips.com"
+additional_redirect_urls = ["https://www.blackpips.com/**", "http://localhost:8080/**", "http://127.0.0.1:8080/**"]
+
+[auth.rate_limit]
+email_sent = 3
+sms_sent = 10
+anonymous_users = 10
+token_refresh = 120
+sign_in_sign_ups = 20
+token_verifications = 20

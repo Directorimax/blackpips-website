@@ -46,6 +46,8 @@ export const createTradingJournalEntry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(tradingJournalEntrySchema)
   .handler(async ({ data, context }) => {
+    const { assertRateLimit } = await import("@/lib/security.server");
+    assertRateLimit("journal-write", 120, 60_000, context.userId);
     assertOwnedScreenshotPaths(data, context.userId);
     const normalizedData = {
       ...data,
@@ -64,12 +66,15 @@ export const updateTradingJournalEntry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(journalUpdateInputSchema)
   .handler(async ({ data, context }) => {
+    const { assertRateLimit } = await import("@/lib/security.server");
+    assertRateLimit("journal-write", 120, 60_000, context.userId);
     const { id, ...changes } = data;
     assertOwnedScreenshotPaths(changes, context.userId);
     const { data: existing, error: existingError } = await journalTableClient(context.supabase)
       .from("trading_journal_entries")
       .select("result, profit_loss")
       .eq("id", id)
+      .eq("user_id", context.userId)
       .single();
     if (existingError) throwJournalError("load", existingError);
     if (!existing) throw new Error("Journal entry no longer exists.");
@@ -84,6 +89,7 @@ export const updateTradingJournalEntry = createServerFn({ method: "POST" })
       .from("trading_journal_entries")
       .update(normalizedChanges)
       .eq("id", id)
+      .eq("user_id", context.userId)
       .select()
       .single();
     if (error) throwJournalError("update", error);
@@ -94,10 +100,13 @@ export const deleteTradingJournalEntry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(tradingJournalIdSchema)
   .handler(async ({ data, context }) => {
+    const { assertRateLimit } = await import("@/lib/security.server");
+    assertRateLimit("journal-write", 120, 60_000, context.userId);
     const { error } = await journalTableClient(context.supabase)
       .from("trading_journal_entries")
       .delete()
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
     if (error) throwJournalError("delete", error);
     return { deleted: true };
   });
@@ -110,6 +119,7 @@ export const getTradingJournalEntry = createServerFn({ method: "GET" })
       .from("trading_journal_entries")
       .select()
       .eq("id", data.id)
+      .eq("user_id", context.userId)
       .single();
     if (error) throwJournalError("load", error);
     return entry as TradingJournalEntry;
@@ -122,6 +132,7 @@ export const getUserTradingJournalEntries = createServerFn({ method: "GET" })
     let query = journalTableClient(context.supabase)
       .from("trading_journal_entries")
       .select("*", { count: "exact" })
+      .eq("user_id", context.userId)
       .range(data.offset, data.offset + data.limit - 1);
 
     if (data.search) {
@@ -159,6 +170,7 @@ export const getTradingJournalMonth = createServerFn({ method: "GET" })
     let query = journalTableClient(context.supabase)
       .from("trading_journal_entries")
       .select("*")
+      .eq("user_id", context.userId)
       .gte("trade_at", data.start_date)
       .lt("trade_at", data.end_date)
       .order("trade_at", { ascending: true });

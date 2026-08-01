@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/useAuth";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { createSeoHead } from "@/lib/seo";
 import { sendNotification } from "@/services/email/notification.functions";
+import { extensionForImageMime, validateImageFile } from "@/lib/upload-security";
 
 export const Route = createFileRoute("/payment/$slug")({
   head: () =>
@@ -136,10 +137,8 @@ function Checkout() {
   const onFiles = useCallback((files: FileList | null) => {
     const f = files?.[0];
     if (!f) return;
-    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
-      return toast.error("Please upload a JPEG, PNG, or WEBP image");
-    }
-    if (f.size > 5 * 1024 * 1024) return toast.error("Image must be under 5MB");
+    if (validateImageFile(f, { maxBytes: 5 * 1024 * 1024 }))
+      return toast.error("Please upload a valid JPEG, PNG, or WEBP image under 5MB.");
     setFile(f);
   }, []);
 
@@ -171,7 +170,7 @@ function Checkout() {
       toast.error(message);
       return;
     }
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    if (validateImageFile(file, { maxBytes: 5 * 1024 * 1024 })) {
       const message = "Please upload a JPEG, PNG, or WEBP payment proof.";
       setSubmitError(message);
       toast.error(message);
@@ -193,7 +192,7 @@ function Checkout() {
       if (courseError) throw courseError;
       if (!databaseCourse) throw new Error("This course is no longer available for payment.");
 
-      const ext = file.name.split(".").pop() || "png";
+      const ext = extensionForImageMime(file.type);
       const path = `${authenticatedUser.id}/${databaseCourse.id}/${crypto.randomUUID()}.${ext}`;
       const up = await supabase.storage
         .from("payment-proofs")

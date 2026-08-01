@@ -52,6 +52,7 @@ import {
   type JournalResult,
   type TradingJournalEntry,
 } from "@/lib/trading-journal";
+import { extensionForImageMime, validateImageFile } from "@/lib/upload-security";
 import {
   createTradingJournalEntry,
   deleteTradingJournalEntry,
@@ -1382,10 +1383,7 @@ function ScreenshotInput({
 }) {
   const choose = (file: File | null) => {
     if (!file) return;
-    if (
-      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-      file.size > 10 * 1024 * 1024
-    ) {
+    if (validateImageFile(file, { maxBytes: 10 * 1024 * 1024 })) {
       toast.error("Use a JPEG, PNG or WebP image up to 10 MB.");
       return;
     }
@@ -1727,8 +1725,10 @@ function imageState(existingKey?: string | null): ScreenshotState {
 }
 async function resolveImage(state: ScreenshotState, userId: string, uploaded: string[]) {
   if (!state.file) return state.removed ? null : state.existingKey;
-  const safeName = state.file.name.toLowerCase().replace(/[^a-z0-9._-]/g, "-");
-  const key = `${userId}/${crypto.randomUUID()}-${safeName}`;
+  if (validateImageFile(state.file, { maxBytes: 10 * 1024 * 1024 })) {
+    throw new Error("Use a valid JPEG, PNG or WebP image up to 10 MB.");
+  }
+  const key = `${userId}/${crypto.randomUUID()}.${extensionForImageMime(state.file.type)}`;
   const { error } = await supabase.storage
     .from("trading-journal-screenshots")
     .upload(key, state.file, { contentType: state.file.type, upsert: false });

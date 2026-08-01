@@ -22,6 +22,7 @@ import {
   notifyProfileAvatarChanged,
   PROFILE_IMAGE_BUCKET,
 } from "@/lib/profile-avatar";
+import { extensionForImageMime, validateImageFile } from "@/lib/upload-security";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -254,13 +255,12 @@ function ProfilePage() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file || !user) return;
-    if (!file.type.startsWith("image/")) return toast.error("Please select an image file.");
-    if (file.size > MAX_PROFILE_IMAGE_SIZE)
-      return toast.error("Profile images must be 5 MB or smaller.");
+    if (validateImageFile(file, { maxBytes: MAX_PROFILE_IMAGE_SIZE, allowGif: true }))
+      return toast.error("Please select a valid JPEG, PNG, WebP, or GIF image up to 5 MB.");
 
     setUploading(true);
     try {
-      const path = `${user.id}/avatar`;
+      const path = `${user.id}/avatar.${extensionForImageMime(file.type)}`;
       const { error: uploadError } = await supabase.storage
         .from(PROFILE_IMAGE_BUCKET)
         .upload(path, file, { cacheControl: "3600", contentType: file.type, upsert: true });

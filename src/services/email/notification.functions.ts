@@ -27,6 +27,8 @@ const sendNotificationServer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(notificationInput)
   .handler(async ({ data, context }) => {
+    const { assertRateLimit } = await import("@/lib/security.server");
+    assertRateLimit("notification", 10, 60_000, context.userId);
     const { sendNotification: deliverNotification } = await import("./email.service.server");
     return deliverNotification({ ...data, actorId: context.userId });
   });

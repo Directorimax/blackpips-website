@@ -43,6 +43,8 @@ export const createTradingPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(tradingPlanSchema)
   .handler(async ({ data, context }) => {
+    const { assertRateLimit } = await import("@/lib/security.server");
+    assertRateLimit("trading-plan-write", 30, 60_000, context.userId);
     const { data: plan, error } = await table(context.supabase)
       .from("trading_plans")
       .insert({ ...data, user_id: context.userId })
@@ -55,6 +57,8 @@ export const updateTradingPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(tradingPlanSchema)
   .handler(async ({ data, context }) => {
+    const { assertRateLimit } = await import("@/lib/security.server");
+    assertRateLimit("trading-plan-write", 30, 60_000, context.userId);
     const { data: plan, error } = await table(context.supabase)
       .from("trading_plans")
       .update(data)
