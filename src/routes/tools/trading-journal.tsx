@@ -41,11 +41,15 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   journalDirections,
   journalMarketTypes,
+  journalResultConfig,
   journalResults,
   journalSessions,
+  isJournalResult,
+  normalizeJournalProfitLoss,
   summarizeJournalEntries,
   tradingJournalEntrySchema,
   humanizeJournalValue,
+  type JournalResult,
   type TradingJournalEntry,
 } from "@/lib/trading-journal";
 import {
@@ -249,19 +253,16 @@ function TradingJournalPage() {
   useEffect(() => {
     void loadMonth();
   }, [loadMonth]);
-  const summary = useMemo(
-    () =>
-      entries.reduce(
-        (value, entry) => {
-          value.total += 1;
-          value[entry.result] += 1;
-          value.pnl += Number(entry.profit_loss ?? 0);
-          return value;
-        },
-        { total: 0, win: 0, loss: 0, breakeven: 0, pnl: 0 },
-      ),
-    [entries],
-  );
+  const summary = useMemo(() => {
+    const totals = summarizeJournalEntries(entries);
+    return {
+      total: entries.length,
+      win: totals.wins,
+      loss: totals.losses,
+      breakeven: totals.breakEvens,
+      pnl: totals.pnl,
+    };
+  }, [entries]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (loading)
@@ -341,7 +342,7 @@ function TradingJournalPage() {
         />
         <Summary
           label="Total P/L"
-          value={`${summary.pnl >= 0 ? "+" : ""}$${summary.pnl.toFixed(2)}`}
+          value={`${summary.pnl > 0 ? "+" : ""}$${summary.pnl.toFixed(2)}`}
           tone={summary.pnl > 0 ? "positive" : summary.pnl < 0 ? "negative" : undefined}
         />
       </section>
@@ -670,7 +671,10 @@ function TradeList({
               <MobileRow label="Trade type" value={<Badge value={entry.direction} />} />
               <MobileRow label="Session" value={entry.session.replaceAll("_", " ")} />
               <MobileRow label="Strategy" value={entry.strategy || "—"} />
-              <MobileRow label="P/L" value={<Pnl value={entry.profit_loss} />} />
+              <MobileRow
+                label="P/L"
+                value={<Pnl value={entry.profit_loss} result={entry.result} />}
+              />
               <MobileRow label="RR" value={entry.risk_reward_ratio ?? "—"} />
             </div>
             <TradeActions
@@ -735,8 +739,8 @@ function MobileRow({ label, value }: { label: string; value: React.ReactNode }) 
     </div>
   );
 }
-function Pnl({ value }: { value: number | null | undefined }) {
-  const amount = Number(value ?? 0);
+function Pnl({ value, result }: { value: number | null | undefined; result?: JournalResult }) {
+  const amount = result ? normalizeJournalProfitLoss(result, value) : Number(value ?? 0);
   return (
     <span
       className={
@@ -747,7 +751,7 @@ function Pnl({ value }: { value: number | null | undefined }) {
             : "font-semibold"
       }
     >
-      {amount >= 0 ? "+" : ""}${amount.toFixed(2)}
+      {amount > 0 ? "+" : ""}${amount.toFixed(2)}
     </span>
   );
 }
@@ -820,7 +824,7 @@ function DesktopTradeRow({
       <span>{entry.exit_price ?? "—"}</span>
       <Badge value={entry.result} />
       <span>{entry.risk_reward_ratio ?? "—"}</span>
-      <Pnl value={entry.profit_loss} />
+      <Pnl value={entry.profit_loss} result={entry.result} />
       <span>
         {entry.before_image_url || entry.after_image_url ? (
           <Image className="h-4 w-4 text-gold" aria-label="Screenshots attached" />
@@ -839,12 +843,18 @@ function DesktopTradeRow({
   );
 }
 function Badge({ value }: { value: string }) {
-  const tone =
-    value === "win" || value === "long"
-      ? "bg-bull/15 text-bull"
-      : value === "loss" || value === "short"
-        ? "bg-bear/15 text-bear"
-        : "bg-muted text-muted-foreground";
+  if (isJournalResult(value)) {
+    const config = journalResultConfig[value];
+    return (
+      <span
+        className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${config.badgeClassName}`}
+      >
+        {config.label}
+      </span>
+    );
+  }
+
+  const tone = value === "long" ? "bg-bull/15 text-bull" : "bg-bear/15 text-bear";
   return (
     <span className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${tone}`}>
       {value.replaceAll("_", " ")}
@@ -895,9 +905,7 @@ function JournalCalendar({
   const summary = summarizeJournalEntries(entries);
   const selectedEntries = selectedDay ? (byDay[selectedDay] ?? []) : [];
   const best = Object.entries(byDay).sort(
-    ([, a], [, b]) =>
-      b.reduce((sum, e) => sum + Number(e.profit_loss ?? 0), 0) -
-      a.reduce((sum, e) => sum + Number(e.profit_loss ?? 0), 0),
+    ([, a], [, b]) => summarizeJournalEntries(b).pnl - summarizeJournalEntries(a).pnl,
   )[0];
   const todayKey = keyOf(new Date());
   return (
@@ -968,9 +976,10 @@ function JournalCalendar({
             {days.map((date) => {
               const key = keyOf(date);
               const daily = byDay[key] ?? [];
-              const pnl = daily.reduce((sum, entry) => sum + Number(entry.profit_loss ?? 0), 0);
-              const wins = daily.filter((entry) => entry.result === "win").length;
-              const losses = daily.filter((entry) => entry.result === "loss").length;
+              const dailySummary = summarizeJournalEntries(daily);
+              const pnl = dailySummary.pnl;
+              const wins = dailySummary.wins;
+              const losses = dailySummary.losses;
               const current = date.getMonth() === month.getMonth();
               const active = selectedDay === key;
               const tone =
@@ -1055,7 +1064,7 @@ function JournalCalendar({
                       {entry.strategy || "No strategy recorded"}
                     </p>
                   </div>
-                  <Pnl value={entry.profit_loss} />
+                  <Pnl value={entry.profit_loss} result={entry.result} />
                 </div>
                 <div className="mt-3 flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => onView(entry)}>
@@ -1436,6 +1445,7 @@ function TradeDetails({
 }) {
   const [images, setImages] = useState<Record<string, string>>({});
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const normalizedProfitLoss = normalizeJournalProfitLoss(entry.result, entry.profit_loss);
   useEffect(() => {
     void Promise.all(
       [entry.before_image_url, entry.after_image_url]
@@ -1479,8 +1489,11 @@ function TradeDetails({
     [
       "Outcome",
       [
-        ["Result", entry.result],
-        ["Profit / loss", entry.profit_loss],
+        ["Result", journalResultConfig[entry.result].label],
+        [
+          "Profit / loss",
+          `${normalizedProfitLoss > 0 ? "+" : ""}$${normalizedProfitLoss.toFixed(2)}`,
+        ],
       ],
     ],
     [
@@ -1669,7 +1682,7 @@ function entryToDraft(entry: TradingJournalEntry): Draft {
     reward_percent: asText(entry.reward_percent),
     risk_reward_ratio: asText(entry.risk_reward_ratio),
     result: entry.result,
-    profit_loss: asText(entry.profit_loss),
+    profit_loss: asText(normalizeJournalProfitLoss(entry.result, entry.profit_loss)),
     emotion_before: entry.emotion_before ?? "",
     emotion_after: entry.emotion_after ?? "",
     confidence: asText(entry.confidence),
@@ -1693,7 +1706,10 @@ function toPayload(draft: Draft) {
     risk_percent: number(draft.risk_percent),
     reward_percent: number(draft.reward_percent),
     risk_reward_ratio: number(draft.risk_reward_ratio),
-    profit_loss: number(draft.profit_loss),
+    profit_loss: normalizeJournalProfitLoss(
+      draft.result as JournalResult,
+      number(draft.profit_loss),
+    ),
     confidence: draft.confidence ? Number(draft.confidence) : null,
     emotion_before: text(draft.emotion_before),
     emotion_after: text(draft.emotion_after),

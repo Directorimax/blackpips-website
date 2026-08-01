@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   hasOwnedJournalScreenshotPath,
+  normalizeJournalProfitLoss,
   tradingJournalEntrySchema,
   tradingJournalEntryPatchSchema,
   tradingJournalIdSchema,
@@ -46,9 +47,13 @@ export const createTradingJournalEntry = createServerFn({ method: "POST" })
   .validator(tradingJournalEntrySchema)
   .handler(async ({ data, context }) => {
     assertOwnedScreenshotPaths(data, context.userId);
+    const normalizedData = {
+      ...data,
+      profit_loss: normalizeJournalProfitLoss(data.result, data.profit_loss),
+    };
     const { data: entry, error } = await journalTableClient(context.supabase)
       .from("trading_journal_entries")
-      .insert({ ...data, user_id: context.userId })
+      .insert({ ...normalizedData, user_id: context.userId })
       .select()
       .single();
     if (error) throwJournalError("create", error);
@@ -61,9 +66,23 @@ export const updateTradingJournalEntry = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { id, ...changes } = data;
     assertOwnedScreenshotPaths(changes, context.userId);
+    const { data: existing, error: existingError } = await journalTableClient(context.supabase)
+      .from("trading_journal_entries")
+      .select("result, profit_loss")
+      .eq("id", id)
+      .single();
+    if (existingError) throwJournalError("load", existingError);
+    if (!existing) throw new Error("Journal entry no longer exists.");
+
+    const result = changes.result ?? existing.result;
+    const profitLoss = changes.profit_loss ?? existing.profit_loss;
+    const normalizedChanges = {
+      ...changes,
+      profit_loss: normalizeJournalProfitLoss(result, profitLoss),
+    };
     const { data: entry, error } = await journalTableClient(context.supabase)
       .from("trading_journal_entries")
-      .update(changes)
+      .update(normalizedChanges)
       .eq("id", id)
       .select()
       .single();

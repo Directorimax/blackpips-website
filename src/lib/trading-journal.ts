@@ -17,6 +17,14 @@ export const journalSessions = [
   "other",
 ] as const;
 export const journalResults = ["win", "loss", "breakeven"] as const;
+export type JournalResult = (typeof journalResults)[number];
+
+export const journalResultConfig: Record<JournalResult, { label: string; badgeClassName: string }> =
+  {
+    win: { label: "Win", badgeClassName: "bg-bull/15 text-bull" },
+    loss: { label: "Loss", badgeClassName: "bg-bear/15 text-bear" },
+    breakeven: { label: "Break Even", badgeClassName: "bg-muted text-muted-foreground" },
+  };
 
 const optionalNonNegativeNumber = z.number().finite().nonnegative().nullable().optional();
 const optionalText = z.string().trim().max(5_000).nullable().optional();
@@ -99,6 +107,20 @@ export type TradingJournalEntry = TradingJournalEntryInput & {
   updated_at: string;
 };
 
+export function isJournalResult(value: string): value is JournalResult {
+  return journalResults.includes(value as JournalResult);
+}
+
+export function normalizeJournalProfitLoss(
+  result: JournalResult,
+  amount: number | null | undefined,
+) {
+  const value = Number(amount ?? 0);
+  if (!Number.isFinite(value) || result === "breakeven") return 0;
+
+  return result === "loss" ? -Math.abs(value) : Math.abs(value);
+}
+
 export function hasOwnedJournalScreenshotPath(path: string | null | undefined, userId: string) {
   return !path || path.startsWith(`${userId}/`);
 }
@@ -112,14 +134,15 @@ export function summarizeJournalEntries(
 ) {
   return entries.reduce(
     (summary, entry) => {
-      const profitLoss = Number(entry.profit_loss ?? 0);
+      const profitLoss = normalizeJournalProfitLoss(entry.result, entry.profit_loss);
       summary.pnl += profitLoss;
       summary.wins += entry.result === "win" ? 1 : 0;
       summary.losses += entry.result === "loss" ? 1 : 0;
+      summary.breakEvens += entry.result === "breakeven" ? 1 : 0;
       summary.grossProfit += Math.max(profitLoss, 0);
       summary.grossLoss += Math.abs(Math.min(profitLoss, 0));
       return summary;
     },
-    { pnl: 0, wins: 0, losses: 0, grossProfit: 0, grossLoss: 0 },
+    { pnl: 0, wins: 0, losses: 0, breakEvens: 0, grossProfit: 0, grossLoss: 0 },
   );
 }

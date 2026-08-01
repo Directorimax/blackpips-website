@@ -17,6 +17,7 @@ import {
   X,
   LayoutDashboard,
   LogOut,
+  ShieldCheck,
   UserRound,
 } from "lucide-react";
 import { NAV } from "@/lib/site-data";
@@ -78,6 +79,8 @@ const TOOL_NAV = [
 export function Nav() {
   const [open, setOpen] = useState(false);
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
@@ -134,6 +137,46 @@ export function Nav() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!open) {
+      setMobileToolsOpen(false);
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  function handleMobileAdminOpenChange(nextOpen: boolean) {
+    setMobileAdminOpen(nextOpen);
+    if (nextOpen) {
+      setOpen(false);
+      setMobileToolsOpen(false);
+      setAccountMenuOpen(false);
+    }
+  }
+
+  function handleAccountMenuOpenChange(nextOpen: boolean) {
+    setAccountMenuOpen(nextOpen);
+    if (nextOpen) {
+      setMobileAdminOpen(false);
+      setOpen(false);
+      setMobileToolsOpen(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
+
   return (
     <header className="no-print fixed inset-x-0 top-0 z-50">
       <div className="mx-auto mt-3 max-w-7xl px-4">
@@ -160,28 +203,7 @@ export function Nav() {
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
-            {isAdmin && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="glass hidden rounded-full px-3 py-2 text-sm font-semibold text-gold hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold xl:inline-flex">
-                    Admin
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-60">
-                  <DropdownMenuLabel>Administration</DropdownMenuLabel>
-                  {ADMIN_NAV.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <DropdownMenuItem key={item.to} asChild>
-                        <Link to={item.to} className="cursor-pointer font-medium">
-                          <Icon className="h-4 w-4 text-gold" /> {item.label}
-                        </Link>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            {isAdmin && <AdminDropdown />}
             <ThemeToggle />
             {loading ? null : user ? (
               <>
@@ -191,7 +213,7 @@ export function Nav() {
                 >
                   <LayoutDashboard className="h-4 w-4" /> Dashboard
                 </Link>
-                <DropdownMenu>
+                <DropdownMenu open={accountMenuOpen} onOpenChange={handleAccountMenuOpenChange}>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
@@ -225,6 +247,13 @@ export function Nav() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                {isAdmin && (
+                  <AdminDropdown
+                    mobile
+                    open={mobileAdminOpen}
+                    onOpenChange={handleMobileAdminOpenChange}
+                  />
+                )}
               </>
             ) : (
               <>
@@ -243,9 +272,15 @@ export function Nav() {
               </>
             )}
             <button
-              className="glass inline-flex h-10 w-10 items-center justify-center rounded-full xl:hidden"
-              onClick={() => setOpen((v) => !v)}
+              className="glass inline-flex h-10 w-10 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold xl:hidden"
+              onClick={() => {
+                setMobileAdminOpen(false);
+                setAccountMenuOpen(false);
+                setOpen((v) => !v);
+              }}
               aria-label="Menu"
+              aria-controls="mobile-navigation-menu"
+              aria-expanded={open}
             >
               {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </button>
@@ -253,7 +288,11 @@ export function Nav() {
         </div>
 
         {open && (
-          <div className="glass animate-float-up mt-2 rounded-2xl p-3 xl:hidden">
+          <div
+            id="mobile-navigation-menu"
+            aria-label="Navigation menu"
+            className="glass animate-float-up mt-2 max-h-[calc(100dvh-5.75rem-env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain rounded-2xl p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] xl:hidden"
+          >
             <div className="grid gap-1">
               {NAV.map((n) =>
                 n.to === "/tools" ? (
@@ -288,33 +327,6 @@ export function Nav() {
                   >
                     Dashboard
                   </Link>
-                  <Link
-                    to="/profile"
-                    onClick={() => setOpen(false)}
-                    className="flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-accent/60"
-                  >
-                    <UserRound className="h-4 w-4 text-gold" /> Profile
-                  </Link>
-                  {isAdmin && (
-                    <div className="mt-2 border-t border-border pt-2">
-                      <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-gold">
-                        Administration
-                      </p>
-                      {ADMIN_NAV.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.to}
-                            to={item.to}
-                            onClick={() => setOpen(false)}
-                            className="flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-gold hover:bg-gold/10"
-                          >
-                            <Icon className="h-4 w-4" /> {item.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
                   <button
                     onClick={handleSignOut}
                     className="flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground"
@@ -336,6 +348,66 @@ export function Nav() {
         )}
       </div>
     </header>
+  );
+}
+
+function AdminDropdown({
+  mobile = false,
+  open,
+  onOpenChange,
+}: {
+  mobile?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const menuId = mobile ? "mobile-admin-menu" : "desktop-admin-menu";
+
+  return (
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={mobile ? "Open admin menu" : undefined}
+          aria-controls={menuId}
+          className={
+            mobile
+              ? "glass inline-flex h-10 w-10 items-center justify-center rounded-full text-gold transition-colors hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold xl:hidden sm:w-auto sm:gap-2 sm:px-3"
+              : "glass hidden rounded-full px-3 py-2 text-sm font-semibold text-gold hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold xl:inline-flex"
+          }
+        >
+          {mobile ? (
+            <>
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden text-sm font-semibold sm:inline">Admin</span>
+            </>
+          ) : (
+            "Admin"
+          )}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        id={menuId}
+        align="end"
+        sideOffset={8}
+        className="z-[80] max-h-[calc(100dvh-5rem)] w-60 max-w-[calc(100vw-2rem)] overflow-y-auto"
+      >
+        <DropdownMenuLabel>Administration</DropdownMenuLabel>
+        {ADMIN_NAV.map((item) => {
+          const Icon = item.icon;
+          return (
+            <DropdownMenuItem key={item.to} asChild>
+              <Link
+                to={item.to}
+                onClick={() => onOpenChange?.(false)}
+                className="min-h-11 cursor-pointer font-medium focus-visible:outline-none data-[status=active]:bg-accent data-[status=active]:text-accent-foreground"
+              >
+                <Icon className="h-4 w-4 text-gold" aria-hidden="true" /> {item.label}
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

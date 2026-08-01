@@ -44,6 +44,36 @@ type Payment = {
   created_at: string | null;
 };
 
+const paymentStatusConfig = {
+  pending: {
+    label: "Pending verification",
+    className: "border-gold/40 bg-gold/10 text-gold",
+  },
+  approved: {
+    label: "Approved",
+    className: "border-bull/40 bg-bull/10 text-bull",
+  },
+  rejected: {
+    label: "Rejected",
+    className: "border-destructive/40 bg-destructive/10 text-destructive",
+  },
+} as const;
+
+function PaymentStatusBadge({ status }: { status: string }) {
+  const config = paymentStatusConfig[status as keyof typeof paymentStatusConfig] ?? {
+    label: status.replaceAll("_", " "),
+    className: "border-border bg-muted text-muted-foreground",
+  };
+
+  return (
+    <span
+      className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${config.className}`}
+    >
+      {config.label}
+    </span>
+  );
+}
+
 function AdminPayments() {
   const { isAdmin, loading: adminLoading } = useAdmin();
   const navigate = useNavigate();
@@ -167,43 +197,43 @@ function AdminPayments() {
           </div>
         ) : (
           payments.map((payment) => (
-            <article key={payment.id} className="glass rounded-3xl p-5 sm:p-6">
+            <article key={payment.id} className="glass rounded-3xl p-4 sm:p-6">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-display text-lg font-semibold">{payment.course_title}</h2>
-                    <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold">
-                      {payment.status}
-                    </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3 sm:items-center">
+                    <h2 className="min-w-0 break-words font-display text-lg font-semibold">
+                      {payment.course_title}
+                    </h2>
+                    <PaymentStatusBadge status={payment.status} />
                   </div>
-                  <div className="mt-3 grid gap-x-8 gap-y-2 text-sm text-muted-foreground sm:grid-cols-2">
-                    <p>
+                  <div className="mt-4 grid gap-x-8 gap-y-3 text-sm text-muted-foreground min-[440px]:grid-cols-2">
+                    <p className="min-w-0 break-words">
                       <span className="text-foreground">Learner:</span>{" "}
                       {payment.display_name || payment.user_email || payment.user_id}
                     </p>
-                    <p>
+                    <p className="min-w-0 break-words">
                       <span className="text-foreground">Amount:</span> {formatTZS(payment.amount)}{" "}
                       {payment.currency}
                     </p>
-                    <p>
+                    <p className="min-w-0 break-words">
                       <span className="text-foreground">Method:</span>{" "}
                       {payment.payment_method || "—"} · {payment.provider || "—"}
                     </p>
-                    <p>
+                    <p className="min-w-0 break-all">
                       <span className="text-foreground">Transaction:</span>{" "}
                       {payment.transaction_id || "—"}
                     </p>
-                    <p className="sm:col-span-2">
+                    <p className="min-w-0 break-words min-[440px]:col-span-2">
                       <span className="text-foreground">Reference:</span>{" "}
                       {payment.id.replaceAll("-", "").slice(0, 8).toUpperCase()} ·{" "}
                       {payment.created_at ? new Date(payment.created_at).toLocaleString() : "—"}
                     </p>
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
+                <div className="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-3 lg:w-auto lg:min-w-[18rem]">
                   <button
                     onClick={() => void viewProof(payment)}
-                    className="glass inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold hover:text-gold"
+                    className="glass inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 py-2 text-xs font-semibold hover:text-gold"
                   >
                     <ExternalLink className="h-3.5 w-3.5" /> View proof
                   </button>
@@ -212,14 +242,14 @@ function AdminPayments() {
                       <button
                         disabled={processing === payment.id}
                         onClick={() => setSelected(payment)}
-                        className="rounded-full bg-gradient-gold px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+                        className="min-h-11 rounded-full bg-gradient-gold px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
                       >
                         Approve
                       </button>
                       <button
                         disabled={processing === payment.id}
                         onClick={() => setRejecting(payment)}
-                        className="rounded-full border border-destructive/50 px-4 py-2 text-xs font-semibold text-destructive disabled:opacity-60"
+                        className="min-h-11 rounded-full border border-destructive/50 px-4 py-2 text-xs font-semibold text-destructive disabled:opacity-60"
                       >
                         Reject
                       </button>

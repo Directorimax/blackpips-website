@@ -4,7 +4,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { INSTRUMENTS } from "@/lib/pip-calculator";
-import { humanizeJournalValue } from "@/lib/trading-journal";
+import { humanizeJournalValue, isJournalResult, journalResultConfig } from "@/lib/trading-journal";
 import {
   Select,
   SelectContent,
@@ -38,7 +38,12 @@ export function JournalSelect({
     () =>
       options.map((option) =>
         typeof option === "string"
-          ? { value: option, label: humanizeJournalValue(option) }
+          ? {
+              value: option,
+              label: isJournalResult(option)
+                ? journalResultConfig[option].label
+                : humanizeJournalValue(option),
+            }
           : option,
       ),
     [options],
@@ -49,10 +54,7 @@ export function JournalSelect({
         value={value || (allOptionLabel ? "__all__" : undefined)}
         onValueChange={(nextValue) => onChange(nextValue === "__all__" ? "" : nextValue)}
       >
-        <SelectTrigger
-          aria-label={ariaLabel}
-          className="h-10 bg-background pr-3"
-        >
+        <SelectTrigger aria-label={ariaLabel} className="h-10 bg-background pr-3">
           <SelectValue
             placeholder={placeholder}
             className="min-w-0 flex-1 overflow-hidden text-left text-ellipsis whitespace-nowrap"
