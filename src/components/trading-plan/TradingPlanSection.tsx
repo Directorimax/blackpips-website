@@ -32,7 +32,7 @@ export function TradingPlanSection({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={cn(
-        "rounded-2xl border bg-card/70 transition-colors duration-200 hover:border-gold/50 hover:shadow-[0_8px_20px_hsl(var(--gold)/0.08)]",
+        "overflow-hidden rounded-2xl border bg-card/70 transition-colors duration-200 hover:border-gold/50 hover:shadow-[0_8px_20px_hsl(var(--gold)/0.08)]",
         expanded ? "border-gold/50 bg-card/90 shadow-elegant" : "border-border/80",
       )}
     >

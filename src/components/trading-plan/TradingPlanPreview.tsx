@@ -90,69 +90,73 @@ export function TradingPlanPreview({ draft }: { draft: TradingPlanDraft }) {
     });
 
   return (
-    <aside className="max-h-[calc(100vh-7rem)] min-w-0 overflow-y-auto rounded-3xl border border-border bg-card/85 p-5 shadow-elegant sm:p-6">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 text-gold">
-          <BookOpenCheck className="h-5 w-5 shrink-0" />
-          <span className="text-xs font-semibold uppercase tracking-[0.18em]">
-            My Trading Playbook
-          </span>
+    <aside className="min-w-0 rounded-3xl shadow-elegant">
+      <div className="max-h-[calc(100vh-7rem)] min-w-0 overflow-y-auto rounded-[inherit] border border-border bg-card/85 p-5 sm:p-6">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-gold">
+            <BookOpenCheck className="h-5 w-5 shrink-0" />
+            <span className="text-xs font-semibold uppercase tracking-[0.18em]">
+              My Trading Playbook
+            </span>
+          </div>
+          <h2 className="mt-4 break-words font-display text-2xl font-semibold [overflow-wrap:anywhere]">
+            {draft.trader_name?.trim() || "Your rules, clearly defined."}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            A live view of the framework that guides your trading decisions.
+          </p>
         </div>
-        <h2 className="mt-4 break-words font-display text-2xl font-semibold [overflow-wrap:anywhere]">
-          {draft.trader_name?.trim() || "Your rules, clearly defined."}
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          A live view of the framework that guides your trading decisions.
-        </p>
-      </div>
-      <div className="mt-6 grid gap-2">
-        {sections.map((section) => {
-          const open = openSection === section.id;
-          const contentId = `playbook-${section.id}`;
-          return (
-            <div
-              key={section.id}
-              onMouseEnter={() => onSectionMouseEnter(section.id)}
-              onMouseLeave={onSectionMouseLeave}
-              className={`min-w-0 rounded-xl border transition-colors duration-200 hover:border-gold/50 hover:shadow-[0_8px_20px_hsl(var(--gold)/0.08)] ${open ? "border-gold/50 bg-card/95 shadow-[0_8px_20px_hsl(var(--gold)/0.08)]" : "border-border/70 bg-background/20"}`}
-            >
-              <button
-                type="button"
-                onClick={() => onSectionClick(section.id)}
-                aria-expanded={open}
-                aria-controls={contentId}
-                className="flex w-full cursor-pointer items-center gap-3 px-3 py-3 text-left text-xs font-semibold uppercase tracking-widest outline-none transition-colors duration-200 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold"
+        <div className="mt-6 grid gap-2">
+          {sections.map((section) => {
+            const open = openSection === section.id;
+            const contentId = `playbook-${section.id}`;
+            return (
+              <div
+                key={section.id}
+                onMouseEnter={() => onSectionMouseEnter(section.id)}
+                onMouseLeave={onSectionMouseLeave}
+                className={`min-w-0 overflow-hidden rounded-xl border transition-colors duration-200 hover:border-gold/50 hover:shadow-[0_8px_20px_hsl(var(--gold)/0.08)] ${open ? "border-gold/50 bg-card/95 shadow-[0_8px_20px_hsl(var(--gold)/0.08)]" : "border-border/70 bg-background/20"}`}
               >
-                <span className="min-w-0 flex-1">{section.title}</span>
-                <motion.span
-                  animate={{ rotate: open ? 180 : 0 }}
-                  transition={reducedMotion ? { duration: 0 } : { duration: 0.24, ease: "easeOut" }}
-                  className="shrink-0"
+                <button
+                  type="button"
+                  onClick={() => onSectionClick(section.id)}
+                  aria-expanded={open}
+                  aria-controls={contentId}
+                  className="flex w-full cursor-pointer items-center gap-3 px-3 py-3 text-left text-xs font-semibold uppercase tracking-widest outline-none transition-colors duration-200 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold"
                 >
-                  <ChevronDown className="h-4 w-4" />
-                </motion.span>
-              </button>
-              <AnimatePresence initial={false}>
-                {open && (
-                  <motion.div
-                    id={contentId}
-                    initial={{ height: 0, opacity: 0, y: reducedMotion ? 0 : -4 }}
-                    animate={{ height: "auto", opacity: 1, y: 0 }}
-                    exit={{ height: 0, opacity: 0, y: reducedMotion ? 0 : -4 }}
+                  <span className="min-w-0 flex-1">{section.title}</span>
+                  <motion.span
+                    animate={{ rotate: open ? 180 : 0 }}
                     transition={
                       reducedMotion ? { duration: 0 } : { duration: 0.24, ease: "easeOut" }
                     }
-                    className="min-w-0 overflow-hidden"
+                    className="shrink-0"
                   >
-                    <div className="min-w-0 border-t border-border/70 px-3 py-3">
-                      {section.content}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
+                    <ChevronDown className="h-4 w-4" />
+                  </motion.span>
+                </button>
+                <AnimatePresence initial={false}>
+                  {open && (
+                    <motion.div
+                      id={contentId}
+                      initial={{ height: 0, opacity: 0, y: reducedMotion ? 0 : -4 }}
+                      animate={{ height: "auto", opacity: 1, y: 0 }}
+                      exit={{ height: 0, opacity: 0, y: reducedMotion ? 0 : -4 }}
+                      transition={
+                        reducedMotion ? { duration: 0 } : { duration: 0.24, ease: "easeOut" }
+                      }
+                      className="min-w-0 overflow-hidden"
+                    >
+                      <div className="min-w-0 border-t border-border/70 px-3 py-3">
+                        {section.content}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </aside>
   );
