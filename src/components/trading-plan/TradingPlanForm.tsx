@@ -8,7 +8,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useRef, type ChangeEvent } from "react";
+import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -24,6 +24,7 @@ import {
   TRADING_PLAN_TIMEFRAMES,
   type TradingPlanTimeframe,
 } from "@/lib/trading-plan";
+import { acceptsNumericInput, validateNumericInput } from "@/lib/trading-plan-numeric";
 import { getPlanCompletion, type PlanSectionName } from "./completion";
 import { TradingPlanPreview } from "./TradingPlanPreview";
 import { TradingPlanSaveBar } from "./TradingPlanSaveBar";
@@ -70,22 +71,31 @@ function SelectField({
 
 function NumberField({
   label,
-  value,
+  rawValue,
+  onRawChange,
   onChange,
   min,
   max,
   step = 1,
 }: {
   label: string;
-  value: number;
+  rawValue: string;
+  onRawChange: (value: string) => void;
   onChange: (value: number) => void;
   min: number;
   max: number;
   step?: number;
 }) {
+  const errorId = useId();
+  const integer = step >= 1;
+  const validation = validateNumericInput(rawValue, { min, max, integer, label });
+
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const next = event.target.valueAsNumber;
-    if (!Number.isNaN(next)) onChange(next);
+    const next = event.target.value;
+    if (!acceptsNumericInput(next, integer)) return;
+    onRawChange(next);
+    const parsed = validateNumericInput(next, { min, max, integer, label });
+    if (parsed.valid) onChange(parsed.value);
   };
   return (
     <label className="grid gap-1.5 text-sm font-medium">
@@ -96,14 +106,19 @@ function NumberField({
         </span>
       </span>
       <Input
-        type="number"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
+        type="text"
+        inputMode={integer ? "numeric" : "decimal"}
+        value={rawValue}
         onChange={handleChange}
+        aria-invalid={!validation.valid}
+        aria-describedby={!validation.valid ? errorId : undefined}
         className="h-11"
       />
+      {!validation.valid && (
+        <span id={errorId} className="text-xs font-normal text-destructive" role="alert">
+          {validation.error}
+        </span>
+      )}
     </label>
   );
 }
@@ -297,6 +312,7 @@ export function TradingPlanForm({
   lastSavedAt,
   setDraft,
   onSave,
+  onNumericValidityChange,
 }: {
   draft: TradingPlanDraft;
   saving: boolean;
@@ -306,7 +322,43 @@ export function TradingPlanForm({
   lastSavedAt: string | null;
   setDraft: SetTradingPlanDraft;
   onSave: () => void;
+  onNumericValidityChange: (valid: boolean) => void;
 }) {
+  const [numericInputs, setNumericInputs] = useState(() => ({
+    max_risk_per_trade: String(draft.max_risk_per_trade),
+    max_daily_loss: String(draft.max_daily_loss),
+    max_weekly_loss: String(draft.max_weekly_loss),
+    max_open_trades: String(draft.max_open_trades),
+  }));
+  const numericFieldsValid =
+    validateNumericInput(numericInputs.max_risk_per_trade, {
+      min: 0,
+      max: 100,
+      integer: false,
+      label: "Max Risk Per Trade (%)",
+    }).valid &&
+    validateNumericInput(numericInputs.max_daily_loss, {
+      min: 0,
+      max: 100,
+      integer: false,
+      label: "Max Daily Loss (%)",
+    }).valid &&
+    validateNumericInput(numericInputs.max_weekly_loss, {
+      min: 0,
+      max: 100,
+      integer: false,
+      label: "Max Weekly Loss (%)",
+    }).valid &&
+    validateNumericInput(numericInputs.max_open_trades, {
+      min: 1,
+      max: 100,
+      integer: true,
+      label: "Max Open Trades",
+    }).valid;
+
+  useEffect(() => {
+    onNumericValidityChange(numericFieldsValid);
+  }, [numericFieldsValid, onNumericValidityChange]);
   const completion = getPlanCompletion(draft);
   const {
     openSection: expanded,
@@ -414,7 +466,10 @@ export function TradingPlanForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <NumberField
               label="Max Risk Per Trade (%)"
-              value={draft.max_risk_per_trade}
+              rawValue={numericInputs.max_risk_per_trade}
+              onRawChange={(value) =>
+                setNumericInputs((current) => ({ ...current, max_risk_per_trade: value }))
+              }
               min={0}
               max={100}
               step={0.1}
@@ -422,7 +477,10 @@ export function TradingPlanForm({
             />
             <NumberField
               label="Max Daily Loss (%)"
-              value={draft.max_daily_loss}
+              rawValue={numericInputs.max_daily_loss}
+              onRawChange={(value) =>
+                setNumericInputs((current) => ({ ...current, max_daily_loss: value }))
+              }
               min={0}
               max={100}
               step={0.1}
@@ -430,7 +488,10 @@ export function TradingPlanForm({
             />
             <NumberField
               label="Max Weekly Loss (%)"
-              value={draft.max_weekly_loss}
+              rawValue={numericInputs.max_weekly_loss}
+              onRawChange={(value) =>
+                setNumericInputs((current) => ({ ...current, max_weekly_loss: value }))
+              }
               min={0}
               max={100}
               step={0.1}
@@ -438,7 +499,10 @@ export function TradingPlanForm({
             />
             <NumberField
               label="Max Open Trades"
-              value={draft.max_open_trades}
+              rawValue={numericInputs.max_open_trades}
+              onRawChange={(value) =>
+                setNumericInputs((current) => ({ ...current, max_open_trades: value }))
+              }
               min={1}
               max={100}
               onChange={(value) => setDraft("max_open_trades", value)}
@@ -516,7 +580,7 @@ export function TradingPlanForm({
           saving={saving}
           saved={saved}
           hasChanges={hasChanges}
-          valid={valid}
+          valid={valid && numericFieldsValid}
           lastSavedAt={lastSavedAt}
           onSave={onSave}
         />

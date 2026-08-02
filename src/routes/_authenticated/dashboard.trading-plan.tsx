@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Plus, ShieldCheck, Target } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Plus, Target } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TradingPlanHeader } from "@/components/trading-plan/TradingPlanHeader";
@@ -77,8 +77,8 @@ function TradingPlanPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [allowed, setAllowed] = useState<boolean | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [numericFieldsValid, setNumericFieldsValid] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -87,27 +87,11 @@ function TradingPlanPage() {
       try {
         const { data: session } = await supabase.auth.getSession();
         const token = session.session?.access_token;
-        const user = session.session?.user;
-        if (!token || !user) {
-          if (active) setAllowed(false);
-          return;
-        }
+        if (!token) return;
 
-        const [{ data: purchase, error: purchaseError }, plan] = await Promise.all([
-          supabase
-            .from("purchases")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("payment_status", "approved")
-            .limit(1)
-            .maybeSingle(),
-          getTradingPlan({ headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-
-        if (purchaseError) throw purchaseError;
+        const plan = await getTradingPlan({ headers: { Authorization: `Bearer ${token}` } });
         if (!active) return;
 
-        setAllowed(Boolean(purchase));
         if (plan) {
           const loadedDraft = toDraft(plan);
           setDraft(loadedDraft);
@@ -137,6 +121,10 @@ function TradingPlanPage() {
   };
 
   const save = async () => {
+    if (!numericFieldsValid) {
+      toast.error("Review the highlighted numeric fields before saving.");
+      return;
+    }
     const payload = {
       ...draft,
       preferred_market: draft.preferred_markets[0] ?? draft.preferred_market,
@@ -203,31 +191,18 @@ function TradingPlanPage() {
     );
   }
 
-  if (!allowed) {
-    return (
-      <main className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <ShieldCheck className="mx-auto h-10 w-10 text-gold" />
-        <h1 className="mt-4 font-display text-3xl font-bold">Premium workspace</h1>
-        <p className="mt-3 text-muted-foreground">
-          An approved premium purchase is required to create a Trading Plan.
-        </p>
-        <Button asChild className="mt-6">
-          <Link to="/courses">Browse Premium Lessons</Link>
-        </Button>
-      </main>
-    );
-  }
-
-  const valid = tradingPlanSchema.safeParse({
-    ...draft,
-    preferred_market: draft.preferred_markets[0] ?? draft.preferred_market,
-    preferred_session: draft.preferred_sessions[0] ?? draft.preferred_session,
-    psychology_rules: draft.psychology_rules_list
-      .map((rule) => rule.trim())
-      .filter(Boolean)
-      .join("\n"),
-    daily_routine: draft.daily_routine_before ?? draft.daily_routine ?? null,
-  }).success;
+  const valid =
+    numericFieldsValid &&
+    tradingPlanSchema.safeParse({
+      ...draft,
+      preferred_market: draft.preferred_markets[0] ?? draft.preferred_market,
+      preferred_session: draft.preferred_sessions[0] ?? draft.preferred_session,
+      psychology_rules: draft.psychology_rules_list
+        .map((rule) => rule.trim())
+        .filter(Boolean)
+        .join("\n"),
+      daily_routine: draft.daily_routine_before ?? draft.daily_routine ?? null,
+    }).success;
   const hasChanges = JSON.stringify(draft) !== JSON.stringify(savedDraft);
   const { completedCount, requiredCount, percentage } = getPlanCompletion(draft);
   const status = saving
@@ -264,6 +239,7 @@ function TradingPlanPage() {
           valid={valid}
           lastSavedAt={lastSavedAt}
           setDraft={set}
+          onNumericValidityChange={setNumericFieldsValid}
           onSave={() => void save()}
         />
       )}

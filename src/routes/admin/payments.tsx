@@ -1,12 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, Loader2, ShieldCheck } from "lucide-react";
+import { FileSearch, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTZS } from "@/lib/site-data";
 import { useAdmin } from "@/hooks/useAdmin";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { sendNotification } from "@/services/email/notification.functions";
+import { getAdminPaymentProof } from "@/services/payments/payment-proof.functions";
+import type { PaymentProofKind } from "@/lib/payment-proof";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -84,6 +93,13 @@ function AdminPayments() {
   const [selected, setSelected] = useState<Payment | null>(null);
   const [rejecting, setRejecting] = useState<Payment | null>(null);
   const [reason, setReason] = useState("");
+  const [proofPreview, setProofPreview] = useState<{
+    payment: Payment;
+    loading: boolean;
+    url: string | null;
+    kind: PaymentProofKind | null;
+    error: string | null;
+  } | null>(null);
 
   const loadPayments = useCallback(async () => {
     setLoading(true);
@@ -104,14 +120,32 @@ function AdminPayments() {
 
   const viewProof = async (payment: Payment) => {
     if (!payment.proof_url) return toast.error("This payment has no uploaded proof.");
-    const { data, error } = await supabase.storage
-      .from("payment-proofs")
-      .createSignedUrl(payment.proof_url, 600);
-    if (error || !data.signedUrl) {
+    setProofPreview({ payment, loading: true, url: null, kind: null, error: null });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Your admin session has expired.");
+      const proof = await getAdminPaymentProof({
+        data: { paymentId: payment.id },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProofPreview((current) =>
+        current?.payment.id === payment.id
+          ? { ...current, loading: false, url: proof.signedUrl, kind: proof.kind, error: null }
+          : current,
+      );
+    } catch (error) {
       console.error("Could not create proof URL:", error);
-      return toast.error("Could not open the payment proof.");
+      setProofPreview((current) =>
+        current?.payment.id === payment.id
+          ? {
+              ...current,
+              loading: false,
+              error: error instanceof Error ? error.message : "Could not load the payment proof.",
+            }
+          : current,
+      );
     }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   const approve = async () => {
@@ -235,7 +269,7 @@ function AdminPayments() {
                     onClick={() => void viewProof(payment)}
                     className="glass inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 py-2 text-xs font-semibold hover:text-gold"
                   >
-                    <ExternalLink className="h-3.5 w-3.5" /> View proof
+                    <FileSearch className="h-3.5 w-3.5" /> View proof
                   </button>
                   {payment.status === "pending" && (
                     <>
@@ -267,6 +301,7 @@ function AdminPayments() {
         onCancel={() => setSelected(null)}
         onConfirm={() => void approve()}
       />
+      <PaymentProofDialog preview={proofPreview} onClose={() => setProofPreview(null)} />
       <RejectDialog
         payment={rejecting}
         reason={reason}
@@ -279,6 +314,69 @@ function AdminPayments() {
         onConfirm={() => void reject()}
       />
     </div>
+  );
+}
+
+function PaymentProofDialog({
+  preview,
+  onClose,
+}: {
+  preview: {
+    payment: Payment;
+    loading: boolean;
+    url: string | null;
+    kind: PaymentProofKind | null;
+    error: string | null;
+  } | null;
+  onClose: () => void;
+}) {
+  const payment = preview?.payment;
+  return (
+    <Dialog open={Boolean(preview)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl flex-col gap-0 overflow-hidden rounded-2xl border-border bg-card p-0 [&>button]:grid [&>button]:h-11 [&>button]:w-11 [&>button]:place-items-center sm:rounded-3xl">
+        <DialogHeader className="shrink-0 border-b border-border bg-card px-4 py-4 pr-14 text-left sm:px-6">
+          <DialogTitle>Payment proof</DialogTitle>
+          <DialogDescription className="break-words">
+            {payment
+              ? `${payment.display_name || payment.user_email || payment.user_id} · ${payment.course_title} · ${formatTZS(payment.amount)} ${payment.currency}`
+              : "Secure payment-proof preview"}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="min-h-0 flex-1 overflow-auto overscroll-contain bg-muted/30 p-3 sm:p-5">
+          {preview?.loading ? (
+            <div
+              className="flex min-h-[50dvh] items-center justify-center gap-3 text-sm text-muted-foreground"
+              role="status"
+            >
+              <Loader2 className="h-6 w-6 animate-spin text-gold" /> Loading private proof…
+            </div>
+          ) : preview?.error ? (
+            <div
+              className="mx-auto flex min-h-[40dvh] max-w-lg items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive"
+              role="alert"
+            >
+              {preview.error}
+            </div>
+          ) : preview?.url && preview.kind === "pdf" ? (
+            <iframe
+              src={preview.url}
+              title="Payment proof PDF"
+              referrerPolicy="no-referrer"
+              className="h-[70dvh] min-h-[28rem] w-full rounded-xl border border-border bg-background"
+            />
+          ) : preview?.url ? (
+            <div className="flex min-h-[50dvh] w-full items-center justify-center overflow-auto rounded-xl bg-background/60">
+              <img
+                src={preview.url}
+                alt={`Payment proof from ${payment?.display_name || payment?.user_email || "learner"}`}
+                referrerPolicy="no-referrer"
+                className="max-h-[72dvh] max-w-full object-contain"
+              />
+            </div>
+          ) : null}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

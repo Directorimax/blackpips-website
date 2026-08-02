@@ -42,7 +42,9 @@ function contentSecurityPolicy() {
     "font-src 'self' data: https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.supabase.co https://i.ytimg.com",
     "media-src 'self' blob: https://*.supabase.co",
-    "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
+    `frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com ${supabaseSources()
+      .filter((source) => source.startsWith("https://"))
+      .join(" ")}`,
     `connect-src ${connectSources.join(" ")}`,
     "manifest-src 'self'",
     "worker-src 'self' blob:",
