@@ -8,11 +8,6 @@
   "theme_color": "#090909",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
-    {
       "src": "/launchericon-48x48.png",
       "sizes": "48x48",
       "type": "image/png"
