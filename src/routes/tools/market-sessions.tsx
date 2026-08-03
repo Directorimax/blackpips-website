@@ -8,7 +8,7 @@ export const Route = createFileRoute("/tools/market-sessions")({
 
 function MarketSessionsPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-16">
+    <main className="mx-auto max-w-[1440px] px-4 py-16">
       <MarketSessions />
     </main>
   );

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Calculator, Check, ChevronDown, Clock, Minus, Plus, Search } from "lucide-react";
+import { Calculator, Check, ChevronDown, Minus, Plus, Search } from "lucide-react";
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -16,6 +16,7 @@ import {
   isValidLotSize,
   type InstrumentConfig,
 } from "@/lib/pip-calculator";
+import { MarketSessionsWorkspace } from "@/components/market-sessions/MarketSessionsWorkspace";
 
 const formatUsd = (value: number) =>
   value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -462,59 +463,6 @@ function NumberStepper({
   );
 }
 
-const SESSIONS = [
-  { name: "Sydney", openUTC: 22, closeUTC: 7 },
-  { name: "Tokyo", openUTC: 0, closeUTC: 9 },
-  { name: "London", openUTC: 7, closeUTC: 16 },
-  { name: "New York", openUTC: 13, closeUTC: 22 },
-];
-
 export function MarketSessions() {
-  const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const interval = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(interval);
-  }, []);
-  const hour = now.getUTCHours();
-  const isOpen = (openUTC: number, closeUTC: number) =>
-    openUTC < closeUTC ? hour >= openUTC && hour < closeUTC : hour >= openUTC || hour < closeUTC;
-  return (
-    <div className="glass rounded-3xl p-5 sm:p-8">
-      <div className="flex items-center gap-2 text-foreground dark:text-gold">
-        <Clock className="h-5 w-5" />
-        <span className="text-xs font-semibold uppercase tracking-wide">Market Sessions</span>
-      </div>
-      <h1 className="mt-2 font-display text-2xl font-bold">Live session clock</h1>
-      <p className="text-xs text-muted-foreground">
-        UTC +3 now {new Date(now.getTime() + 3 * 60 * 60 * 1000).toUTCString().slice(17, 25)}
-      </p>
-      <div className="mt-6 space-y-2">
-        {SESSIONS.map((session) => {
-          const open = isOpen(session.openUTC, session.closeUTC);
-          return (
-            <div
-              key={session.name}
-              className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-card-foreground shadow-sm"
-            >
-              <div>
-                <div className="font-display text-sm font-semibold">{session.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {String(session.openUTC).padStart(2, "0")}:00 –{" "}
-                  {String(session.closeUTC).padStart(2, "0")}:00 UTC
-                </div>
-              </div>
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold ${open ? "bg-bull/20 text-bull" : "bg-muted text-muted-foreground"}`}
-              >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${open ? "animate-pulse-gold bg-bull" : "bg-muted-foreground"}`}
-                />
-                {open ? "Open" : "Closed"}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return <MarketSessionsWorkspace />;
 }

@@ -599,3 +599,22 @@
     display: block !important;
   }
 }
+@media (hover: hover) and (pointer: fine) {
+  .market-session-segment:hover .market-session-tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+.market-session-tooltip[data-align="start"] {
+  left: 0;
+}
+
+.market-session-tooltip[data-align="center"] {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.market-session-tooltip[data-align="end"] {
+  right: 0;
+}
