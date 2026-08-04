@@ -20,7 +20,7 @@ describe("SessionCard", () => {
     expect(html).toContain("London");
     expect(html).toContain("London status: Open");
     expect(html).toContain("10:00–19:00");
-    expect(html).toContain("EURUSD");
-    expect(html).toContain('role="progressbar"');
+    expect(html).toContain("Closes in");
+    expect(html).not.toContain("Primary currencies");
   });
 });

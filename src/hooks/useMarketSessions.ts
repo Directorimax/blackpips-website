@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  getAllSessionSnapshots,
-  getGlobalMarketStatus,
-  getMarketActivity,
-  getOverlapSnapshots,
-} from "@/lib/market-session-engine";
+import { getAllSessionSnapshots } from "@/lib/market-session-engine";
 import {
   getSupportedTimeZones,
   getVisitorTimeZone,
@@ -99,7 +94,7 @@ function useReliableNow(injectedNow?: Date) {
       if (document.visibilityState === "visible") sync();
     };
     sync();
-    const interval = window.setInterval(sync, 1000);
+    const interval = window.setInterval(sync, 60_000);
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("focus", sync);
     return () => {
@@ -120,12 +115,6 @@ export function useMarketSessions(injectedNow?: Date) {
     () => getAllSessionSnapshots(calculationNow, preferences.timeZone, preferences.timeFormat),
     [calculationNow, preferences.timeFormat, preferences.timeZone],
   );
-  const overlaps = useMemo(
-    () => getOverlapSnapshots(calculationNow, preferences.timeZone, preferences.timeFormat),
-    [calculationNow, preferences.timeFormat, preferences.timeZone],
-  );
-  const globalStatus = useMemo(() => getGlobalMarketStatus(calculationNow), [calculationNow]);
-  const activity = useMemo(() => getMarketActivity(sessions, overlaps), [overlaps, sessions]);
   const previousStates = useRef<Map<string, boolean> | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
@@ -145,25 +134,11 @@ export function useMarketSessions(injectedNow?: Date) {
     previousStates.current = current;
   }, [now, sessions]);
 
-  const activeSessions = sessions.filter((session) => session.isOpen);
-  const nextToOpen = sessions
-    .filter((session) => !session.isOpen)
-    .sort((first, second) => first.nextOpen.getTime() - second.nextOpen.getTime())[0];
-  const nextToClose = activeSessions.sort(
-    (first, second) => first.nextClose.getTime() - second.nextClose.getTime(),
-  )[0];
-
   return {
     ...preferences,
-    activity,
-    activeSessions,
     announcement,
-    globalStatus,
     isReady: Boolean(now),
-    nextToClose,
-    nextToOpen,
     now: calculationNow,
-    overlaps,
     sessions,
   };
 }

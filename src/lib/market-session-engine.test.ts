@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { SESSION_CONFIG } from "./market-session.config";
 import {
   getAllSessionSnapshots,
-  getGlobalMarketStatus,
   getSessionIntervals,
   getTimelineSegments,
 } from "./market-session-engine";
@@ -66,28 +65,5 @@ describe("IANA session intervals", () => {
     expect(getTimelineSegments(config("london"), now, "Africa/Dar_es_Salaam")).toMatchObject([
       { startMinutes: 600, endMinutes: 1140 },
     ]);
-  });
-});
-
-describe("Forex week status", () => {
-  it("is open before the widely used Friday 17:00 New York boundary", () => {
-    const status = getGlobalMarketStatus(new Date("2026-08-07T20:59:00Z"));
-    expect(status.isOpen).toBe(true);
-  });
-
-  it("is closed on Saturday", () => {
-    const status = getGlobalMarketStatus(new Date("2026-08-08T12:00:00Z"));
-    expect(status.label).toBe("Weekend Closed");
-  });
-
-  it("is closed before the Sunday reopening", () => {
-    const status = getGlobalMarketStatus(new Date("2026-08-09T20:00:00Z"));
-    expect(status.isOpen).toBe(false);
-    expect(status.nextOpen.toISOString()).toBe("2026-08-09T21:00:00.000Z");
-  });
-
-  it("recomputes cleanly when an injected time jumps across an opening", () => {
-    expect(getGlobalMarketStatus(new Date("2026-08-09T20:59:59Z")).isOpen).toBe(false);
-    expect(getGlobalMarketStatus(new Date("2026-08-09T21:00:01Z")).isOpen).toBe(true);
   });
 });

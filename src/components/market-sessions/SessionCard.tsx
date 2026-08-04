@@ -9,7 +9,6 @@ export function SessionCard({
 }) {
   const { config } = session;
   const status = isReady ? (session.isOpen ? "Open" : "Closed") : "Checking";
-  const progress = isReady ? session.progressPercentage : 0;
   return (
     <article
       className="rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm"
@@ -60,34 +59,6 @@ export function SessionCard({
         </span>
         <strong className="tabular-nums">{isReady ? session.countdown : "Calculating"}</strong>
       </div>
-      <div
-        className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
-        role="progressbar"
-        aria-label={`${config.name} session progress`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(progress)}
-      >
-        <div
-          className="h-full rounded-full bg-gold/75 transition-[width] duration-500 motion-reduce:transition-none"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
-      <dl className="mt-4 grid gap-2 text-xs">
-        <div>
-          <dt className="text-muted-foreground">Primary currencies</dt>
-          <dd className="mt-0.5 font-semibold">{config.currencies.join(" · ")}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Commonly active / often watched</dt>
-          <dd className="mt-0.5 leading-relaxed">{config.instruments.join(" · ")}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">General activity</dt>
-          <dd className="mt-0.5">{config.activity}</dd>
-        </div>
-      </dl>
     </article>
   );
 }
