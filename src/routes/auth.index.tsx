@@ -13,6 +13,7 @@ import {
 } from "@/lib/auth-redirect";
 import { createSeoHead } from "@/lib/seo";
 import { clearSessionLifecycleStorage } from "@/lib/session-lifecycle";
+import { Logo } from "@/components/Logo";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -148,10 +149,8 @@ function AuthPage() {
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-16">
       <div className="glass w-full rounded-3xl p-8 shadow-elegant">
         <div className="text-center">
-          <div className="inline-flex rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold">
-            BLACKPIPS
-          </div>
-          <h1 className="mt-4 font-display text-3xl font-bold">{title}</h1>
+          <Logo className="justify-center" />
+          <h1 className="mt-3 font-display text-3xl font-bold">{title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{sub}</p>
         </div>
 

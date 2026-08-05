@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, memo, useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Crown, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { MENTORSHIP, formatTZS } from "@/lib/site-data";
+import { MENTORSHIP } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { createSeoHead } from "@/lib/seo";
 import { sendNotification } from "@/services/email/notification.functions";
+import { getCurriculumPreview } from "@/lib/mentorship-presentation";
 
 export const Route = createFileRoute("/mentorship")({
   head: () =>
@@ -45,6 +46,7 @@ type MentorshipPackage = {
   name: string;
   is_active: boolean;
 };
+type MentorshipProgram = (typeof MENTORSHIP)[number];
 const PACKAGE_SLUGS = ["regular-class", "advanced-class", "master-class"] as const;
 type ApplicationForm = {
   full_name: string;
@@ -81,6 +83,7 @@ function Mentorship() {
   const packageErrorNotified = useRef(false);
   const [form, setForm] = useState<ApplicationForm>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [expandedTier, setExpandedTier] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.email)
@@ -106,11 +109,15 @@ function Mentorship() {
       });
   }, []);
 
-  function openApplication(packageOption: MentorshipPackage | undefined) {
+  const openApplication = useCallback((packageOption: MentorshipPackage | undefined) => {
     if (!packageOption?.is_active)
       return toast.error("This mentorship package is currently unavailable.");
     setSelectedPackage(packageOption);
-  }
+  }, []);
+
+  const toggleCurriculum = useCallback((tier: string) => {
+    setExpandedTier((current) => (current === tier ? null : tier));
+  }, []);
 
   async function submitApplication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -175,25 +182,7 @@ function Mentorship() {
         </p>
       </header>
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          "Complete Forex foundation",
-          "Risk management",
-          "Trading psychology",
-          "Live market analysis",
-          "Homework & practice",
-          "Trading journal template",
-          "Practical exercises",
-          "Lifetime updates",
-        ].map((feature) => (
-          <div key={feature} className="glass flex items-center gap-2 rounded-xl px-4 py-3 text-sm">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-gold" />
-            <span>{feature}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-14 grid gap-6 lg:grid-cols-3">
+      <div className="mt-10 grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3">
         {packagesError ? (
           <div className="glass lg:col-span-3 rounded-3xl p-10 text-center">
             <h2 className="font-display text-xl font-semibold">
@@ -213,69 +202,16 @@ function Mentorship() {
             const databasePackage = packages.find((item) => item.slug === PACKAGE_SLUGS[index]);
             const available = Boolean(databasePackage?.is_active);
             return (
-              <div
+              <MentorshipProgramCard
                 key={mentorshipPackage.tier}
-                className={`relative flex flex-col rounded-3xl border p-8 transition-all ${mentorshipPackage.popular ? "border-gold/50 bg-card shadow-elegant lg:-translate-y-3" : "border-border bg-card"}`}
-              >
-                {mentorshipPackage.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-gold px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-glow">
-                    Most popular
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-gold">
-                  {mentorshipPackage.popular ? (
-                    <Crown className="h-5 w-5" />
-                  ) : (
-                    <Sparkles className="h-5 w-5" />
-                  )}
-                  <span className="text-xs font-semibold uppercase tracking-wide">
-                    {databasePackage?.name ?? mentorshipPackage.tier}
-                  </span>
-                </div>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-gradient-gold font-display text-5xl font-black">
-                    {formatTZS(mentorshipPackage.price)}
-                  </span>
-                  <span className="text-sm text-muted-foreground">/ program</span>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Application required Â· Scheduling and payment follow approval
-                </p>
-                <button
-                  disabled={packagesLoading || !available}
-                  onClick={() => openApplication(databasePackage)}
-                  className="mt-6 rounded-full bg-gradient-gold px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02]"
-                >
-                  {packagesLoading
-                    ? "Checking availability…"
-                    : available
-                      ? "Enroll now"
-                      : "Currently unavailable"}
-                </button>
-                <div className="mt-8 border-t border-border pt-6">
-                  <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Curriculum
-                  </div>
-                  <div className="space-y-4">
-                    {mentorshipPackage.modules.map((module) => (
-                      <div key={module.name}>
-                        <div className="text-sm font-semibold">{module.name}</div>
-                        <ul className="mt-1.5 space-y-1">
-                          {module.items.map((item) => (
-                            <li
-                              key={item}
-                              className="flex items-start gap-2 text-xs text-muted-foreground"
-                            >
-                              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold" />
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                program={mentorshipPackage}
+                packageOption={databasePackage}
+                available={available}
+                loading={packagesLoading}
+                onEnroll={openApplication}
+                expanded={expandedTier === mentorshipPackage.tier}
+                onToggle={toggleCurriculum}
+              />
             );
           })
         )}
@@ -416,6 +352,106 @@ function Mentorship() {
     </div>
   );
 }
+
+const MentorshipProgramCard = memo(function MentorshipProgramCard({
+  program,
+  packageOption,
+  available,
+  loading,
+  onEnroll,
+  expanded,
+  onToggle,
+}: {
+  program: MentorshipProgram;
+  packageOption: MentorshipPackage | undefined;
+  available: boolean;
+  loading: boolean;
+  onEnroll: (packageOption: MentorshipPackage | undefined) => void;
+  expanded: boolean;
+  onToggle: (tier: string) => void;
+}) {
+  const curriculumId = `mentorship-curriculum-${program.tier.toLowerCase()}`;
+  const previewModules = getCurriculumPreview(program.modules);
+
+  return (
+    <article
+      className={`relative flex min-h-[34rem] flex-col rounded-3xl border bg-card p-5 shadow-sm transition-[transform,box-shadow,border-color] duration-200 ease-out motion-reduce:transition-none sm:p-6 [@media(hover:hover)]:hover:-translate-y-2 [@media(hover:hover)]:hover:shadow-elegant motion-reduce:[@media(hover:hover)]:hover:translate-y-0 ${program.popular ? "border-gold/50 [@media(hover:hover)]:hover:border-gold" : "border-border [@media(hover:hover)]:hover:border-gold/50"}`}
+    >
+      {program.popular && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-gold px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-glow">
+          Most popular
+        </span>
+      )}
+      <div className="flex items-center gap-2 text-gold">
+        {program.popular ? <Crown className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+        <span className="text-xs font-semibold uppercase tracking-wide">
+          {packageOption?.name ?? program.tier}
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-0.5">
+        <div className="font-display font-black leading-none text-gradient-gold">
+          <span className="block text-xl sm:text-2xl">TSh</span>
+          <span className="block text-4xl sm:text-5xl">
+            {program.price.toLocaleString("en-US")}
+          </span>
+        </div>
+        <span className="mb-1 text-sm text-muted-foreground">per program</span>
+      </div>
+      <p className="mt-3 text-sm leading-5 text-muted-foreground">
+        Application required · Scheduling and payment follow approval
+      </p>
+      <button
+        disabled={loading || !available}
+        onClick={() => onEnroll(packageOption)}
+        className="mt-5 min-h-11 rounded-full bg-gradient-gold px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform motion-reduce:transition-none [@media(hover:hover)]:hover:scale-[1.02] disabled:opacity-60"
+      >
+        {loading ? "Checking availability…" : available ? "Enroll now" : "Currently unavailable"}
+      </button>
+
+      <section className="mt-5 border-t border-border pt-5">
+        <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Curriculum
+        </div>
+        <div id={curriculumId} className="relative">
+          <div className={expanded ? "space-y-4" : "h-40 overflow-hidden"}>
+            {(expanded ? program.modules : previewModules).map((module) => (
+              <div key={module.name}>
+                <h3 className="text-sm font-semibold">{module.name}</h3>
+                <ul className="mt-1.5 space-y-1">
+                  {(expanded ? module.items : module.items.slice(0, 2)).map((item) => (
+                    <li
+                      key={item}
+                      className="flex items-start gap-2 text-xs leading-5 text-muted-foreground"
+                    >
+                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          {!expanded && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent"
+            />
+          )}
+        </div>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={curriculumId}
+          onClick={() => onToggle(program.tier)}
+          className="mt-4 min-h-11 rounded-xl px-3 text-sm font-semibold text-gold underline-offset-4 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
+        >
+          {expanded ? "Hide curriculum" : "View curriculum"}
+        </button>
+      </section>
+    </article>
+  );
+});
 
 function ApplicationField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
