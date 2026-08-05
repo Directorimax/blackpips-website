@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getAllSessionSnapshots } from "@/lib/market-session-engine";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getSupportedTimeZones,
   getVisitorTimeZone,
@@ -111,34 +110,10 @@ export function useMarketSessions(injectedNow?: Date) {
   const preferences = useMarketSessionPreferences();
   const now = useReliableNow(injectedNow);
   const calculationNow = useMemo(() => now ?? new Date("2026-01-05T12:00:00Z"), [now]);
-  const sessions = useMemo(
-    () => getAllSessionSnapshots(calculationNow, preferences.timeZone, preferences.timeFormat),
-    [calculationNow, preferences.timeFormat, preferences.timeZone],
-  );
-  const previousStates = useRef<Map<string, boolean> | null>(null);
-  const [announcement, setAnnouncement] = useState("");
-
-  useEffect(() => {
-    if (!now) return;
-    const current = new Map(sessions.map((session) => [session.config.id, session.isOpen]));
-    if (previousStates.current) {
-      const changed = sessions.find(
-        (session) => previousStates.current?.get(session.config.id) !== session.isOpen,
-      );
-      if (changed) {
-        setAnnouncement(
-          `${changed.config.name} session is now ${changed.isOpen ? "open" : "closed"}.`,
-        );
-      }
-    }
-    previousStates.current = current;
-  }, [now, sessions]);
 
   return {
     ...preferences,
-    announcement,
     isReady: Boolean(now),
     now: calculationNow,
-    sessions,
   };
 }

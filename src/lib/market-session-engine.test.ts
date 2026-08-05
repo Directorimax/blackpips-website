@@ -50,6 +50,15 @@ describe("IANA session intervals", () => {
     expect(segments[1].endMinutes).toBe(1440);
   });
 
+  it("splits Sydney at both UTC day boundaries without shifting its geometry", () => {
+    const segments = getTimelineSegments(config("sydney"), new Date("2026-07-13T12:00:00Z"), "UTC");
+    expect(segments).toMatchObject([
+      { startMinutes: 0, endMinutes: 420, left: 0 },
+      { startMinutes: 1320, endMinutes: 1440 },
+    ]);
+    expect(segments[1].left + segments[1].width).toBeCloseTo(100);
+  });
+
   it("changes only display text between 12-hour and 24-hour formats", () => {
     const now = new Date("2026-07-13T12:30:00Z");
     const london24 = getAllSessionSnapshots(now, "Africa/Dar_es_Salaam", "24h").find(
@@ -65,5 +74,21 @@ describe("IANA session intervals", () => {
     expect(getTimelineSegments(config("london"), now, "Africa/Dar_es_Salaam")).toMatchObject([
       { startMinutes: 600, endMinutes: 1140 },
     ]);
+  });
+
+  it("keeps all configured sessions closed on weekends", () => {
+    const snapshots = getAllSessionSnapshots(new Date("2026-08-08T12:00:00Z"), "UTC", "24h");
+    expect(snapshots.every((session) => !session.isOpen)).toBe(true);
+  });
+
+  it("uses the correct London offset immediately after DST transitions", () => {
+    const spring = getAllSessionSnapshots(new Date("2026-03-30T12:00:00Z"), "UTC", "24h").find(
+      (session) => session.config.id === "london",
+    );
+    const autumn = getAllSessionSnapshots(new Date("2026-10-26T12:00:00Z"), "UTC", "24h").find(
+      (session) => session.config.id === "london",
+    );
+    expect(spring?.displayOpenTime).toBe("07:00");
+    expect(autumn?.displayOpenTime).toBe("08:00");
   });
 });

@@ -13,6 +13,21 @@ export type ZonedDateParts = {
   second: number;
 };
 
+const dateTimeFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getCachedDateTimeFormatter(
+  locale: string,
+  timeZone: string,
+  options: Intl.DateTimeFormatOptions,
+) {
+  const key = `${locale}|${timeZone}|${JSON.stringify(options)}`;
+  const cached = dateTimeFormatterCache.get(key);
+  if (cached) return cached;
+  const formatter = new Intl.DateTimeFormat(locale, { ...options, timeZone });
+  dateTimeFormatterCache.set(key, formatter);
+  return formatter;
+}
+
 export function getVisitorTimeZone() {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -52,9 +67,8 @@ export function formatTimeZoneLabel(timeZone: string) {
 
 export function formatTimeZoneOffset(date: Date, timeZone: string) {
   try {
-    const offset = new Intl.DateTimeFormat("en-US", {
+    const offset = getCachedDateTimeFormatter("en-US", timeZone, {
       hour: "numeric",
-      timeZone,
       timeZoneName: "shortOffset",
     })
       .formatToParts(date)
@@ -83,17 +97,17 @@ export function formatTime(
   timeFormat: TimeFormatPreference,
   includeSeconds = false,
 ) {
-  return new Intl.DateTimeFormat("en-US", {
-    ...timeFormatOptions(timeFormat, includeSeconds),
+  return getCachedDateTimeFormatter(
+    "en-US",
     timeZone,
-  }).format(date);
+    timeFormatOptions(timeFormat, includeSeconds),
+  ).format(date);
 }
 
 export function formatDate(date: Date, timeZone: string) {
-  return new Intl.DateTimeFormat(undefined, {
+  return getCachedDateTimeFormatter("en-US", timeZone, {
     day: "numeric",
     month: "long",
-    timeZone,
     weekday: "long",
     year: "numeric",
   }).format(date);
@@ -118,14 +132,13 @@ export function formatCountdown(milliseconds: number) {
 }
 
 export function getZonedParts(date: Date, timeZone: string): ZonedDateParts {
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = getCachedDateTimeFormatter("en-US", timeZone, {
     day: "numeric",
     hour: "numeric",
     hourCycle: "h23",
     minute: "numeric",
     month: "numeric",
     second: "numeric",
-    timeZone,
     weekday: "short",
     year: "numeric",
   }).formatToParts(date);

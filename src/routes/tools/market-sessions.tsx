@@ -2,7 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MarketSessions } from "@/components/trading-tools";
 
 export const Route = createFileRoute("/tools/market-sessions")({
-  head: () => ({ meta: [{ title: "Market Sessions — BlackPips" }] }),
+  head: () => ({
+    meta: [
+      { title: "Forex Market Hours — BlackPips" },
+      {
+        name: "description",
+        content: "View the Sydney, Tokyo, London and New York Forex sessions in your timezone.",
+      },
+    ],
+  }),
   component: MarketSessionsPage,
 });
 

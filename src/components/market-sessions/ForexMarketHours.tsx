@@ -1,0 +1,656 @@
+import {
+  memo,
+  type KeyboardEvent,
+  type PointerEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { ChevronDown, LocateFixed, MoonStar, Sun } from "lucide-react";
+import { useMarketSessions } from "@/hooks/useMarketSessions";
+import {
+  axisTicks,
+  cancelScheduledReturn,
+  clientXToMinutes,
+  flagForRegion,
+  markerBubbleCenter,
+  markerBubblePointerX,
+  MARKET_TIMEZONES,
+  MINUTES_PER_DAY,
+  minutesToPositionPercent,
+  offsetForDisplayMinutes,
+  requestFrameOnce,
+  scheduleReturn,
+} from "@/lib/market-hours-converter";
+import { getTimelineSegments } from "@/lib/market-session-engine";
+import { SESSION_CONFIG, type MarketSessionConfig } from "@/lib/market-session.config";
+import {
+  formatTime,
+  formatTimeZoneLabel,
+  formatTimeZoneOffset,
+  getZonedParts,
+  zonedDateTimeToDate,
+  type TimeFormatPreference,
+} from "@/lib/market-session-time";
+
+const SESSION_COLORS: Record<(typeof SESSION_CONFIG)[number]["name"], string> = {
+  Sydney: "#2f4fd8",
+  Tokyo: "#a5108c",
+  London: "#2f90ee",
+  "New York": "#35c13b",
+};
+
+const MARKER_STAGE_HEIGHT = 112;
+const AXIS_HEIGHT = 50;
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const SHORT_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+type TimelineRow = {
+  config: MarketSessionConfig;
+  segments: ReturnType<typeof getTimelineSegments>;
+};
+
+type PlotBounds = { left: number; width: number };
+
+export function ForexMarketHours() {
+  const market = useMarketSessions();
+  const liveParts = getZonedParts(market.now, market.timeZone);
+  const liveMinutes = liveParts.hour * 60 + liveParts.minute + liveParts.second / 60;
+  const [previewMinutes, setPreviewMinutes] = useState<number | null>(null);
+  const previewMinutesRef = useRef<number | null>(null);
+  const returnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
+  const plotBoundsRef = useRef<PlotBounds>({ left: 0, width: 1 });
+  const pendingClientXRef = useRef<number | null>(null);
+  const pointerFrameRef = useRef<number | null>(null);
+  const draggingRef = useRef(false);
+  const [dragging, setDragging] = useState(false);
+  const [plotWidth, setPlotWidth] = useState(1);
+
+  const selectedMinutes = previewMinutes ?? liveMinutes;
+  const previewNow = useMemo(
+    () =>
+      previewMinutes === null
+        ? market.now
+        : new Date(
+            market.now.getTime() +
+              offsetForDisplayMinutes(market.now, market.timeZone, previewMinutes),
+          ),
+    [market.now, market.timeZone, previewMinutes],
+  );
+  const previewParts = getZonedParts(previewNow, market.timeZone);
+
+  const displayDay = getZonedParts(market.now, market.timeZone);
+  const timelineReference = useMemo(
+    () =>
+      zonedDateTimeToDate(
+        { year: displayDay.year, month: displayDay.month, day: displayDay.day },
+        12 * 60,
+        market.timeZone,
+      ),
+    [displayDay.day, displayDay.month, displayDay.year, market.timeZone],
+  );
+  const rows = useMemo<TimelineRow[]>(
+    () =>
+      SESSION_CONFIG.map((config) => ({
+        config,
+        segments: getTimelineSegments(config, timelineReference, market.timeZone),
+      })),
+    [market.timeZone, timelineReference],
+  );
+  const ticks = useMemo(() => axisTicks(market.timeFormat === "24h"), [market.timeFormat]);
+  const timezoneOptions = useMemo(() => {
+    const options: Array<readonly [string, string]> = [...MARKET_TIMEZONES];
+    for (const zone of [market.visitorTimeZone, market.timeZone]) {
+      if (!options.some(([, value]) => value === zone)) {
+        options.unshift([formatTimeZoneLabel(zone), zone]);
+      }
+    }
+    return options.map(
+      ([label, zone]) => [`${label} (${formatTimeZoneOffset(market.now, zone)})`, zone] as const,
+    );
+  }, [market.now, market.timeZone, market.visitorTimeZone]);
+
+  const commitPreviewMinutes = useCallback((minutes: number | null) => {
+    previewMinutesRef.current = minutes;
+    setPreviewMinutes(minutes);
+  }, []);
+
+  const cancelReturn = useCallback(() => {
+    cancelScheduledReturn(returnTimerRef.current);
+    returnTimerRef.current = null;
+  }, []);
+
+  const returnToLive = useCallback(() => {
+    cancelReturn();
+    commitPreviewMinutes(null);
+  }, [cancelReturn, commitPreviewMinutes]);
+
+  const scheduleLiveReturn = useCallback(() => {
+    returnTimerRef.current = scheduleReturn(returnTimerRef.current, returnToLive, 700);
+  }, [returnToLive]);
+
+  const updatePlotBounds = useCallback(() => {
+    const plot = plotRef.current;
+    if (!plot) return;
+    const rect = plot.getBoundingClientRect();
+    plotBoundsRef.current = { left: rect.left, width: rect.width };
+    setPlotWidth(rect.width);
+  }, []);
+
+  useEffect(() => {
+    const plot = plotRef.current;
+    if (!plot) return;
+    updatePlotBounds();
+    const observer = new ResizeObserver(updatePlotBounds);
+    observer.observe(plot);
+    document.fonts?.ready.then(updatePlotBounds).catch(() => undefined);
+    window.addEventListener("orientationchange", updatePlotBounds);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("orientationchange", updatePlotBounds);
+    };
+  }, [updatePlotBounds]);
+
+  useEffect(
+    () => () => {
+      cancelReturn();
+      if (pointerFrameRef.current !== null) cancelAnimationFrame(pointerFrameRef.current);
+    },
+    [cancelReturn],
+  );
+
+  const flushPointerPosition = useCallback(() => {
+    pointerFrameRef.current = null;
+    const clientX = pendingClientXRef.current;
+    if (clientX === null) return;
+    const { left, width } = plotBoundsRef.current;
+    commitPreviewMinutes(clientXToMinutes(clientX, left, width));
+  }, [commitPreviewMinutes]);
+
+  const queuePointerPosition = useCallback(
+    (clientX: number) => {
+      pendingClientXRef.current = clientX;
+      pointerFrameRef.current = requestFrameOnce(pointerFrameRef.current, flushPointerPosition);
+    },
+    [flushPointerPosition],
+  );
+
+  const beginDrag = (event: PointerEvent<HTMLElement>) => {
+    cancelReturn();
+    updatePlotBounds();
+    draggingRef.current = true;
+    setDragging(true);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    queuePointerPosition(event.clientX);
+  };
+
+  const moveDrag = (event: PointerEvent<HTMLElement>) => {
+    if (!draggingRef.current) return;
+    queuePointerPosition(event.clientX);
+  };
+
+  const endDrag = () => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    setDragging(false);
+    if (pointerFrameRef.current !== null) {
+      cancelAnimationFrame(pointerFrameRef.current);
+      flushPointerPosition();
+    }
+    scheduleLiveReturn();
+  };
+
+  const handleSliderKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    let targetMinutes: number | null = null;
+    if (event.key === "Home") targetMinutes = 0;
+    if (event.key === "End") targetMinutes = MINUTES_PER_DAY;
+    if (event.key === "ArrowLeft" || event.key === "ArrowDown")
+      targetMinutes = selectedMinutes - (event.shiftKey ? 60 : 15);
+    if (event.key === "ArrowRight" || event.key === "ArrowUp")
+      targetMinutes = selectedMinutes + (event.shiftKey ? 60 : 15);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      returnToLive();
+      return;
+    }
+    if (targetMinutes === null) return;
+    event.preventDefault();
+    cancelReturn();
+    commitPreviewMinutes(
+      Math.min(MINUTES_PER_DAY, Math.max(0, Math.round(targetMinutes / 15) * 15)),
+    );
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-4xl overflow-x-clip">
+      <header>
+        <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-6xl">
+          Forex Market Hours
+        </h1>
+        <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          View when the Sydney, Tokyo, London and New York sessions open and close in your timezone.
+        </p>
+      </header>
+
+      <div className="mt-10 overflow-hidden rounded-xl border border-border border-t-[10px] border-t-gold bg-card text-card-foreground shadow-sm sm:mt-14">
+        <div className="px-4 pb-6 pt-5 sm:px-7">
+          <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-2xl">
+            Forex Market Time Zone Converter
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Drag the clock to preview another time. It returns to now when released.
+          </p>
+
+          <ConverterControls
+            now={market.now}
+            timeFormat={market.timeFormat}
+            timeZone={market.timeZone}
+            visitorTimeZone={market.visitorTimeZone}
+            timezoneOptions={timezoneOptions}
+            onTimeFormatChange={market.setTimeFormat}
+            onTimeZoneChange={market.setTimeZone}
+          />
+
+          <div className="relative mt-8 grid min-w-0 grid-cols-[112px_minmax(0,1fr)] [--row-h:84px] [--row-gap:7px] min-[390px]:grid-cols-[120px_minmax(0,1fr)] sm:mt-10 sm:grid-cols-[190px_minmax(0,1fr)] sm:[--row-h:96px] sm:[--row-gap:8px]">
+            <SessionLabels rows={rows} previewNow={previewNow} timeFormat={market.timeFormat} />
+
+            <div className="min-w-0 overflow-hidden" data-testid="market-hours-viewport">
+              <div ref={plotRef} className="relative w-full" data-testid="market-hours-plot">
+                <TimelineAxis ticks={ticks} />
+                <TimelineRows rows={rows} selectedMinutes={selectedMinutes} />
+                <MarkerLayer
+                  dragging={dragging}
+                  markerMinutes={selectedMinutes}
+                  plotWidth={plotWidth}
+                  previewNow={previewNow}
+                  timeFormat={market.timeFormat}
+                  timeZone={market.timeZone}
+                  weekday={previewParts.weekday}
+                  onKeyDown={handleSliderKeyDown}
+                  onKeyUp={scheduleLiveReturn}
+                  onPointerDown={beginDrag}
+                  onPointerMove={moveDrag}
+                  onPointerUp={endDrag}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ConverterControlsProps = {
+  now: Date;
+  timeFormat: TimeFormatPreference;
+  timeZone: string;
+  visitorTimeZone: string;
+  timezoneOptions: ReadonlyArray<readonly [string, string]>;
+  onTimeFormatChange: (value: TimeFormatPreference) => void;
+  onTimeZoneChange: (value: string) => boolean;
+};
+
+const ConverterControls = memo(function ConverterControls({
+  timeFormat,
+  timeZone,
+  visitorTimeZone,
+  timezoneOptions,
+  onTimeFormatChange,
+  onTimeZoneChange,
+}: ConverterControlsProps) {
+  return (
+    <div className="mt-6 flex items-end justify-between gap-3">
+      <div className="min-w-0">
+        <label
+          htmlFor="market-timezone"
+          className="text-[11px] font-extrabold uppercase tracking-wide"
+        >
+          Timezone
+        </label>
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          <div className="relative">
+            <select
+              id="market-timezone"
+              value={timeZone}
+              onChange={(event) => onTimeZoneChange(event.target.value)}
+              className="w-[190px] max-w-full cursor-pointer appearance-none rounded-md bg-primary py-2.5 pl-3 pr-9 text-sm font-bold text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 sm:w-[220px]"
+            >
+              {timezoneOptions.map(([label, zone]) => (
+                <option key={zone} value={zone} className="bg-popover text-popover-foreground">
+                  {label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2" />
+          </div>
+          <button
+            type="button"
+            onClick={() => onTimeZoneChange(visitorTimeZone)}
+            disabled={timeZone === visitorTimeZone}
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-bold transition hover:border-gold/50 disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          >
+            <LocateFixed className="size-3.5" aria-hidden="true" /> My timezone
+          </button>
+        </div>
+      </div>
+
+      <div className="shrink-0 text-right">
+        <div className="text-[10px] font-extrabold uppercase tracking-wide sm:text-xs">
+          24 Hour Time
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={timeFormat === "24h"}
+          aria-label="24 hour time"
+          onClick={() => onTimeFormatChange(timeFormat === "24h" ? "12h" : "24h")}
+          className={`mt-1.5 inline-flex h-7 w-14 items-center rounded-full p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold motion-reduce:transition-none ${timeFormat === "24h" ? "bg-gold" : "bg-muted"}`}
+        >
+          <span
+            className={`size-5 rounded-full bg-card shadow transition-transform motion-reduce:transition-none ${timeFormat === "24h" ? "translate-x-7" : "translate-x-0"}`}
+          />
+        </button>
+      </div>
+    </div>
+  );
+});
+
+const SessionLabels = memo(function SessionLabels({
+  rows,
+  previewNow,
+  timeFormat,
+}: {
+  rows: TimelineRow[];
+  previewNow: Date;
+  timeFormat: TimeFormatPreference;
+}) {
+  return (
+    <div className="relative z-30 bg-card" data-testid="market-hours-labels">
+      <div style={{ height: MARKER_STAGE_HEIGHT + AXIS_HEIGHT }} />
+      {rows.map(({ config }, index) => {
+        const localParts = getZonedParts(previewNow, config.timeZone);
+        return (
+          <div
+            key={config.id}
+            className="flex h-[var(--row-h)] items-center gap-1.5 border-t border-border/50 bg-muted/55 px-1.5 sm:gap-3 sm:px-3.5"
+            style={{ marginTop: index === 0 ? 0 : "var(--row-gap)" }}
+          >
+            <span
+              className="grid size-7 shrink-0 place-items-center rounded-full bg-card text-lg shadow-sm sm:size-9 sm:text-2xl"
+              aria-hidden="true"
+            >
+              {flagForRegion(config.regionCode)}
+            </span>
+            <div className="min-w-0">
+              <div className="whitespace-nowrap font-display text-[13px] font-extrabold leading-tight min-[390px]:text-sm sm:text-lg">
+                <span className="max-[374px]:hidden">{config.name}</span>
+                <span className="hidden max-[374px]:inline">
+                  {config.name === "New York" ? "NY" : config.name}
+                </span>
+              </div>
+              <div className="mt-0.5 whitespace-nowrap text-[11px] leading-tight text-muted-foreground min-[390px]:text-xs sm:text-base">
+                {formatTime(previewNow, config.timeZone, timeFormat)}
+              </div>
+              <div className="mt-0.5 whitespace-nowrap text-[9px] leading-tight text-muted-foreground sm:text-xs">
+                {SHORT_WEEKDAYS[localParts.weekday]}{" "}
+                {formatTimeZoneOffset(previewNow, config.timeZone).replace("GMT", "UTC")}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+});
+
+const TimelineAxis = memo(function TimelineAxis({
+  ticks,
+}: {
+  ticks: ReturnType<typeof axisTicks>;
+}) {
+  return (
+    <div
+      className="relative"
+      style={{ height: MARKER_STAGE_HEIGHT + AXIS_HEIGHT }}
+      data-testid="market-hours-axis"
+    >
+      <Sun
+        className="absolute bottom-7 size-3 -translate-x-1/2 text-muted-foreground sm:size-4"
+        style={{ left: `${minutesToPositionPercent(390)}%` }}
+      />
+      <MoonStar
+        className="absolute bottom-7 size-3 -translate-x-1/2 text-muted-foreground sm:size-4"
+        style={{ left: `${minutesToPositionPercent(1110)}%` }}
+      />
+      {ticks.map((tick, index) => (
+        <span
+          key={tick.minutes}
+          data-minute={tick.minutes}
+          className={`absolute bottom-1.5 w-0 whitespace-nowrap text-[8px] font-bold text-muted-foreground sm:text-[10px] ${tick.major ? "" : "max-sm:hidden"}`}
+          style={{ left: `${minutesToPositionPercent(tick.minutes)}%` }}
+        >
+          <span
+            className={`inline-block ${
+              index === 0
+                ? "absolute left-0"
+                : index === ticks.length - 1
+                  ? "absolute right-0"
+                  : "-translate-x-1/2"
+            }`}
+          >
+            {tick.label}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+});
+
+const TimelineRows = memo(function TimelineRows({
+  rows,
+  selectedMinutes,
+}: {
+  rows: TimelineRow[];
+  selectedMinutes: number;
+}) {
+  return (
+    <>
+      {rows.map(({ config, segments }, index) => {
+        const isOpen = segments.some(
+          (segment) =>
+            selectedMinutes >= segment.startMinutes && selectedMinutes < segment.endMinutes,
+        );
+        return (
+          <div
+            key={config.id}
+            className="relative h-[var(--row-h)] border-t border-border/50 bg-muted/55"
+            style={{ marginTop: index === 0 ? 0 : "var(--row-gap)" }}
+          >
+            <GridLines />
+            <div
+              className="absolute left-1 top-1 z-10 whitespace-nowrap text-[7px] font-extrabold uppercase tracking-tight sm:left-3 sm:text-[10px] sm:tracking-wide"
+              style={{ color: SESSION_COLORS[config.name] }}
+            >
+              <span className="sm:hidden">{config.name === "New York" ? "NY" : config.name} </span>
+              <span className="hidden sm:inline">{config.name} session </span>
+              {isOpen ? "open" : "closed"}
+            </div>
+            <StaticSessionBars config={config} segments={segments} />
+          </div>
+        );
+      })}
+    </>
+  );
+});
+
+const StaticSessionBars = memo(function StaticSessionBars({
+  config,
+  segments,
+}: {
+  config: MarketSessionConfig;
+  segments: TimelineRow["segments"];
+}) {
+  return segments.map((segment) => (
+    <div
+      key={`${config.id}-${segment.startMinutes}`}
+      className="absolute bottom-[10px] top-[25px] rounded-[2px] sm:bottom-[12px] sm:top-[28px] sm:rounded-[3px]"
+      style={{
+        left: `${minutesToPositionPercent(segment.startMinutes)}%`,
+        width: `${minutesToPositionPercent(segment.endMinutes - segment.startMinutes)}%`,
+        backgroundColor: SESSION_COLORS[config.name],
+      }}
+    />
+  ));
+});
+
+type MarkerLayerProps = {
+  dragging: boolean;
+  markerMinutes: number;
+  plotWidth: number;
+  previewNow: Date;
+  timeFormat: TimeFormatPreference;
+  timeZone: string;
+  weekday: number;
+  onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+  onKeyUp: () => void;
+  onPointerDown: (event: PointerEvent<HTMLElement>) => void;
+  onPointerMove: (event: PointerEvent<HTMLElement>) => void;
+  onPointerUp: () => void;
+};
+
+const MarkerLayer = memo(function MarkerLayer({
+  dragging,
+  markerMinutes,
+  plotWidth,
+  previewNow,
+  timeFormat,
+  timeZone,
+  weekday,
+  onKeyDown,
+  onKeyUp,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+}: MarkerLayerProps) {
+  const markerX = (minutesToPositionPercent(markerMinutes) / 100) * plotWidth;
+  const bubbleCenter = markerBubbleCenter(markerMinutes, plotWidth);
+  const pointerX = markerBubblePointerX(markerMinutes, plotWidth);
+  const transition = dragging ? "none" : "transform 350ms cubic-bezier(.2,.8,.2,1)";
+
+  return (
+    <div
+      className="absolute inset-0 z-20 cursor-ew-resize touch-pan-y select-none"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      data-testid="market-hours-hit-area"
+    >
+      <div
+        className="pointer-events-none absolute bottom-0 top-[82px] left-0 w-[3px] bg-gold shadow-[0_0_8px_hsl(var(--gold)/0.25)] motion-reduce:transition-none"
+        style={{ transform: `translate3d(${markerX - 1.5}px, 0, 0)`, transition }}
+        data-testid="market-hours-marker"
+      />
+      <div
+        className="pointer-events-none absolute left-0 top-1 w-[88px] motion-reduce:transition-none"
+        style={{ transform: `translate3d(${bubbleCenter - 44}px, 0, 0)`, transition }}
+        data-testid="market-hours-bubble"
+      >
+        <div
+          role="slider"
+          tabIndex={0}
+          aria-label="Preview market time"
+          aria-valuemin={0}
+          aria-valuemax={MINUTES_PER_DAY}
+          aria-valuenow={Math.round(markerMinutes)}
+          aria-valuetext={`${formatTime(previewNow, timeZone, timeFormat)}, ${WEEKDAYS[weekday]}`}
+          onKeyDown={onKeyDown}
+          onKeyUp={(event) => {
+            if (event.key.startsWith("Arrow") || event.key === "Home" || event.key === "End")
+              onKeyUp();
+          }}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            onPointerDown(event);
+          }}
+          onPointerMove={(event) => {
+            event.stopPropagation();
+            onPointerMove(event);
+          }}
+          onPointerUp={(event) => {
+            event.stopPropagation();
+            onPointerUp();
+          }}
+          onPointerCancel={onPointerUp}
+          className={`pointer-events-auto flex h-[88px] w-[88px] touch-none flex-col items-center justify-center rounded-full border border-gold/30 bg-gold text-background shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+        >
+          <span className="flex size-9 items-center justify-center rounded-full bg-card shadow-sm">
+            <Clock
+              hour={getZonedParts(previewNow, timeZone).hour}
+              minute={getZonedParts(previewNow, timeZone).minute}
+            />
+          </span>
+          <span className="mt-1 text-sm font-extrabold leading-tight">
+            {formatTime(previewNow, timeZone, timeFormat)}
+          </span>
+          <span className="text-[11px] leading-tight opacity-85">{WEEKDAYS[weekday]}</span>
+        </div>
+        <span
+          className="absolute -bottom-1.5 h-0 w-0 border-x-transparent border-t-[6px] border-t-gold"
+          style={{
+            left: pointerX,
+            borderLeftWidth: Math.min(6, pointerX),
+            borderRightWidth: Math.min(6, 88 - pointerX),
+            transform: `translateX(-${Math.min(6, pointerX)}px)`,
+          }}
+          data-testid="market-hours-bubble-pointer"
+        />
+      </div>
+    </div>
+  );
+});
+
+function GridLines() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 opacity-70"
+      style={{
+        backgroundImage:
+          "repeating-linear-gradient(to right, var(--border) 0 1px, transparent 1px calc(100% / 24))",
+        backgroundSize: "calc(100% / 24) 100%",
+      }}
+    />
+  );
+}
+
+function Clock({ hour, minute }: { hour: number; minute: number }) {
+  const minuteAngle = minute * 6;
+  const hourAngle = ((hour % 12) + minute / 60) * 30;
+  return (
+    <svg viewBox="0 0 40 40" className="size-[20px] text-gold" aria-hidden="true">
+      <circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" strokeWidth="2.5" />
+      <line
+        x1="20"
+        y1="20"
+        x2={20 + 8 * Math.sin((hourAngle * Math.PI) / 180)}
+        y2={20 - 8 * Math.cos((hourAngle * Math.PI) / 180)}
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1="20"
+        y1="20"
+        x2={20 + 12 * Math.sin((minuteAngle * Math.PI) / 180)}
+        y2={20 - 12 * Math.cos((minuteAngle * Math.PI) / 180)}
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
