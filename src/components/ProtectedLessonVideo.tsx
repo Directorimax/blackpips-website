@@ -1,5 +1,7 @@
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useSessionLifecycle } from "@/contexts/session-lifecycle-context";
+import { isTrustedYouTubeOrigin, parseYouTubePlaybackState } from "@/lib/youtube-player-state";
 
 type Viewer = {
   fullName: string;
@@ -28,7 +30,9 @@ export function ProtectedLessonVideo({
   viewer: Viewer;
 }) {
   const playerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const { setLessonVideoPlaying } = useSessionLifecycle();
 
   useEffect(() => {
     const onFullscreenChange = () =>
@@ -36,6 +40,33 @@ export function ProtectedLessonVideo({
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (
+        event.source !== iframeRef.current?.contentWindow ||
+        !isTrustedYouTubeOrigin(event.origin)
+      )
+        return;
+      const state = parseYouTubePlaybackState(event.data);
+      if (state) setLessonVideoPlaying(state === "playing");
+    };
+    window.addEventListener("message", onMessage);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      setLessonVideoPlaying(false);
+    };
+  }, [setLessonVideoPlaying]);
+
+  const registerPlaybackEvents = () => {
+    const target = iframeRef.current?.contentWindow;
+    if (!target) return;
+    target.postMessage(JSON.stringify({ event: "listening", id: "blackpips-lesson-player" }), "*");
+    target.postMessage(
+      JSON.stringify({ event: "command", func: "addEventListener", args: ["onStateChange"] }),
+      "*",
+    );
+  };
 
   async function toggleFullscreen() {
     try {
@@ -59,12 +90,14 @@ export function ProtectedLessonVideo({
       aria-label={`Protected video player: ${title}`}
     >
       <iframe
+        ref={iframeRef}
         title={title}
         src={getProtectedEmbedUrl(src)}
         className="h-full w-full"
         loading="lazy"
         referrerPolicy="strict-origin-when-cross-origin"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; web-share"
+        onLoad={registerPlaybackEvents}
         onContextMenu={(event) => event.preventDefault()}
       />
       <VideoWatermark viewer={viewer} />
@@ -116,5 +149,7 @@ function getProtectedEmbedUrl(src: string) {
   const url = new URL(src);
   // The wrapper owns fullscreen so the watermark remains inside the fullscreen element.
   url.searchParams.set("fs", "0");
+  url.searchParams.set("enablejsapi", "1");
+  if (typeof window !== "undefined") url.searchParams.set("origin", window.location.origin);
   return url.toString();
 }

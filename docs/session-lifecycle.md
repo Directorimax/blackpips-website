@@ -1,0 +1,15 @@
+# BlackPips session lifecycle
+
+BlackPips uses one browser-side inactivity manager for authenticated users. Learners time out after 60 minutes of inactivity and administrators after 30 minutes; both receive a five-minute warning. The unknown-role policy uses the conservative 30-minute timeout until the trusted profile role query finishes.
+
+The manager stores only timestamps under the `blackpips.sessionLifecycle.*` namespace. It never stores or broadcasts access tokens, refresh tokens, passwords, or profile data. Activity and logout synchronize across same-origin tabs with `BroadcastChannel`, with the browser `storage` event as a fallback.
+
+Meaningful activity is limited to pointer/touch starts, keyboard input, scrolling, form input/change, route navigation, an explicit “Stay signed in” choice, and verified playback from the protected lesson player. Mouse movement, polling, background tabs, timer ticks, rerenders, and automatic API traffic do not extend the deadline. Activity writes are throttled to once per 15 seconds. A visible, playing lesson pauses the deadline; the exact visible playback duration is added back when it pauses, ends, unmounts, or the tab backgrounds, so a paused or hidden video cannot keep a session alive.
+
+The warning is a single focus-trapped Radix modal per tab. It prevents Escape and outside-click dismissal, exposes a non-aggressive labelled countdown, and requires either “Stay signed in” (which verifies the current Supabase user before creating a new deadline) or “Log out now”. The manager reevaluates its absolute deadline on focus, `visibilitychange`, `pageshow`, navigation, cross-tab messages, and session restoration, which handles suspended browser timers and device wake without a decrementing session counter.
+
+This is an additional device-side protection compatible with the hosted Supabase Free Plan. It does not replace Row Level Security, ownership predicates, protected RPCs, authenticated-user checks, or server-side admin authorization. BlackPips does not attempt to configure hosted inactivity, time-boxed, or single-session controls that are unavailable on the Free Plan.
+
+Normal logout uses Supabase local scope. “Sign out all devices” is a separately confirmed global-scope action. A previously issued JWT can remain cryptographically valid until its `exp`; browser logout must not be treated as instantaneous revocation of every copied token. Sensitive backend and Admin actions must therefore continue enforcing the current authenticated user, active authorization rules, role checks, RPC protections, and RLS. No service-role credential is exposed to the browser.
+
+There is no “Keep me signed in” checkbox because the current client uses Supabase persistent local-storage sessions globally. Such a control would be misleading without a reliable per-login persistence mode, and it would never bypass inactivity policy in any case.

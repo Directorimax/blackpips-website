@@ -12,6 +12,7 @@ import {
   rememberAuthRedirect,
 } from "@/lib/auth-redirect";
 import { createSeoHead } from "@/lib/seo";
+import { clearSessionLifecycleStorage } from "@/lib/session-lifecycle";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -55,6 +56,7 @@ function AuthPage() {
     setBusy(true);
     try {
       rememberAuthRedirect(destination);
+      clearSessionLifecycleStorage(window.localStorage);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -86,6 +88,7 @@ function AuthPage() {
       const pw = passwordSchema.parse(password);
       if (mode === "signup") {
         const nm = nameSchema.parse(name);
+        clearSessionLifecycleStorage(window.localStorage);
         const { data, error } = await supabase.auth.signUp({
           email: em,
           password: pw,
@@ -107,6 +110,7 @@ function AuthPage() {
           toast.success("Check your email to confirm your account.");
         }
       } else {
+        clearSessionLifecycleStorage(window.localStorage);
         const { data, error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
         if (error) throw error;
         if (!data.session)

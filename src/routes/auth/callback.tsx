@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth-redirect";
 import { sendNotification } from "@/services/email/notification.functions";
 import { createSeoHead } from "@/lib/seo";
+import { clearSessionLifecycleStorage } from "@/lib/session-lifecycle";
 
 export const Route = createFileRoute("/auth/callback")({
   head: () =>
@@ -62,6 +63,7 @@ function AuthCallback() {
         setStatus("Exchanging your secure sign-in code...");
 
         if (code) {
+          clearSessionLifecycleStorage(window.localStorage);
           const { data: exchangeData, error: exchangeError } =
             await supabase.auth.exchangeCodeForSession(code);
 

@@ -17,6 +17,7 @@ import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SessionLifecycleProvider } from "@/components/SessionLifecycleProvider";
 import { ContactAvailabilityProvider } from "@/contexts/ContactAvailabilityContext";
 import { createSeoHead } from "@/lib/seo";
 
@@ -134,12 +135,14 @@ function RootComponent() {
         <TooltipProvider>
           <ContactAvailabilityProvider>
             <AuthProvider>
-              <Nav />
-              <main className="pt-24">
-                <Outlet />
-              </main>
-              <Footer />
-              <Toaster />
+              <SessionLifecycleProvider>
+                <Nav />
+                <main className="pt-24">
+                  <Outlet />
+                </main>
+                <Footer />
+                <Toaster />
+              </SessionLifecycleProvider>
             </AuthProvider>
           </ContactAvailabilityProvider>
         </TooltipProvider>

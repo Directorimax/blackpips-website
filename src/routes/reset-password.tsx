@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { AlertCircle, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/useAuth";
+import { clearSessionLifecycleStorage } from "@/lib/session-lifecycle";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
@@ -16,6 +18,7 @@ const pw = z.string().min(8, "Minimum 8 characters").max(72);
 
 function ResetPassword() {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -56,6 +59,7 @@ function ResetPassword() {
         const code = params.get("code");
 
         if (code) {
+          clearSessionLifecycleStorage(window.localStorage);
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
           if (exchangeError) {
@@ -70,6 +74,7 @@ function ResetPassword() {
 
           // Supports legacy/implicit recovery links if Supabase returns tokens in the hash.
           if (accessToken && refreshToken) {
+            clearSessionLifecycleStorage(window.localStorage);
             const { error: setSessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
@@ -157,7 +162,7 @@ function ResetPassword() {
       setPassword("");
       setConfirmPassword("");
 
-      await supabase.auth.signOut();
+      await signOut({ scope: "local" });
 
       navigate({ to: "/auth", replace: true });
     } catch (err) {

@@ -5,7 +5,7 @@ export type AuthContextValue = {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  signOut: (options?: { scope?: "local" | "global"; broadcast?: boolean }) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

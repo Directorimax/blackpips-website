@@ -101,6 +101,17 @@ export function Nav() {
     }
   }
 
+  async function handleSignOutAllDevices() {
+    if (!window.confirm("Sign out of BlackPips on all devices?")) return;
+    try {
+      await signOut({ scope: "global" });
+      navigate({ to: "/auth", replace: true });
+    } catch (error) {
+      console.error("Could not sign out all devices:", error);
+      toast.error("We could not sign you out on all devices. Please try again.");
+    }
+  }
+
   const dashboardDestination = isAdmin ? "/admin" : "/dashboard";
   const toolsActive =
     location.pathname.startsWith("/tools") || location.pathname === "/dashboard/trading-plan";
@@ -245,6 +256,12 @@ export function Nav() {
                     >
                       <LogOut className="h-4 w-4" /> Sign out
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => void handleSignOutAllDevices()}
+                      className="font-medium text-destructive"
+                    >
+                      <ShieldCheck className="h-4 w-4" /> Sign out all devices
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 {isAdmin && (
@@ -332,6 +349,12 @@ export function Nav() {
                     className="flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                   >
                     <LogOut className="h-4 w-4" /> Sign out
+                  </button>
+                  <button
+                    onClick={handleSignOutAllDevices}
+                    className="flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/10"
+                  >
+                    <ShieldCheck className="h-4 w-4" /> Sign out all devices
                   </button>
                 </>
               ) : (
