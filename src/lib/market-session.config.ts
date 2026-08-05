@@ -20,8 +20,8 @@ export const SESSION_CONFIG: readonly MarketSessionConfig[] = [
     region: "Australia",
     regionCode: "AU",
     timeZone: "Australia/Sydney",
-    openMinutes: 8 * 60,
-    closeMinutes: 17 * 60,
+    openMinutes: 7 * 60,
+    closeMinutes: 16 * 60,
     weekdays: WEEKDAYS,
   },
   {

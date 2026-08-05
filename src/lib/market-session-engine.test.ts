@@ -13,13 +13,29 @@ const config = (id: (typeof SESSION_CONFIG)[number]["id"]) => {
 };
 
 describe("IANA session intervals", () => {
+  it("locks the canonical local session definitions", () => {
+    expect(
+      SESSION_CONFIG.map(({ id, timeZone, openMinutes, closeMinutes }) => ({
+        id,
+        timeZone,
+        openMinutes,
+        closeMinutes,
+      })),
+    ).toEqual([
+      { id: "sydney", timeZone: "Australia/Sydney", openMinutes: 420, closeMinutes: 960 },
+      { id: "tokyo", timeZone: "Asia/Tokyo", openMinutes: 540, closeMinutes: 1080 },
+      { id: "london", timeZone: "Europe/London", openMinutes: 480, closeMinutes: 1020 },
+      { id: "new-york", timeZone: "America/New_York", openMinutes: 480, closeMinutes: 1020 },
+    ]);
+  });
+
   it.each([
     ["london", "2026-01-12T12:00:00Z", "2026-01-12T08:00:00.000Z"],
     ["london", "2026-07-13T12:00:00Z", "2026-07-13T07:00:00.000Z"],
     ["new-york", "2026-01-12T12:00:00Z", "2026-01-12T13:00:00.000Z"],
     ["new-york", "2026-07-13T12:00:00Z", "2026-07-13T12:00:00.000Z"],
-    ["sydney", "2026-01-12T12:00:00Z", "2026-01-11T21:00:00.000Z"],
-    ["sydney", "2026-07-13T12:00:00Z", "2026-07-12T22:00:00.000Z"],
+    ["sydney", "2026-01-12T12:00:00Z", "2026-01-11T20:00:00.000Z"],
+    ["sydney", "2026-07-13T12:00:00Z", "2026-07-12T21:00:00.000Z"],
     ["tokyo", "2026-01-12T12:00:00Z", "2026-01-12T00:00:00.000Z"],
     ["tokyo", "2026-07-13T12:00:00Z", "2026-07-13T00:00:00.000Z"],
   ] as const)("converts %s correctly around %s", (id, reference, expectedOpen) => {
@@ -53,10 +69,26 @@ describe("IANA session intervals", () => {
   it("splits Sydney at both UTC day boundaries without shifting its geometry", () => {
     const segments = getTimelineSegments(config("sydney"), new Date("2026-07-13T12:00:00Z"), "UTC");
     expect(segments).toMatchObject([
-      { startMinutes: 0, endMinutes: 420, left: 0 },
-      { startMinutes: 1320, endMinutes: 1440 },
+      { startMinutes: 0, endMinutes: 360, left: 0 },
+      { startMinutes: 1260, endMinutes: 1440 },
     ]);
     expect(segments[1].left + segments[1].width).toBeCloseTo(100);
+  });
+
+  it("aligns the canonical sessions on the Dar es Salaam reference day", () => {
+    const reference = new Date("2026-07-13T12:00:00Z");
+    expect(getTimelineSegments(config("sydney"), reference, "Africa/Dar_es_Salaam")).toMatchObject([
+      { startMinutes: 0, endMinutes: 540, left: 0, width: 37.5 },
+    ]);
+    expect(getTimelineSegments(config("tokyo"), reference, "Africa/Dar_es_Salaam")).toMatchObject([
+      { startMinutes: 180, endMinutes: 720 },
+    ]);
+    expect(getTimelineSegments(config("london"), reference, "Africa/Dar_es_Salaam")).toMatchObject([
+      { startMinutes: 600, endMinutes: 1140 },
+    ]);
+    expect(
+      getTimelineSegments(config("new-york"), reference, "Africa/Dar_es_Salaam"),
+    ).toMatchObject([{ startMinutes: 900, endMinutes: 1440 }]);
   });
 
   it("changes only display text between 12-hour and 24-hour formats", () => {

@@ -12,17 +12,16 @@ import { ChevronDown, LocateFixed, MoonStar, Sun } from "lucide-react";
 import { useMarketSessions } from "@/hooks/useMarketSessions";
 import {
   axisTicks,
-  cancelScheduledReturn,
   clientXToMinutes,
   flagForRegion,
-  markerBubbleCenter,
-  markerBubblePointerX,
+  interactiveMinutesToPositionPercent,
+  LAST_MINUTE_OF_DAY,
+  MARKER_BUBBLE_WIDTH,
+  markerConnectorGeometry,
   MARKET_TIMEZONES,
-  MINUTES_PER_DAY,
   minutesToPositionPercent,
   offsetForDisplayMinutes,
   requestFrameOnce,
-  scheduleReturn,
 } from "@/lib/market-hours-converter";
 import { getTimelineSegments } from "@/lib/market-session-engine";
 import { SESSION_CONFIG, type MarketSessionConfig } from "@/lib/market-session.config";
@@ -42,8 +41,6 @@ const SESSION_COLORS: Record<(typeof SESSION_CONFIG)[number]["name"], string> = 
   "New York": "#35c13b",
 };
 
-const MARKER_STAGE_HEIGHT = 112;
-const AXIS_HEIGHT = 50;
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const SHORT_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -60,7 +57,6 @@ export function ForexMarketHours() {
   const liveMinutes = liveParts.hour * 60 + liveParts.minute + liveParts.second / 60;
   const [previewMinutes, setPreviewMinutes] = useState<number | null>(null);
   const previewMinutesRef = useRef<number | null>(null);
-  const returnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const plotRef = useRef<HTMLDivElement>(null);
   const plotBoundsRef = useRef<PlotBounds>({ left: 0, width: 1 });
   const pendingClientXRef = useRef<number | null>(null);
@@ -100,7 +96,14 @@ export function ForexMarketHours() {
       })),
     [market.timeZone, timelineReference],
   );
-  const ticks = useMemo(() => axisTicks(market.timeFormat === "24h"), [market.timeFormat]);
+  const compactTicks = useMemo(
+    () => axisTicks(market.timeFormat === "24h", true),
+    [market.timeFormat],
+  );
+  const desktopTicks = useMemo(
+    () => axisTicks(market.timeFormat === "24h", false),
+    [market.timeFormat],
+  );
   const timezoneOptions = useMemo(() => {
     const options: Array<readonly [string, string]> = [...MARKET_TIMEZONES];
     for (const zone of [market.visitorTimeZone, market.timeZone]) {
@@ -118,19 +121,9 @@ export function ForexMarketHours() {
     setPreviewMinutes(minutes);
   }, []);
 
-  const cancelReturn = useCallback(() => {
-    cancelScheduledReturn(returnTimerRef.current);
-    returnTimerRef.current = null;
-  }, []);
-
   const returnToLive = useCallback(() => {
-    cancelReturn();
     commitPreviewMinutes(null);
-  }, [cancelReturn, commitPreviewMinutes]);
-
-  const scheduleLiveReturn = useCallback(() => {
-    returnTimerRef.current = scheduleReturn(returnTimerRef.current, returnToLive, 700);
-  }, [returnToLive]);
+  }, [commitPreviewMinutes]);
 
   const updatePlotBounds = useCallback(() => {
     const plot = plotRef.current;
@@ -156,10 +149,9 @@ export function ForexMarketHours() {
 
   useEffect(
     () => () => {
-      cancelReturn();
       if (pointerFrameRef.current !== null) cancelAnimationFrame(pointerFrameRef.current);
     },
-    [cancelReturn],
+    [],
   );
 
   const flushPointerPosition = useCallback(() => {
@@ -179,7 +171,6 @@ export function ForexMarketHours() {
   );
 
   const beginDrag = (event: PointerEvent<HTMLElement>) => {
-    cancelReturn();
     updatePlotBounds();
     draggingRef.current = true;
     setDragging(true);
@@ -200,13 +191,13 @@ export function ForexMarketHours() {
       cancelAnimationFrame(pointerFrameRef.current);
       flushPointerPosition();
     }
-    scheduleLiveReturn();
+    returnToLive();
   };
 
   const handleSliderKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     let targetMinutes: number | null = null;
     if (event.key === "Home") targetMinutes = 0;
-    if (event.key === "End") targetMinutes = MINUTES_PER_DAY;
+    if (event.key === "End") targetMinutes = LAST_MINUTE_OF_DAY;
     if (event.key === "ArrowLeft" || event.key === "ArrowDown")
       targetMinutes = selectedMinutes - (event.shiftKey ? 60 : 15);
     if (event.key === "ArrowRight" || event.key === "ArrowUp")
@@ -218,9 +209,8 @@ export function ForexMarketHours() {
     }
     if (targetMinutes === null) return;
     event.preventDefault();
-    cancelReturn();
     commitPreviewMinutes(
-      Math.min(MINUTES_PER_DAY, Math.max(0, Math.round(targetMinutes / 15) * 15)),
+      Math.min(LAST_MINUTE_OF_DAY, Math.max(0, Math.round(targetMinutes / 15) * 15)),
     );
   };
 
@@ -236,7 +226,7 @@ export function ForexMarketHours() {
       </header>
 
       <div className="mt-10 overflow-hidden rounded-xl border border-border border-t-[10px] border-t-gold bg-card text-card-foreground shadow-sm sm:mt-14">
-        <div className="px-4 pb-6 pt-5 sm:px-7">
+        <div className="px-3 pb-4 pt-4 sm:px-7 sm:pb-6 sm:pt-5">
           <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-2xl">
             Forex Market Time Zone Converter
           </h2>
@@ -254,12 +244,12 @@ export function ForexMarketHours() {
             onTimeZoneChange={market.setTimeZone}
           />
 
-          <div className="relative mt-8 grid min-w-0 grid-cols-[112px_minmax(0,1fr)] [--row-h:84px] [--row-gap:7px] min-[390px]:grid-cols-[120px_minmax(0,1fr)] sm:mt-10 sm:grid-cols-[190px_minmax(0,1fr)] sm:[--row-h:96px] sm:[--row-gap:8px]">
+          <div className="relative mt-6 grid min-w-0 grid-cols-[106px_minmax(0,1fr)] [--row-h:64px] [--row-gap:5px] min-[390px]:grid-cols-[112px_minmax(0,1fr)] sm:mt-10 sm:grid-cols-[190px_minmax(0,1fr)] sm:[--row-h:96px] sm:[--row-gap:8px]">
             <SessionLabels rows={rows} previewNow={previewNow} timeFormat={market.timeFormat} />
 
             <div className="min-w-0 overflow-hidden" data-testid="market-hours-viewport">
               <div ref={plotRef} className="relative w-full" data-testid="market-hours-plot">
-                <TimelineAxis ticks={ticks} />
+                <TimelineAxis compactTicks={compactTicks} desktopTicks={desktopTicks} />
                 <TimelineRows rows={rows} selectedMinutes={selectedMinutes} />
                 <MarkerLayer
                   dragging={dragging}
@@ -270,7 +260,7 @@ export function ForexMarketHours() {
                   timeZone={market.timeZone}
                   weekday={previewParts.weekday}
                   onKeyDown={handleSliderKeyDown}
-                  onKeyUp={scheduleLiveReturn}
+                  onKeyUp={returnToLive}
                   onPointerDown={beginDrag}
                   onPointerMove={moveDrag}
                   onPointerUp={endDrag}
@@ -370,32 +360,32 @@ const SessionLabels = memo(function SessionLabels({
 }) {
   return (
     <div className="relative z-30 bg-card" data-testid="market-hours-labels">
-      <div style={{ height: MARKER_STAGE_HEIGHT + AXIS_HEIGHT }} />
+      <div className="h-[116px] sm:h-[162px]" />
       {rows.map(({ config }, index) => {
         const localParts = getZonedParts(previewNow, config.timeZone);
         return (
           <div
             key={config.id}
-            className="flex h-[var(--row-h)] items-center gap-1.5 border-t border-border/50 bg-muted/55 px-1.5 sm:gap-3 sm:px-3.5"
+            className="flex h-[var(--row-h)] items-center gap-1 border-t border-border/50 bg-muted/55 px-1 sm:gap-3 sm:px-3.5"
             style={{ marginTop: index === 0 ? 0 : "var(--row-gap)" }}
           >
             <span
-              className="grid size-7 shrink-0 place-items-center rounded-full bg-card text-lg shadow-sm sm:size-9 sm:text-2xl"
+              className="grid size-6 shrink-0 place-items-center rounded-full bg-card text-base shadow-sm sm:size-9 sm:text-2xl"
               aria-hidden="true"
             >
               {flagForRegion(config.regionCode)}
             </span>
             <div className="min-w-0">
-              <div className="whitespace-nowrap font-display text-[13px] font-extrabold leading-tight min-[390px]:text-sm sm:text-lg">
+              <div className="whitespace-nowrap font-display text-xs font-extrabold leading-tight sm:text-lg">
                 <span className="max-[374px]:hidden">{config.name}</span>
                 <span className="hidden max-[374px]:inline">
                   {config.name === "New York" ? "NY" : config.name}
                 </span>
               </div>
-              <div className="mt-0.5 whitespace-nowrap text-[11px] leading-tight text-muted-foreground min-[390px]:text-xs sm:text-base">
+              <div className="mt-0.5 whitespace-nowrap text-[10px] leading-tight text-muted-foreground sm:text-base">
                 {formatTime(previewNow, config.timeZone, timeFormat)}
               </div>
-              <div className="mt-0.5 whitespace-nowrap text-[9px] leading-tight text-muted-foreground sm:text-xs">
+              <div className="mt-0.5 whitespace-nowrap text-[8px] leading-tight text-muted-foreground sm:text-xs">
                 {SHORT_WEEKDAYS[localParts.weekday]}{" "}
                 {formatTimeZoneOffset(previewNow, config.timeZone).replace("GMT", "UTC")}
               </div>
@@ -408,16 +398,14 @@ const SessionLabels = memo(function SessionLabels({
 });
 
 const TimelineAxis = memo(function TimelineAxis({
-  ticks,
+  compactTicks,
+  desktopTicks,
 }: {
-  ticks: ReturnType<typeof axisTicks>;
+  compactTicks: ReturnType<typeof axisTicks>;
+  desktopTicks: ReturnType<typeof axisTicks>;
 }) {
   return (
-    <div
-      className="relative"
-      style={{ height: MARKER_STAGE_HEIGHT + AXIS_HEIGHT }}
-      data-testid="market-hours-axis"
-    >
+    <div className="relative h-[116px] sm:h-[162px]" data-testid="market-hours-axis">
       <Sun
         className="absolute bottom-7 size-3 -translate-x-1/2 text-muted-foreground sm:size-4"
         style={{ left: `${minutesToPositionPercent(390)}%` }}
@@ -426,24 +414,41 @@ const TimelineAxis = memo(function TimelineAxis({
         className="absolute bottom-7 size-3 -translate-x-1/2 text-muted-foreground sm:size-4"
         style={{ left: `${minutesToPositionPercent(1110)}%` }}
       />
+      <AxisLabelRow ticks={compactTicks} className="lg:hidden" />
+      <AxisLabelRow ticks={desktopTicks} className="hidden lg:block" />
+    </div>
+  );
+});
+
+const AxisLabelRow = memo(function AxisLabelRow({
+  ticks,
+  className,
+}: {
+  ticks: ReturnType<typeof axisTicks>;
+  className: string;
+}) {
+  return (
+    <div
+      className={`absolute inset-x-0 bottom-1.5 h-5 ${className}`}
+      data-testid="market-hours-axis-label-row"
+    >
       {ticks.map((tick, index) => (
         <span
           key={tick.minutes}
+          data-axis-label
           data-minute={tick.minutes}
-          className={`absolute bottom-1.5 w-0 whitespace-nowrap text-[8px] font-bold text-muted-foreground sm:text-[10px] ${tick.major ? "" : "max-sm:hidden"}`}
-          style={{ left: `${minutesToPositionPercent(tick.minutes)}%` }}
-        >
-          <span
-            className={`inline-block ${
+          className="absolute top-0 flex h-5 items-center justify-center whitespace-nowrap text-[8px] font-bold leading-none text-muted-foreground sm:text-[10px]"
+          style={{
+            left: `${minutesToPositionPercent(tick.minutes)}%`,
+            transform:
               index === 0
-                ? "absolute left-0"
+                ? "translateX(0)"
                 : index === ticks.length - 1
-                  ? "absolute right-0"
-                  : "-translate-x-1/2"
-            }`}
-          >
-            {tick.label}
-          </span>
+                  ? "translateX(-100%)"
+                  : "translateX(-50%)",
+          }}
+        >
+          {tick.label}
         </span>
       ))}
     </div>
@@ -497,7 +502,7 @@ const StaticSessionBars = memo(function StaticSessionBars({
   return segments.map((segment) => (
     <div
       key={`${config.id}-${segment.startMinutes}`}
-      className="absolute bottom-[10px] top-[25px] rounded-[2px] sm:bottom-[12px] sm:top-[28px] sm:rounded-[3px]"
+      className="absolute bottom-[7px] top-[20px] rounded-[2px] sm:bottom-[12px] sm:top-[28px] sm:rounded-[3px]"
       style={{
         left: `${minutesToPositionPercent(segment.startMinutes)}%`,
         width: `${minutesToPositionPercent(segment.endMinutes - segment.startMinutes)}%`,
@@ -536,28 +541,47 @@ const MarkerLayer = memo(function MarkerLayer({
   onPointerMove,
   onPointerUp,
 }: MarkerLayerProps) {
-  const markerX = (minutesToPositionPercent(markerMinutes) / 100) * plotWidth;
-  const bubbleCenter = markerBubbleCenter(markerMinutes, plotWidth);
-  const pointerX = markerBubblePointerX(markerMinutes, plotWidth);
+  const { markerX, bubbleCenter, leftBaseX, rightBaseX, tipX } = markerConnectorGeometry(
+    markerMinutes,
+    plotWidth,
+  );
   const transition = dragging ? "none" : "transform 350ms cubic-bezier(.2,.8,.2,1)";
 
   return (
     <div
-      className="absolute inset-0 z-20 cursor-ew-resize touch-pan-y select-none"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-      data-testid="market-hours-hit-area"
+      className="pointer-events-none absolute inset-0 z-20 select-none"
+      data-testid="market-hours-marker-layer"
     >
       <div
-        className="pointer-events-none absolute bottom-0 top-[82px] left-0 w-[3px] bg-gold shadow-[0_0_8px_hsl(var(--gold)/0.25)] motion-reduce:transition-none"
+        className="pointer-events-none absolute bottom-0 left-0 top-[84px] w-[3px] bg-gold shadow-[0_0_8px_hsl(var(--gold)/0.25)] motion-reduce:!transition-none"
         style={{ transform: `translate3d(${markerX - 1.5}px, 0, 0)`, transition }}
         data-testid="market-hours-marker"
       />
       <div
-        className="pointer-events-none absolute left-0 top-1 w-[88px] motion-reduce:transition-none"
-        style={{ transform: `translate3d(${bubbleCenter - 44}px, 0, 0)`, transition }}
+        role="presentation"
+        className={`pointer-events-auto absolute bottom-0 left-0 top-[76px] z-10 w-6 touch-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+        style={{ transform: `translate3d(${markerX - 12}px, 0, 0)`, transition }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        data-testid="market-hours-hit-area"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-[72px] h-[14px] w-full bg-gold motion-reduce:!transition-none"
+        style={{
+          clipPath: `polygon(${leftBaseX}px 0, ${rightBaseX}px 0, ${tipX}px 100%)`,
+          transition: dragging ? "none" : "clip-path 350ms cubic-bezier(.2,.8,.2,1)",
+        }}
+        data-testid="market-hours-bubble-pointer"
+      />
+      <div
+        className="pointer-events-none absolute left-0 top-0 w-[68px] motion-reduce:!transition-none"
+        style={{
+          transform: `translate3d(${bubbleCenter - MARKER_BUBBLE_WIDTH / 2}px, 0, 0)`,
+          transition,
+        }}
         data-testid="market-hours-bubble"
       >
         <div
@@ -565,7 +589,7 @@ const MarkerLayer = memo(function MarkerLayer({
           tabIndex={0}
           aria-label="Preview market time"
           aria-valuemin={0}
-          aria-valuemax={MINUTES_PER_DAY}
+          aria-valuemax={LAST_MINUTE_OF_DAY}
           aria-valuenow={Math.round(markerMinutes)}
           aria-valuetext={`${formatTime(previewNow, timeZone, timeFormat)}, ${WEEKDAYS[weekday]}`}
           onKeyDown={onKeyDown}
@@ -586,29 +610,21 @@ const MarkerLayer = memo(function MarkerLayer({
             onPointerUp();
           }}
           onPointerCancel={onPointerUp}
-          className={`pointer-events-auto flex h-[88px] w-[88px] touch-none flex-col items-center justify-center rounded-full border border-gold/30 bg-gold text-background shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+          className={`pointer-events-auto flex h-[76px] w-[68px] touch-none flex-col items-center justify-start rounded-t-[34px] rounded-b-[16px] border border-gold/30 bg-gold pb-3 pt-1 text-background shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 sm:h-[78px] sm:pb-3.5 ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
         >
-          <span className="flex size-9 items-center justify-center rounded-full bg-card shadow-sm">
+          <span className="flex size-8 items-center justify-center rounded-full bg-card shadow-sm sm:size-9">
             <Clock
               hour={getZonedParts(previewNow, timeZone).hour}
               minute={getZonedParts(previewNow, timeZone).minute}
             />
           </span>
-          <span className="mt-1 text-sm font-extrabold leading-tight">
+          <span className="mt-0.5 text-[11px] font-extrabold leading-tight sm:text-xs">
             {formatTime(previewNow, timeZone, timeFormat)}
           </span>
-          <span className="text-[11px] leading-tight opacity-85">{WEEKDAYS[weekday]}</span>
+          <span className="text-[9px] leading-tight opacity-85 sm:text-[10px]">
+            {WEEKDAYS[weekday]}
+          </span>
         </div>
-        <span
-          className="absolute -bottom-1.5 h-0 w-0 border-x-transparent border-t-[6px] border-t-gold"
-          style={{
-            left: pointerX,
-            borderLeftWidth: Math.min(6, pointerX),
-            borderRightWidth: Math.min(6, 88 - pointerX),
-            transform: `translateX(-${Math.min(6, pointerX)}px)`,
-          }}
-          data-testid="market-hours-bubble-pointer"
-        />
       </div>
     </div>
   );

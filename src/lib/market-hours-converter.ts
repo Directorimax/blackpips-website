@@ -2,7 +2,8 @@ import { getZonedParts } from "./market-session-time";
 
 export const HOURS_PER_DAY = 24;
 export const MINUTES_PER_DAY = 1440;
-export const MARKER_BUBBLE_WIDTH = 88;
+export const LAST_MINUTE_OF_DAY = 1439;
+export const MARKER_BUBBLE_WIDTH = 68;
 
 export const MARKET_TIMEZONES = [
   ["Midway", "Pacific/Midway"],
@@ -54,7 +55,11 @@ export function minutesToPositionPercent(minutes: number) {
 }
 
 export function positionPercentToMinutes(percent: number) {
-  return (Math.min(100, Math.max(0, percent)) / 100) * MINUTES_PER_DAY;
+  return (Math.min(100, Math.max(0, percent)) / 100) * LAST_MINUTE_OF_DAY;
+}
+
+export function interactiveMinutesToPositionPercent(minutes: number) {
+  return (Math.min(LAST_MINUTE_OF_DAY, Math.max(0, minutes)) / LAST_MINUTE_OF_DAY) * 100;
 }
 
 export function clientXToMinutes(clientX: number, plotLeft: number, plotWidth: number) {
@@ -67,7 +72,7 @@ export function markerBubbleCenter(
   bubbleWidth = MARKER_BUBBLE_WIDTH,
 ) {
   const halfBubble = bubbleWidth / 2;
-  const markerX = (minutesToPositionPercent(minutes) / 100) * plotWidth;
+  const markerX = (interactiveMinutesToPositionPercent(minutes) / 100) * plotWidth;
   return Math.min(plotWidth - halfBubble, Math.max(halfBubble, markerX));
 }
 
@@ -76,23 +81,35 @@ export function markerBubblePointerX(
   plotWidth: number,
   bubbleWidth = MARKER_BUBBLE_WIDTH,
 ) {
-  const markerX = (minutesToPositionPercent(minutes) / 100) * plotWidth;
+  const markerX = (interactiveMinutesToPositionPercent(minutes) / 100) * plotWidth;
   const bubbleCenter = markerBubbleCenter(minutes, plotWidth, bubbleWidth);
   return bubbleWidth / 2 + markerX - bubbleCenter;
 }
 
-export function axisTicks(use24: boolean) {
-  return Array.from({ length: HOURS_PER_DAY + 1 }, (_, hour) => {
-    const minutes = hour * 60;
-    const period = hour < 12 || hour === 24 ? "A" : "P";
+export function markerConnectorGeometry(
+  minutes: number,
+  plotWidth: number,
+  bubbleWidth = MARKER_BUBBLE_WIDTH,
+  tailHalfWidth = 7,
+) {
+  const markerX = (interactiveMinutesToPositionPercent(minutes) / 100) * plotWidth;
+  const bubbleCenter = markerBubbleCenter(minutes, plotWidth, bubbleWidth);
+  return {
+    markerX,
+    bubbleCenter,
+    leftBaseX: bubbleCenter - tailHalfWidth,
+    rightBaseX: bubbleCenter + tailHalfWidth,
+    tipX: markerX,
+  };
+}
+
+export function axisTicks(use24: boolean, compact = true) {
+  const stepHours = compact ? 2 : 1;
+  return Array.from({ length: HOURS_PER_DAY / stepHours + 1 }, (_, index) => {
+    const hour = index * stepHours;
     return {
-      minutes,
-      major: hour % 2 === 0,
-      label: use24
-        ? hour === 24
-          ? "24"
-          : String(hour).padStart(2, "0")
-        : `${hour % 12 || 12}${period}`,
+      minutes: hour * 60,
+      label: hour === 0 ? "•" : use24 ? String(hour) : String(hour % 12 || 12),
     };
   });
 }
