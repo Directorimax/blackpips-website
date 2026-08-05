@@ -103,6 +103,18 @@ export function markerConnectorGeometry(
   };
 }
 
+export function clockHandAngles(hour: number, minute: number, second: number) {
+  return {
+    hour: ((hour % 12) + minute / 60) * 30,
+    minute: (minute + second / 60) * 6,
+    second: second * 6,
+  };
+}
+
+export function clockSecondForMode(second: number, isPreview: boolean) {
+  return isPreview ? 0 : second;
+}
+
 export function axisTicks(use24: boolean, compact = true) {
   const stepHours = compact ? 2 : 1;
   return Array.from({ length: HOURS_PER_DAY / stepHours + 1 }, (_, index) => {

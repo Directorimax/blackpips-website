@@ -80,7 +80,22 @@ export function useMarketSessionPreferences() {
   };
 }
 
-function useReliableNow(injectedNow?: Date) {
+export const LIVE_CLOCK_RESYNC_EVENTS = ["focus", "pageshow"] as const;
+
+export function millisecondsUntilNextSecond(timestamp: number) {
+  const remainder = timestamp % 1000;
+  return remainder === 0 ? 1000 : 1000 - remainder;
+}
+
+export function readWallClock(now: () => number = Date.now) {
+  return new Date(now());
+}
+
+function useReliableNow(
+  injectedNow: Date | undefined,
+  timeZone: string,
+  timeFormat: TimeFormatPreference,
+) {
   const [now, setNow] = useState<Date | null>(injectedNow ?? null);
 
   useEffect(() => {
@@ -88,27 +103,35 @@ function useReliableNow(injectedNow?: Date) {
       setNow(injectedNow);
       return;
     }
-    const sync = () => setNow(new Date());
+    let timer: number | undefined;
+    const schedule = () => {
+      window.clearTimeout(timer);
+      const timestamp = Date.now();
+      setNow(new Date(timestamp));
+      timer = window.setTimeout(schedule, millisecondsUntilNextSecond(timestamp));
+    };
+    const sync = () => schedule();
     const handleVisibility = () => {
       if (document.visibilityState === "visible") sync();
     };
-    sync();
-    const interval = window.setInterval(sync, 60_000);
+    schedule();
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("focus", sync);
+    window.addEventListener("pageshow", sync);
     return () => {
-      window.clearInterval(interval);
+      window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("focus", sync);
+      window.removeEventListener("pageshow", sync);
     };
-  }, [injectedNow]);
+  }, [injectedNow, timeFormat, timeZone]);
 
   return now;
 }
 
 export function useMarketSessions(injectedNow?: Date) {
   const preferences = useMarketSessionPreferences();
-  const now = useReliableNow(injectedNow);
+  const now = useReliableNow(injectedNow, preferences.timeZone, preferences.timeFormat);
   const calculationNow = useMemo(() => now ?? new Date("2026-01-05T12:00:00Z"), [now]);
 
   return {

@@ -3,6 +3,8 @@ import {
   cancelScheduledReturn,
   axisTicks,
   clientXToMinutes,
+  clockHandAngles,
+  clockSecondForMode,
   flagForRegion,
   hourLabel,
   interactiveMinutesToPositionPercent,
@@ -58,6 +60,16 @@ describe("market hours converter interaction geometry", () => {
     expect(hourLabel(13, false)).toBe("1");
     expect(hourLabel(13, true)).toBe("13");
     expect(flagForRegion("AU")).toBe("🇦🇺");
+  });
+
+  it("calculates hour, minute and second hand angles", () => {
+    expect(clockHandAngles(3, 30, 45)).toEqual({ hour: 105, minute: 184.5, second: 270 });
+    expect(clockHandAngles(12, 0, 0)).toEqual({ hour: 0, minute: 0, second: 0 });
+  });
+
+  it("keeps preview seconds stable and resumes live seconds", () => {
+    expect(clockSecondForMode(47, true)).toBe(0);
+    expect(clockSecondForMode(47, false)).toBe(47);
   });
 
   it("uses one day geometry and clamps the marker bubble inside the plot", () => {

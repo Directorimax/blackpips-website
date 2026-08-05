@@ -13,8 +13,9 @@ import { useMarketSessions } from "@/hooks/useMarketSessions";
 import {
   axisTicks,
   clientXToMinutes,
+  clockHandAngles,
+  clockSecondForMode,
   flagForRegion,
-  interactiveMinutesToPositionPercent,
   LAST_MINUTE_OF_DAY,
   MARKER_BUBBLE_WIDTH,
   markerConnectorGeometry,
@@ -33,6 +34,7 @@ import {
   zonedDateTimeToDate,
   type TimeFormatPreference,
 } from "@/lib/market-session-time";
+import { MarketSessionDetails } from "./MarketSessionDetails";
 
 const SESSION_COLORS: Record<(typeof SESSION_CONFIG)[number]["name"], string> = {
   Sydney: "#2f4fd8",
@@ -112,9 +114,10 @@ export function ForexMarketHours() {
       }
     }
     return options.map(
-      ([label, zone]) => [`${label} (${formatTimeZoneOffset(market.now, zone)})`, zone] as const,
+      ([label, zone]) =>
+        [`${label} (${formatTimeZoneOffset(timelineReference, zone)})`, zone] as const,
     );
-  }, [market.now, market.timeZone, market.visitorTimeZone]);
+  }, [market.timeZone, market.visitorTimeZone, timelineReference]);
 
   const commitPreviewMinutes = useCallback((minutes: number | null) => {
     previewMinutesRef.current = minutes;
@@ -215,27 +218,17 @@ export function ForexMarketHours() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl overflow-x-clip">
-      <header>
-        <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-6xl">
-          Forex Market Hours
-        </h1>
-        <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          View when the Sydney, Tokyo, London and New York sessions open and close in your timezone.
-        </p>
-      </header>
-
-      <div className="mt-10 overflow-hidden rounded-xl border border-border border-t-[10px] border-t-gold bg-card text-card-foreground shadow-sm sm:mt-14">
-        <div className="px-3 pb-4 pt-4 sm:px-7 sm:pb-6 sm:pt-5">
-          <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-2xl">
+    <div className="-mt-8 mx-auto w-full max-w-4xl overflow-x-clip">
+      <div className="overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+        <div className="px-3 pb-4 pt-3 sm:px-7 sm:pb-6 sm:pt-5">
+          <h1 className="font-display text-xl font-extrabold tracking-tight sm:text-2xl">
             Forex Market Time Zone Converter
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Drag the clock to preview another time. It returns to now when released.
           </p>
 
           <ConverterControls
-            now={market.now}
             timeFormat={market.timeFormat}
             timeZone={market.timeZone}
             visitorTimeZone={market.visitorTimeZone}
@@ -244,7 +237,7 @@ export function ForexMarketHours() {
             onTimeZoneChange={market.setTimeZone}
           />
 
-          <div className="relative mt-6 grid min-w-0 grid-cols-[106px_minmax(0,1fr)] [--row-h:64px] [--row-gap:5px] min-[390px]:grid-cols-[112px_minmax(0,1fr)] sm:mt-10 sm:grid-cols-[190px_minmax(0,1fr)] sm:[--row-h:96px] sm:[--row-gap:8px]">
+          <div className="relative mt-5 grid min-w-0 grid-cols-[106px_minmax(0,1fr)] [--row-h:64px] [--row-gap:5px] min-[390px]:grid-cols-[112px_minmax(0,1fr)] sm:mt-8 sm:grid-cols-[190px_minmax(0,1fr)] sm:[--row-h:96px] sm:[--row-gap:8px]">
             <SessionLabels rows={rows} previewNow={previewNow} timeFormat={market.timeFormat} />
 
             <div className="min-w-0 overflow-hidden" data-testid="market-hours-viewport">
@@ -253,6 +246,7 @@ export function ForexMarketHours() {
                 <TimelineRows rows={rows} selectedMinutes={selectedMinutes} />
                 <MarkerLayer
                   dragging={dragging}
+                  isPreview={previewMinutes !== null}
                   markerMinutes={selectedMinutes}
                   plotWidth={plotWidth}
                   previewNow={previewNow}
@@ -270,12 +264,17 @@ export function ForexMarketHours() {
           </div>
         </div>
       </div>
+
+      <MarketSessionDetails
+        now={market.now}
+        timeZone={market.timeZone}
+        timeFormat={market.timeFormat}
+      />
     </div>
   );
 }
 
 type ConverterControlsProps = {
-  now: Date;
   timeFormat: TimeFormatPreference;
   timeZone: string;
   visitorTimeZone: string;
@@ -293,7 +292,7 @@ const ConverterControls = memo(function ConverterControls({
   onTimeZoneChange,
 }: ConverterControlsProps) {
   return (
-    <div className="mt-6 flex items-end justify-between gap-3">
+    <div className="mt-4 flex items-end justify-between gap-3 sm:mt-5">
       <div className="min-w-0">
         <label
           htmlFor="market-timezone"
@@ -514,6 +513,7 @@ const StaticSessionBars = memo(function StaticSessionBars({
 
 type MarkerLayerProps = {
   dragging: boolean;
+  isPreview: boolean;
   markerMinutes: number;
   plotWidth: number;
   previewNow: Date;
@@ -529,6 +529,7 @@ type MarkerLayerProps = {
 
 const MarkerLayer = memo(function MarkerLayer({
   dragging,
+  isPreview,
   markerMinutes,
   plotWidth,
   previewNow,
@@ -541,6 +542,7 @@ const MarkerLayer = memo(function MarkerLayer({
   onPointerMove,
   onPointerUp,
 }: MarkerLayerProps) {
+  const clockParts = getZonedParts(previewNow, timeZone);
   const { markerX, bubbleCenter, leftBaseX, rightBaseX, tipX } = markerConnectorGeometry(
     markerMinutes,
     plotWidth,
@@ -614,8 +616,9 @@ const MarkerLayer = memo(function MarkerLayer({
         >
           <span className="flex size-8 items-center justify-center rounded-full bg-card shadow-sm sm:size-9">
             <Clock
-              hour={getZonedParts(previewNow, timeZone).hour}
-              minute={getZonedParts(previewNow, timeZone).minute}
+              hour={clockParts.hour}
+              minute={clockParts.minute}
+              second={clockSecondForMode(clockParts.second, isPreview)}
             />
           </span>
           <span className="mt-0.5 text-[11px] font-extrabold leading-tight sm:text-xs">
@@ -643,30 +646,46 @@ function GridLines() {
   );
 }
 
-function Clock({ hour, minute }: { hour: number; minute: number }) {
-  const minuteAngle = minute * 6;
-  const hourAngle = ((hour % 12) + minute / 60) * 30;
+function Clock({ hour, minute, second }: { hour: number; minute: number; second: number }) {
+  const angles = clockHandAngles(hour, minute, second);
   return (
     <svg viewBox="0 0 40 40" className="size-[20px] text-gold" aria-hidden="true">
       <circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" strokeWidth="2.5" />
       <line
         x1="20"
         y1="20"
-        x2={20 + 8 * Math.sin((hourAngle * Math.PI) / 180)}
-        y2={20 - 8 * Math.cos((hourAngle * Math.PI) / 180)}
+        x2="20"
+        y2="12"
         stroke="currentColor"
         strokeWidth="2.5"
         strokeLinecap="round"
+        style={{ transform: `rotate(${angles.hour}deg)`, transformOrigin: "20px 20px" }}
+        data-testid="market-clock-hour-hand"
       />
       <line
         x1="20"
         y1="20"
-        x2={20 + 12 * Math.sin((minuteAngle * Math.PI) / 180)}
-        y2={20 - 12 * Math.cos((minuteAngle * Math.PI) / 180)}
+        x2="20"
+        y2="8"
         stroke="currentColor"
         strokeWidth="2.5"
         strokeLinecap="round"
+        style={{ transform: `rotate(${angles.minute}deg)`, transformOrigin: "20px 20px" }}
+        data-testid="market-clock-minute-hand"
       />
+      <line
+        x1="20"
+        y1="21"
+        x2="20"
+        y2="6"
+        className="text-foreground/70"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        style={{ transform: `rotate(${angles.second}deg)`, transformOrigin: "20px 20px" }}
+        data-testid="market-clock-second-hand"
+      />
+      <circle cx="20" cy="20" r="1.75" fill="currentColor" />
     </svg>
   );
 }
