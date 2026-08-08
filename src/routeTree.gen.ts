@@ -20,6 +20,7 @@ import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AlcAccessRouteImport } from './routes/alc-access'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -39,6 +40,8 @@ import { Route as AdminPaymentsRouteImport } from './routes/admin/payments'
 import { Route as AdminMentorshipApplicationsRouteImport } from './routes/admin/mentorship-applications'
 import { Route as AdminLessonsRouteImport } from './routes/admin/lessons'
 import { Route as AdminCertificatesRouteImport } from './routes/admin/certificates'
+import { Route as AdminAlcLibraryRouteImport } from './routes/admin/alc-library'
+import { Route as AdminAlcAccessRouteImport } from './routes/admin/alc-access'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as CoursesSlugIndexRouteImport } from './routes/courses/$slug/index'
@@ -100,6 +103,11 @@ const BlogRoute = BlogRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlcAccessRoute = AlcAccessRouteImport.update({
+  id: '/alc-access',
+  path: '/alc-access',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -198,6 +206,16 @@ const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
   path: '/admin/certificates',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAlcLibraryRoute = AdminAlcLibraryRouteImport.update({
+  id: '/admin/alc-library',
+  path: '/admin/alc-library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAlcAccessRoute = AdminAlcAccessRouteImport.update({
+  id: '/admin/alc-access',
+  path: '/admin/alc-access',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -239,6 +257,7 @@ const AuthenticatedDashboardTradingPlanRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/alc-access': typeof AlcAccessRoute
   '/auth': typeof AuthRouteWithChildren
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
@@ -252,6 +271,8 @@ export interface FileRoutesByFullPath {
   '/tools': typeof ToolsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
+  '/admin/alc-access': typeof AdminAlcAccessRoute
+  '/admin/alc-library': typeof AdminAlcLibraryRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/lessons': typeof AdminLessonsRoute
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
@@ -277,6 +298,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/alc-access': typeof AlcAccessRoute
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
@@ -286,6 +308,8 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/admin/alc-access': typeof AdminAlcAccessRoute
+  '/admin/alc-library': typeof AdminAlcLibraryRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/lessons': typeof AdminLessonsRoute
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
@@ -312,6 +336,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/alc-access': typeof AlcAccessRoute
   '/auth': typeof AuthRouteWithChildren
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
@@ -325,6 +350,8 @@ export interface FileRoutesById {
   '/tools': typeof ToolsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/admin/alc-access': typeof AdminAlcAccessRoute
+  '/admin/alc-library': typeof AdminAlcLibraryRoute
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/lessons': typeof AdminLessonsRoute
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
@@ -352,6 +379,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/alc-access'
     | '/auth'
     | '/blog'
     | '/contact'
@@ -365,6 +393,8 @@ export interface FileRouteTypes {
     | '/tools'
     | '/dashboard'
     | '/profile'
+    | '/admin/alc-access'
+    | '/admin/alc-library'
     | '/admin/certificates'
     | '/admin/lessons'
     | '/admin/mentorship-applications'
@@ -390,6 +420,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/alc-access'
     | '/blog'
     | '/contact'
     | '/faq'
@@ -399,6 +430,8 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/testimonials'
     | '/profile'
+    | '/admin/alc-access'
+    | '/admin/alc-library'
     | '/admin/certificates'
     | '/admin/lessons'
     | '/admin/mentorship-applications'
@@ -424,6 +457,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/about'
+    | '/alc-access'
     | '/auth'
     | '/blog'
     | '/contact'
@@ -437,6 +471,8 @@ export interface FileRouteTypes {
     | '/tools'
     | '/_authenticated/dashboard'
     | '/_authenticated/profile'
+    | '/admin/alc-access'
+    | '/admin/alc-library'
     | '/admin/certificates'
     | '/admin/lessons'
     | '/admin/mentorship-applications'
@@ -464,6 +500,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  AlcAccessRoute: typeof AlcAccessRoute
   AuthRoute: typeof AuthRouteWithChildren
   BlogRoute: typeof BlogRoute
   ContactRoute: typeof ContactRoute
@@ -475,6 +512,8 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TestimonialsRoute: typeof TestimonialsRoute
   ToolsRoute: typeof ToolsRouteWithChildren
+  AdminAlcAccessRoute: typeof AdminAlcAccessRoute
+  AdminAlcLibraryRoute: typeof AdminAlcLibraryRoute
   AdminCertificatesRoute: typeof AdminCertificatesRoute
   AdminLessonsRoute: typeof AdminLessonsRoute
   AdminMentorshipApplicationsRoute: typeof AdminMentorshipApplicationsRoute
@@ -562,6 +601,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alc-access': {
+      id: '/alc-access'
+      path: '/alc-access'
+      fullPath: '/alc-access'
+      preLoaderRoute: typeof AlcAccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -695,6 +741,20 @@ declare module '@tanstack/react-router' {
       path: '/admin/certificates'
       fullPath: '/admin/certificates'
       preLoaderRoute: typeof AdminCertificatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/alc-library': {
+      id: '/admin/alc-library'
+      path: '/admin/alc-library'
+      fullPath: '/admin/alc-library'
+      preLoaderRoute: typeof AdminAlcLibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/alc-access': {
+      id: '/admin/alc-access'
+      path: '/admin/alc-access'
+      fullPath: '/admin/alc-access'
+      preLoaderRoute: typeof AdminAlcAccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/profile': {
@@ -850,6 +910,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  AlcAccessRoute: AlcAccessRoute,
   AuthRoute: AuthRouteWithChildren,
   BlogRoute: BlogRoute,
   ContactRoute: ContactRoute,
@@ -861,6 +922,8 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TestimonialsRoute: TestimonialsRoute,
   ToolsRoute: ToolsRouteWithChildren,
+  AdminAlcAccessRoute: AdminAlcAccessRoute,
+  AdminAlcLibraryRoute: AdminAlcLibraryRoute,
   AdminCertificatesRoute: AdminCertificatesRoute,
   AdminLessonsRoute: AdminLessonsRoute,
   AdminMentorshipApplicationsRoute: AdminMentorshipApplicationsRoute,

@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Clock,
   NotebookPen,
+  KeyRound,
   X,
   LayoutDashboard,
   LogOut,
@@ -38,6 +39,8 @@ import { useProfileAvatar } from "@/hooks/useProfileAvatar";
 import { supabase } from "@/integrations/supabase/client";
 
 const ADMIN_NAV = [
+  { to: "/admin/alc-access" as const, label: "ALC Access", icon: KeyRound },
+  { to: "/admin/alc-library" as const, label: "ALC Library", icon: BookOpen },
   { to: "/admin/payments" as const, label: "Payments", icon: CreditCard },
   {
     to: "/admin/mentorship-applications" as const,
@@ -50,6 +53,12 @@ const ADMIN_NAV = [
 ];
 
 const TOOL_NAV = [
+  {
+    to: "/alc-access" as const,
+    label: "ALC Access",
+    description: "Former student verification",
+    icon: KeyRound,
+  },
   {
     to: "/tools/pip-calculator" as const,
     label: "Pip Calculator",
@@ -384,6 +393,18 @@ function AdminDropdown({
   onOpenChange?: (open: boolean) => void;
 }) {
   const menuId = mobile ? "mobile-admin-menu" : "desktop-admin-menu";
+  const [alcPending, setAlcPending] = useState(0);
+  useEffect(() => {
+    void supabase
+      .rpc("admin_alc_access_pending_count" as never)
+      .then(({ data }) => setAlcPending(Number(data) || 0));
+    const refresh = () =>
+      void supabase
+        .rpc("admin_alc_access_pending_count" as never)
+        .then(({ data }) => setAlcPending(Number(data) || 0));
+    window.addEventListener("alc-access-reviewed", refresh);
+    return () => window.removeEventListener("alc-access-reviewed", refresh);
+  }, []);
 
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
@@ -425,6 +446,11 @@ function AdminDropdown({
                 className="min-h-11 cursor-pointer font-medium focus-visible:outline-none data-[status=active]:bg-accent data-[status=active]:text-accent-foreground"
               >
                 <Icon className="h-4 w-4 text-gold" aria-hidden="true" /> {item.label}
+                {item.to === "/admin/alc-access" && alcPending > 0 && (
+                  <span className="ml-auto rounded-full bg-gold/20 px-2 py-0.5 text-xs text-gold">
+                    {alcPending}
+                  </span>
+                )}
               </Link>
             </DropdownMenuItem>
           );

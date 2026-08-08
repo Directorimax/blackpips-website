@@ -6,7 +6,11 @@ export const Route = createFileRoute("/testimonials")({
   head: () => ({
     meta: [
       { title: "Testimonials — BlackPips Students" },
-      { name: "description", content: "Real stories from BlackPips students — prop firm funded, full-time and part-time traders using the ALC strategy." },
+      {
+        name: "description",
+        content:
+          "Real stories from BlackPips students — prop firm funded, full-time and part-time traders using the ALC strategy.",
+      },
       { property: "og:title", content: "BlackPips Testimonials" },
       { property: "og:description", content: "What our students say about the ALC framework." },
     ],
@@ -18,10 +22,18 @@ function TPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
       <header className="text-center">
-        <div className="inline-flex rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold">Testimonials</div>
-        <h1 className="mt-4 font-display text-4xl font-bold sm:text-5xl">Real students. Real screens.</h1>
+        <div className="inline-flex rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold">
+          Testimonials
+        </div>
+        <h1 className="mt-4 font-display text-4xl font-bold sm:text-5xl">
+          Real students. Real screens.
+        </h1>
         <div className="mt-4 inline-flex items-center gap-2">
-          <div className="flex text-gold">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}</div>
+          <div className="flex text-gold">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star key={i} className="h-4 w-4 fill-current" />
+            ))}
+          </div>
           <span className="text-sm font-semibold">4.9 / 5</span>
           <span className="text-sm text-muted-foreground">from 1,200+ students</span>
         </div>

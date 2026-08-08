@@ -9,6 +9,7 @@ import { CertificateEarnedEmail } from "@/emails/CertificateEarnedEmail";
 import { AdminPaymentSubmittedEmail } from "@/emails/AdminPaymentSubmittedEmail";
 import { AdminMentorshipSubmittedEmail } from "@/emails/AdminMentorshipSubmittedEmail";
 import { PaymentRejectedEmail } from "@/emails/PaymentRejectedEmail";
+import { AlcAccessDecisionEmail } from "@/emails/AlcAccessDecisionEmail";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { formatTZS } from "@/lib/site-data";
 
@@ -21,7 +22,9 @@ type NotificationType =
   | "certificate_earned"
   | "payment_submitted"
   | "payment_rejected"
-  | "mentorship_submitted";
+  | "mentorship_submitted"
+  | "alc_access_approved"
+  | "alc_access_rejected";
 
 type NotificationRequest = { type: NotificationType; resourceId: string; actorId: string };
 type Recipient = { userId: string; email: string; name: string };
@@ -100,7 +103,48 @@ async function prepareNotification(
       return preparePaymentRejected(request);
     case "mentorship_submitted":
       return prepareMentorshipSubmitted(request);
+    case "alc_access_approved":
+    case "alc_access_rejected":
+      return prepareAlcAccessDecision(request);
   }
+}
+
+async function prepareAlcAccessDecision(
+  request: NotificationRequest,
+): Promise<PreparedNotification | null> {
+  if (!(await isAdmin(request.actorId))) return null;
+  const expectedStatus = request.type === "alc_access_approved" ? "approved" : "rejected";
+  const { data: accessRequest, error } = await supabaseAdmin
+    .from("alc_access_requests")
+    .select("id,user_id,full_name,email,status,public_review_message")
+    .eq("id", request.resourceId)
+    .eq("status", expectedStatus)
+    .maybeSingle();
+  if (error || !accessRequest) {
+    if (error) console.error("[email] Unable to load reviewed ALC Access request.");
+    return null;
+  }
+  const approved = expectedStatus === "approved";
+  return {
+    type: request.type,
+    resourceId: accessRequest.id,
+    recipient: {
+      userId: accessRequest.user_id,
+      email: accessRequest.email,
+      name: accessRequest.full_name || "Trader",
+    },
+    subject: approved
+      ? "Your BlackPips ALC Access request was approved"
+      : "An update on your BlackPips ALC Access request",
+    react: (
+      <AlcAccessDecisionEmail
+        studentName={accessRequest.full_name || "Trader"}
+        approved={approved}
+        publicMessage={accessRequest.public_review_message}
+        accessUrl={`${APP_URL}/alc-access`}
+      />
+    ),
+  };
 }
 
 async function preparePaymentSubmitted(

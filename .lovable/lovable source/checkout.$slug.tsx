@@ -203,8 +203,9 @@ function Checkout() {
             </motion.div>
             <h1 className="mt-6 font-display text-3xl font-bold sm:text-4xl">Payment submitted</h1>
             <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-              We've received your payment for <span className="text-foreground font-semibold">{course.title}</span>.
-              Your submission is now marked{" "}
+              We've received your payment for{" "}
+              <span className="text-foreground font-semibold">{course.title}</span>. Your submission
+              is now marked{" "}
               <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-xs font-semibold text-gold">
                 Pending Verification
               </span>
@@ -216,12 +217,18 @@ function Checkout() {
                 <span className="font-semibold">What happens next</span>
               </div>
               <ul className="mt-3 space-y-2 text-muted-foreground">
-                <li>• Our team verifies your transaction (typically under 30 minutes during business hours).</li>
+                <li>
+                  • Our team verifies your transaction (typically under 30 minutes during business
+                  hours).
+                </li>
                 <li>• Course access is unlocked automatically in your dashboard once approved.</li>
                 <li>• You'll receive an email confirmation at approval.</li>
               </ul>
               <div className="mt-4 text-xs text-muted-foreground">
-                Reference: <span className="font-mono text-foreground">{success.id.slice(0, 8).toUpperCase()}</span>
+                Reference:{" "}
+                <span className="font-mono text-foreground">
+                  {success.id.slice(0, 8).toUpperCase()}
+                </span>
               </div>
             </div>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -263,13 +270,21 @@ function Checkout() {
         <div className="absolute inset-0 bg-hero-glow opacity-40" />
         <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:justify-between">
           <div className="min-w-0">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-gold">Complete payment</div>
-            <h1 className="mt-1 truncate font-display text-2xl font-bold sm:text-3xl">{course.title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Lifetime access · Instant unlock after verification</p>
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-gold">
+              Complete payment
+            </div>
+            <h1 className="mt-1 truncate font-display text-2xl font-bold sm:text-3xl">
+              {course.title}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Lifetime access · Instant unlock after verification
+            </p>
           </div>
           <div className="shrink-0 text-right">
             <div className="text-xs text-muted-foreground">Amount due</div>
-            <div className="text-gradient-gold font-display text-3xl font-black sm:text-4xl">${course.price}</div>
+            <div className="text-gradient-gold font-display text-3xl font-black sm:text-4xl">
+              ${course.price}
+            </div>
           </div>
         </div>
       </motion.header>
@@ -289,7 +304,7 @@ function Checkout() {
                   "group relative overflow-hidden rounded-2xl border p-4 text-left transition-all",
                   active
                     ? "border-gold/60 bg-gold/5 shadow-glow"
-                    : "border-border bg-card hover:border-gold/30 hover:-translate-y-0.5"
+                    : "border-border bg-card hover:border-gold/30 hover:-translate-y-0.5",
                 )}
               >
                 <div className={cn("absolute inset-0 bg-gradient-to-br opacity-40", m.color)} />
@@ -297,7 +312,9 @@ function Checkout() {
                   <div
                     className={cn(
                       "grid h-10 w-10 shrink-0 place-items-center rounded-xl transition",
-                      active ? "bg-gradient-gold text-primary-foreground" : "bg-background/60 text-gold"
+                      active
+                        ? "bg-gradient-gold text-primary-foreground"
+                        : "bg-background/60 text-gold",
                     )}
                   >
                     <Icon className="h-5 w-5" />
@@ -307,10 +324,7 @@ function Checkout() {
                     <div className="truncate text-xs text-muted-foreground">{m.name}</div>
                   </div>
                   {active && (
-                    <motion.div
-                      layoutId="method-check"
-                      className="ml-auto shrink-0 text-gold"
-                    >
+                    <motion.div layoutId="method-check" className="ml-auto shrink-0 text-gold">
                       <CheckCircle2 className="h-5 w-5" />
                     </motion.div>
                   )}
@@ -340,9 +354,25 @@ function Checkout() {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <DetailField label="Business name" value={activeMethod.business} onCopy={copy} copied={copied} />
-              <DetailField label="Phone number" value={activeMethod.phone} onCopy={copy} copied={copied} />
-              <DetailField label="Amount" value={`$${course.price}`} onCopy={copy} copied={copied} highlight />
+              <DetailField
+                label="Business name"
+                value={activeMethod.business}
+                onCopy={copy}
+                copied={copied}
+              />
+              <DetailField
+                label="Phone number"
+                value={activeMethod.phone}
+                onCopy={copy}
+                copied={copied}
+              />
+              <DetailField
+                label="Amount"
+                value={`$${course.price}`}
+                onCopy={copy}
+                copied={copied}
+                highlight
+              />
             </div>
 
             <div className="mt-6">
@@ -367,7 +397,10 @@ function Checkout() {
       {/* Transaction ID + upload */}
       <section className="mt-6 grid gap-6 md:grid-cols-2">
         <div className="rounded-3xl border border-border bg-card p-6">
-          <label htmlFor="txid" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          <label
+            htmlFor="txid"
+            className="text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+          >
             Transaction ID <span className="text-gold">*</span>
           </label>
           <input
@@ -400,7 +433,7 @@ function Checkout() {
               ? "border-gold bg-gold/5"
               : file
                 ? "border-gold/50 bg-gold/[0.03]"
-                : "border-border bg-card hover:border-gold/50"
+                : "border-border bg-card hover:border-gold/50",
           )}
         >
           <input
@@ -439,7 +472,9 @@ function Checkout() {
                 <UploadCloud className="h-6 w-6" />
               </div>
               <div className="mt-3 text-sm font-semibold">Drop your screenshot here</div>
-              <div className="mt-1 text-xs text-muted-foreground">or click to browse · PNG/JPG up to 5MB</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                or click to browse · PNG/JPG up to 5MB
+              </div>
             </>
           )}
         </div>
@@ -488,15 +523,17 @@ function DetailField({
     <div
       className={cn(
         "rounded-2xl border p-4",
-        highlight ? "border-gold/40 bg-gold/5" : "border-border bg-background/40"
+        highlight ? "border-gold/40 bg-gold/5" : "border-border bg-background/40",
       )}
     >
-      <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-1 flex items-center justify-between gap-2">
         <div
           className={cn(
             "truncate font-mono text-sm font-semibold",
-            highlight && "text-gradient-gold font-display text-lg"
+            highlight && "text-gradient-gold font-display text-lg",
           )}
         >
           {value}

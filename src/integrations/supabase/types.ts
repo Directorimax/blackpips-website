@@ -8,6 +8,132 @@ export type Database = {
   };
   public: {
     Tables: {
+      alc_access_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          full_name: string;
+          study_year: number;
+          email: string;
+          phone: string;
+          program: string;
+          other_program: string | null;
+          additional_details: string | null;
+          status: string;
+          admin_notes: string | null;
+          public_review_message: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          full_name: string;
+          study_year: number;
+          email: string;
+          phone: string;
+          program: string;
+          other_program?: string | null;
+          additional_details?: string | null;
+          status?: string;
+          admin_notes?: string | null;
+          public_review_message?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          full_name?: string;
+          study_year?: number;
+          email?: string;
+          phone?: string;
+          program?: string;
+          other_program?: string | null;
+          additional_details?: string | null;
+          status?: string;
+          admin_notes?: string | null;
+          public_review_message?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      alc_access_modules: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          sort_order: number;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          sort_order?: number;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string | null;
+          sort_order?: number;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      alc_access_videos: {
+        Row: {
+          id: string;
+          module_id: string | null;
+          title: string;
+          description: string | null;
+          video_url: string;
+          section: string;
+          sort_order: number;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          module_id?: string | null;
+          title: string;
+          description?: string | null;
+          video_url: string;
+          section?: string;
+          sort_order?: number;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          module_id?: string | null;
+          title?: string;
+          description?: string | null;
+          video_url?: string;
+          section?: string;
+          sort_order?: number;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       bookmarks: {
         Row: {
           created_at: string;
@@ -522,6 +648,58 @@ export type Database = {
           created_at: string;
           updated_at: string;
         }[];
+      };
+      admin_list_alc_modules: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          title: string;
+          description: string | null;
+          sort_order: number;
+          is_published: boolean;
+        }[];
+      };
+      admin_list_alc_videos: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          module_id: string;
+          title: string;
+          description: string | null;
+          video_url: string;
+          sort_order: number;
+          is_published: boolean;
+        }[];
+      };
+      admin_save_alc_module: {
+        Args: {
+          p_module_id?: string | null;
+          p_title?: string | null;
+          p_description?: string | null;
+          p_sort_order?: number | null;
+          p_is_published?: boolean;
+        };
+        Returns: string;
+      };
+      admin_save_alc_video: {
+        Args: {
+          p_video_id?: string | null;
+          p_module_id?: string | null;
+          p_title?: string | null;
+          p_description?: string | null;
+          p_video_url?: string | null;
+          p_sort_order?: number | null;
+          p_is_published?: boolean;
+        };
+        Returns: string;
+      };
+      admin_move_alc_video: {
+        Args: { p_video_id: string; p_direction: string };
+        Returns: undefined;
+      };
+      admin_delete_alc_video: {
+        Args: { p_video_id: string };
+        Returns: undefined;
       };
       admin_list_students: {
         Args: {

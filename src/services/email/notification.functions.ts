@@ -14,6 +14,8 @@ const notificationInput = z.object({
     "payment_submitted",
     "payment_rejected",
     "mentorship_submitted",
+    "alc_access_approved",
+    "alc_access_rejected",
   ]),
   resourceId: z.string().uuid(),
 });
