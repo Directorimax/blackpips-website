@@ -35,6 +35,7 @@ import { Route as PaymentSlugRouteImport } from './routes/payment/$slug'
 import { Route as CoursesSlugRouteImport } from './routes/courses/$slug'
 import { Route as CertificatesCertificateIdRouteImport } from './routes/certificates/$certificateId'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AdminTradingTipsRouteImport } from './routes/admin/trading-tips'
 import { Route as AdminStudentsRouteImport } from './routes/admin/students'
 import { Route as AdminPaymentsRouteImport } from './routes/admin/payments'
 import { Route as AdminMentorshipApplicationsRouteImport } from './routes/admin/mentorship-applications'
@@ -42,6 +43,7 @@ import { Route as AdminLessonsRouteImport } from './routes/admin/lessons'
 import { Route as AdminCertificatesRouteImport } from './routes/admin/certificates'
 import { Route as AdminAlcLibraryRouteImport } from './routes/admin/alc-library'
 import { Route as AdminAlcAccessRouteImport } from './routes/admin/alc-access'
+import { Route as AuthenticatedTipsRouteImport } from './routes/_authenticated/tips'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as CoursesSlugIndexRouteImport } from './routes/courses/$slug/index'
@@ -180,6 +182,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const AdminTradingTipsRoute = AdminTradingTipsRouteImport.update({
+  id: '/admin/trading-tips',
+  path: '/admin/trading-tips',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminStudentsRoute = AdminStudentsRouteImport.update({
   id: '/admin/students',
   path: '/admin/students',
@@ -215,6 +222,11 @@ const AdminAlcAccessRoute = AdminAlcAccessRouteImport.update({
   id: '/admin/alc-access',
   path: '/admin/alc-access',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTipsRoute = AuthenticatedTipsRouteImport.update({
+  id: '/tips',
+  path: '/tips',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
@@ -271,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/tools': typeof ToolsRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
+  '/tips': typeof AuthenticatedTipsRoute
   '/admin/alc-access': typeof AdminAlcAccessRoute
   '/admin/alc-library': typeof AdminAlcLibraryRoute
   '/admin/certificates': typeof AdminCertificatesRoute
@@ -278,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/admin/trading-tips': typeof AdminTradingTipsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
   '/courses/$slug': typeof CoursesSlugRouteWithChildren
@@ -308,6 +322,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/tips': typeof AuthenticatedTipsRoute
   '/admin/alc-access': typeof AdminAlcAccessRoute
   '/admin/alc-library': typeof AdminAlcLibraryRoute
   '/admin/certificates': typeof AdminCertificatesRoute
@@ -315,6 +330,7 @@ export interface FileRoutesByTo {
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/admin/trading-tips': typeof AdminTradingTipsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
   '/payment/$slug': typeof PaymentSlugRoute
@@ -350,6 +366,7 @@ export interface FileRoutesById {
   '/tools': typeof ToolsRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/tips': typeof AuthenticatedTipsRoute
   '/admin/alc-access': typeof AdminAlcAccessRoute
   '/admin/alc-library': typeof AdminAlcLibraryRoute
   '/admin/certificates': typeof AdminCertificatesRoute
@@ -357,6 +374,7 @@ export interface FileRoutesById {
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
+  '/admin/trading-tips': typeof AdminTradingTipsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
   '/courses/$slug': typeof CoursesSlugRouteWithChildren
@@ -393,6 +411,7 @@ export interface FileRouteTypes {
     | '/tools'
     | '/dashboard'
     | '/profile'
+    | '/tips'
     | '/admin/alc-access'
     | '/admin/alc-library'
     | '/admin/certificates'
@@ -400,6 +419,7 @@ export interface FileRouteTypes {
     | '/admin/mentorship-applications'
     | '/admin/payments'
     | '/admin/students'
+    | '/admin/trading-tips'
     | '/auth/callback'
     | '/certificates/$certificateId'
     | '/courses/$slug'
@@ -430,6 +450,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/testimonials'
     | '/profile'
+    | '/tips'
     | '/admin/alc-access'
     | '/admin/alc-library'
     | '/admin/certificates'
@@ -437,6 +458,7 @@ export interface FileRouteTypes {
     | '/admin/mentorship-applications'
     | '/admin/payments'
     | '/admin/students'
+    | '/admin/trading-tips'
     | '/auth/callback'
     | '/certificates/$certificateId'
     | '/payment/$slug'
@@ -471,6 +493,7 @@ export interface FileRouteTypes {
     | '/tools'
     | '/_authenticated/dashboard'
     | '/_authenticated/profile'
+    | '/_authenticated/tips'
     | '/admin/alc-access'
     | '/admin/alc-library'
     | '/admin/certificates'
@@ -478,6 +501,7 @@ export interface FileRouteTypes {
     | '/admin/mentorship-applications'
     | '/admin/payments'
     | '/admin/students'
+    | '/admin/trading-tips'
     | '/auth/callback'
     | '/certificates/$certificateId'
     | '/courses/$slug'
@@ -519,6 +543,7 @@ export interface RootRouteChildren {
   AdminMentorshipApplicationsRoute: typeof AdminMentorshipApplicationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminStudentsRoute: typeof AdminStudentsRouteWithChildren
+  AdminTradingTipsRoute: typeof AdminTradingTipsRoute
   CertificatesCertificateIdRoute: typeof CertificatesCertificateIdRoute
   PaymentSlugRoute: typeof PaymentSlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -708,6 +733,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/admin/trading-tips': {
+      id: '/admin/trading-tips'
+      path: '/admin/trading-tips'
+      fullPath: '/admin/trading-tips'
+      preLoaderRoute: typeof AdminTradingTipsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/students': {
       id: '/admin/students'
       path: '/admin/students'
@@ -756,6 +788,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/alc-access'
       preLoaderRoute: typeof AdminAlcAccessRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/tips': {
+      id: '/_authenticated/tips'
+      path: '/tips'
+      fullPath: '/tips'
+      preLoaderRoute: typeof AuthenticatedTipsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
@@ -829,11 +868,13 @@ const AuthenticatedDashboardRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedTipsRoute: typeof AuthenticatedTipsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedTipsRoute: AuthenticatedTipsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -929,6 +970,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminMentorshipApplicationsRoute: AdminMentorshipApplicationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminStudentsRoute: AdminStudentsRouteWithChildren,
+  AdminTradingTipsRoute: AdminTradingTipsRoute,
   CertificatesCertificateIdRoute: CertificatesCertificateIdRoute,
   PaymentSlugRoute: PaymentSlugRoute,
   AdminIndexRoute: AdminIndexRoute,

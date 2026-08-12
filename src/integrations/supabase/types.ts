@@ -8,6 +8,78 @@ export type Database = {
   };
   public: {
     Tables: {
+      trading_tips: {
+        Row: {
+          id: string;
+          title: string | null;
+          caption: string;
+          media_type: "image" | "video" | null;
+          media_path: string | null;
+          mime_type: string | null;
+          created_by: string;
+          created_at: string;
+          expires_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          title?: string | null;
+          caption: string;
+          media_type?: "image" | "video" | null;
+          media_path?: string | null;
+          mime_type?: string | null;
+          created_by: string;
+          created_at?: string;
+          expires_at?: string | null;
+        };
+        Update: {
+          title?: string | null;
+          caption?: string;
+          media_type?: "image" | "video" | null;
+          media_path?: string | null;
+          mime_type?: string | null;
+          expires_at?: string | null;
+        };
+        Relationships: [];
+      };
+      trading_tip_media: {
+        Row: {
+          id: string;
+          tip_id: string;
+          media_type: "image" | "video";
+          media_path: string;
+          mime_type: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tip_id: string;
+          media_type: "image" | "video";
+          media_path: string;
+          mime_type: string;
+          sort_order: number;
+          created_at?: string;
+        };
+        Update: {
+          sort_order?: number;
+          media_type?: "image" | "video";
+          media_path?: string;
+          mime_type?: string;
+        };
+        Relationships: [];
+      };
+      trading_tip_reactions: {
+        Row: { id: string; tip_id: string; user_id: string; emoji: string; created_at: string };
+        Insert: {
+          id?: string;
+          tip_id: string;
+          user_id: string;
+          emoji: string;
+          created_at?: string;
+        };
+        Update: { emoji?: string };
+        Relationships: [];
+      };
       alc_access_requests: {
         Row: {
           id: string;
@@ -601,6 +673,31 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      admin_reorder_trading_tip_media: {
+        Args: { p_tip_id: string; p_media_ids: string[] };
+        Returns: undefined;
+      };
+      get_trading_tip_reaction_summary: {
+        Args: { p_tip_ids: string[] };
+        Returns: {
+          tip_id: string;
+          emoji: string;
+          reaction_count: number;
+          selected_emoji: string | null;
+        }[];
+      };
+      admin_get_trading_tip_reactions: {
+        Args: { p_tip_id: string; p_emoji?: string | null; p_limit?: number; p_offset?: number };
+        Returns: {
+          id: string;
+          user_id: string;
+          emoji: string;
+          created_at: string;
+          full_name: string;
+          avatar: string | null;
+          email: string | null;
+        }[];
+      };
       admin_list_course_certificates: {
         Args: { p_search?: string | null };
         Returns: {

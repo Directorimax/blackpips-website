@@ -20,6 +20,7 @@ import {
   LogOut,
   ShieldCheck,
   UserRound,
+  Sparkles,
 } from "lucide-react";
 import { NAV } from "@/lib/site-data";
 import { ThemeToggle } from "./ThemeToggle";
@@ -39,6 +40,7 @@ import { useProfileAvatar } from "@/hooks/useProfileAvatar";
 import { supabase } from "@/integrations/supabase/client";
 
 const ADMIN_NAV = [
+  { to: "/admin/trading-tips" as const, label: "Trading Tips", icon: Sparkles },
   { to: "/admin/alc-access" as const, label: "ALC Access", icon: KeyRound },
   { to: "/admin/alc-library" as const, label: "ALC Library", icon: BookOpen },
   { to: "/admin/payments" as const, label: "Payments", icon: CreditCard },
@@ -53,6 +55,12 @@ const ADMIN_NAV = [
 ];
 
 const TOOL_NAV = [
+  {
+    to: "/tips" as const,
+    label: "Trading Tips",
+    description: "Fresh insights from BlackPips",
+    icon: Sparkles,
+  },
   {
     to: "/alc-access" as const,
     label: "ALC Access",
