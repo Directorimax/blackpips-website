@@ -5,6 +5,8 @@ import { COURSES, formatTZS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
 import { createSeoHead } from "@/lib/seo";
+import { FEATURE_ACCESS } from "@/lib/feature-access";
+import { ComingSoon } from "@/components/ComingSoon";
 
 export const Route = createFileRoute("/courses/")({
   head: () =>
@@ -19,6 +21,17 @@ export const Route = createFileRoute("/courses/")({
 });
 
 function Courses() {
+  if (!FEATURE_ACCESS.premiumLessonsEnabled)
+    return (
+      <ComingSoon
+        title="Premium Lessons"
+        description="Premium BLACKPIPS lessons are currently being prepared. Access will be available soon."
+      />
+    );
+  return <CoursesCatalog />;
+}
+
+function CoursesCatalog() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [purchasedSlugs, setPurchasedSlugs] = useState<Set<string>>(new Set());

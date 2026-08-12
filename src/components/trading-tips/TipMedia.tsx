@@ -6,6 +6,7 @@ import type { TradingTipMedia } from "@/lib/trading-tips";
 import { getTradingTipMediaUrl } from "@/services/trading-tips/trading-tips.functions";
 
 export type ResolvedTipImage = { media: TradingTipMedia; url: string };
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
 
 function SignedMedia({
   tipId,
@@ -14,6 +15,7 @@ function SignedMedia({
   active,
   onReady,
   onPreview,
+  priority,
 }: {
   tipId: string;
   media: TradingTipMedia;
@@ -21,12 +23,22 @@ function SignedMedia({
   active: boolean;
   onReady: (item: ResolvedTipImage) => void;
   onPreview: () => void;
+  priority: boolean;
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     let alive = true;
     void (async () => {
+      const cached = signedUrlCache.get(media.id);
+      if (cached && cached.expiresAt > Date.now()) {
+        if (alive) {
+          setUrl(cached.url);
+          onReady({ media, url: cached.url });
+        }
+        return;
+      }
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) return;
@@ -36,6 +48,7 @@ function SignedMedia({
           headers: { Authorization: `Bearer ${token}` },
         });
         if (alive) {
+          signedUrlCache.set(media.id, { url: result.signedUrl, expiresAt: Date.now() + 50_000 });
           setUrl(result.signedUrl);
           onReady({ media, url: result.signedUrl });
         }
@@ -75,12 +88,19 @@ function SignedMedia({
       aria-label={`Preview ${alt}`}
       onClick={onPreview}
     >
-      <img
-        className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.025]"
-        src={url}
-        alt={alt}
-        loading="lazy"
-      />
+      <span className="relative block aspect-[4/3] w-full bg-muted/80">
+        {!loaded && (
+          <span className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted via-gold/5 to-muted" />
+        )}
+        <img
+          className={`absolute inset-0 h-full w-full object-cover transition duration-200 group-hover:scale-[1.025] ${loaded ? "opacity-100" : "opacity-0"}`}
+          src={url}
+          alt={alt}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          onLoad={() => setLoaded(true)}
+        />
+      </span>
       <span className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-black/55 text-white opacity-90 shadow-lg backdrop-blur transition group-hover:bg-gold group-hover:text-black">
         <Expand className="h-4 w-4" />
       </span>
@@ -217,11 +237,13 @@ export function TipMedia({
   media,
   alt,
   onPreview,
+  priority = false,
 }: {
   tipId: string;
   media: TradingTipMedia[];
   alt: string;
   onPreview?: (images: ResolvedTipImage[], index: number) => void;
+  priority?: boolean;
 }) {
   const [emblaRef, embla] = useEmblaCarousel({ loop: false });
   const [selected, setSelected] = useState(0);
@@ -267,6 +289,7 @@ export function TipMedia({
                 alt={`${alt}${multi ? `, item ${index + 1}` : ""}`}
                 active={selected === index}
                 onReady={register}
+                priority={priority && index === 0}
                 onPreview={() => {
                   const imageIndex = imageItems.findIndex(
                     ({ media: image }) => image.id === item.id,

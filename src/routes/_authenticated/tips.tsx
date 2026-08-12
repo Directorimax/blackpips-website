@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Clock3, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   remainingTipTime,
@@ -103,6 +104,7 @@ function TradingTipsFeed() {
                 media={tip.trading_tip_media ?? []}
                 alt={tip.title ?? "Trading tip"}
                 onPreview={openPreview}
+                priority={tips.indexOf(tip) < 2}
               />
               <div className="p-5 sm:p-6">
                 {tip.title && <h2 className="text-xl font-bold tracking-tight">{tip.title}</h2>}
@@ -158,11 +160,25 @@ function ReactionBar({
   }) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [popped, setPopped] = useState<TipReaction | null>(null);
   async function react(emoji: TipReaction) {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     const previous = value.selected;
     const counts = { ...value.counts };
+    const optimisticCounts = { ...counts };
+    if (previous === emoji) {
+      optimisticCounts[emoji] = Math.max(0, (optimisticCounts[emoji] ?? 0) - 1);
+      onChange({ counts: optimisticCounts });
+    } else {
+      if (previous) optimisticCounts[previous] = Math.max(0, (optimisticCounts[previous] ?? 0) - 1);
+      optimisticCounts[emoji] = (optimisticCounts[emoji] ?? 0) + 1;
+      onChange({ counts: optimisticCounts, selected: emoji });
+      setPopped(emoji);
+      window.setTimeout(() => setPopped(null), 420);
+    }
     try {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
@@ -174,20 +190,17 @@ function ReactionBar({
           .eq("tip_id", tipId)
           .eq("user_id", user.id);
         if (error) throw error;
-        counts[emoji] = Math.max(0, (counts[emoji] ?? 0) - 1);
-        onChange({ counts });
       } else {
         const { error } = await supabase
           .from("trading_tip_reactions")
           .upsert({ tip_id: tipId, user_id: user.id, emoji }, { onConflict: "tip_id,user_id" });
         if (error) throw error;
-        if (previous) counts[previous] = Math.max(0, (counts[previous] ?? 0) - 1);
-        counts[emoji] = (counts[emoji] ?? 0) + 1;
-        onChange({ counts, selected: emoji });
       }
     } catch {
-      /* Feed remains usable if a temporary database/network error occurs. */
+      onChange(value);
+      toast.error("Reaction could not be saved. Please try again.");
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }
@@ -201,9 +214,17 @@ function ReactionBar({
           aria-label={`React ${emoji}${value.counts[emoji] ? `, ${value.counts[emoji]} reactions` : ""}`}
           aria-pressed={value.selected === emoji}
           onClick={() => void react(emoji)}
-          className={`min-h-9 rounded-full border px-2.5 text-sm transition-colors ${value.selected === emoji ? "border-gold bg-gold/15 text-gold" : "border-border/80 bg-muted/30 hover:border-gold/30 hover:bg-gold/5"}`}
+          className={`relative min-h-9 rounded-full border px-2.5 text-sm transition-colors ${value.selected === emoji ? "border-gold bg-gold/15 text-gold" : "border-border/80 bg-muted/30 hover:border-gold/30 hover:bg-gold/5"}`}
         >
           {emoji}
+          {popped === emoji && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -top-3 left-1/2 -translate-x-1/2 animate-[bounce_400ms_ease-out] text-base"
+            >
+              {emoji}
+            </span>
+          )}
           {value.counts[emoji] ? <span className="ml-1">{value.counts[emoji]}</span> : null}
         </button>
       ))}

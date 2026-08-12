@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { createSeoHead } from "@/lib/seo";
+import { FEATURE_ACCESS } from "@/lib/feature-access";
+import { ComingSoon } from "@/components/ComingSoon";
 
 export const Route = createFileRoute("/free")({
   head: () =>
@@ -39,6 +41,17 @@ function logBookmarkError(
 }
 
 function Free() {
+  if (!FEATURE_ACCESS.freeLessonsEnabled)
+    return (
+      <ComingSoon
+        title="Free Lessons"
+        description="We’re preparing the BLACKPIPS learning experience. Free lessons will be available soon."
+      />
+    );
+  return <FreeLessons />;
+}
+
+function FreeLessons() {
   const navigate = useNavigate();
   const { user } = useSession();
   const [q, setQ] = useState("");

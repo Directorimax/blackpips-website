@@ -19,8 +19,10 @@ import {
   type AlcAccessForm,
 } from "@/lib/alc-access";
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
+import { FEATURE_ACCESS } from "@/lib/feature-access";
+import { ComingSoon } from "@/components/ComingSoon";
 
-export const Route = createFileRoute("/alc-access")({ component: AlcAccess });
+export const Route = createFileRoute("/alc-access")({ component: AlcAccessRoute });
 
 type Request = {
   id: string;
@@ -40,6 +42,17 @@ type Request = {
 async function callRpc<T>(name: string, args?: Record<string, unknown>) {
   const { data, error } = await supabase.rpc(name as never, args as never);
   return { data: data as T, error };
+}
+
+function AlcAccessRoute() {
+  if (!FEATURE_ACCESS.alcAccessEnabled)
+    return (
+      <ComingSoon
+        title="ALC ACCESS"
+        description="We’re preparing the BLACKPIPS ALC experience. Access will be available soon."
+      />
+    );
+  return <AlcAccess />;
 }
 
 function AlcAccess() {
