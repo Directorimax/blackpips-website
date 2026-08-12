@@ -71,8 +71,8 @@ function TradingTipsFeed() {
     return () => window.clearInterval(interval);
   }, [load]);
   return (
-    <main className="mx-auto min-h-screen w-full max-w-6xl px-4 pb-16 pt-28 sm:px-6 lg:px-8">
-      <header className="mb-9 max-w-2xl">
+    <main className="mx-auto min-h-screen w-full max-w-6xl px-4 pb-16 pt-20 sm:px-6 sm:pt-28 lg:px-8">
+      <header className="mb-7 max-w-2xl sm:mb-9">
         <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-gold">
           <Sparkles className="h-3.5 w-3.5" /> Members feed
         </span>

@@ -1,5 +1,5 @@
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, Expand, Loader2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TradingTipMedia } from "@/lib/trading-tips";
@@ -7,6 +7,8 @@ import { getTradingTipMediaUrl } from "@/services/trading-tips/trading-tips.func
 
 export type ResolvedTipImage = { media: TradingTipMedia; url: string };
 const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+const glassControl =
+  "border border-white/15 bg-black/20 text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_4px_16px_rgba(0,0,0,0.18)] backdrop-blur-md transition duration-150 hover:border-gold/45 hover:bg-black/40 hover:text-gold focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold";
 
 function SignedMedia({
   tipId,
@@ -101,9 +103,6 @@ function SignedMedia({
           onLoad={() => setLoaded(true)}
         />
       </span>
-      <span className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border border-white/20 bg-black/55 text-white opacity-90 shadow-lg backdrop-blur transition group-hover:bg-gold group-hover:text-black">
-        <Expand className="h-4 w-4" />
-      </span>
     </button>
   );
 }
@@ -183,7 +182,7 @@ export const TradingTipLightbox = memo(function TradingTipLightbox({
             onClose();
           }}
           aria-label="Close image preview"
-          className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/45 text-white transition hover:border-gold hover:bg-gold hover:text-black sm:right-7 sm:top-7"
+          className={`absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full ${glassControl} sm:right-7 sm:top-7 sm:h-10 sm:w-10`}
         >
           <X className="h-5 w-5" />
         </button>
@@ -196,7 +195,7 @@ export const TradingTipLightbox = memo(function TradingTipLightbox({
                 previous();
               }}
               aria-label="Previous image"
-              className="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-black/45 text-white transition hover:border-gold hover:bg-gold hover:text-black sm:left-7"
+              className={`absolute left-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full opacity-50 ${glassControl} sm:left-7 sm:grid sm:h-10 sm:w-10 sm:hover:opacity-100`}
             >
               <ChevronLeft />
             </button>
@@ -207,7 +206,7 @@ export const TradingTipLightbox = memo(function TradingTipLightbox({
                 next();
               }}
               aria-label="Next image"
-              className="absolute right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-black/45 text-white transition hover:border-gold hover:bg-gold hover:text-black sm:right-7"
+              className={`absolute right-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full opacity-50 ${glassControl} sm:right-7 sm:grid sm:h-10 sm:w-10 sm:hover:opacity-100`}
             >
               <ChevronRight />
             </button>
@@ -221,7 +220,7 @@ export const TradingTipLightbox = memo(function TradingTipLightbox({
         />
         {multiple && (
           <div
-            className="absolute bottom-5 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-xs font-semibold tracking-wider text-white"
+            className={`absolute bottom-5 rounded-full px-2.5 py-1 text-[11px] font-medium tracking-wide ${glassControl}`}
             onClick={(event) => event.stopPropagation()}
           >
             {index + 1} / {images.length}
@@ -320,7 +319,7 @@ export function TipMedia({
               type="button"
               aria-label="Previous media item"
               onClick={previous}
-              className="absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-black/45 text-white shadow-lg backdrop-blur transition hover:border-gold hover:bg-gold hover:text-black"
+              className={`absolute left-2.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full opacity-45 ${glassControl} sm:left-3 sm:hover:opacity-100`}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -328,11 +327,13 @@ export function TipMedia({
               type="button"
               aria-label="Next media item"
               onClick={next}
-              className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/15 bg-black/45 text-white shadow-lg backdrop-blur transition hover:border-gold hover:bg-gold hover:text-black"
+              className={`absolute right-2.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full opacity-45 ${glassControl} sm:right-3 sm:hover:opacity-100`}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
-            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/10 bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
+            <div
+              className={`absolute bottom-2.5 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${glassControl}`}
+            >
               <span>
                 {selected + 1} / {media.length}
               </span>
