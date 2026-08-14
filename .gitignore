@@ -32,4 +32,5 @@ dist-ssr
 *.sw?
 .env
 node_modules/
-dist/supabase/.temp/
+dist/
+supabase/.temp/
