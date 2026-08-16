@@ -75,6 +75,19 @@ describe("IANA session intervals", () => {
     expect(segments[1].left + segments[1].width).toBeCloseTo(100);
   });
 
+  it("keeps all reference session bars visible on weekends", () => {
+    const sunday = new Date("2026-08-16T12:00:00Z");
+
+    for (const session of SESSION_CONFIG) {
+      const segments = getTimelineSegments(session, sunday, "UTC");
+      expect(segments.length, session.name).toBeGreaterThan(0);
+      expect(
+        segments.reduce((minutes, segment) => minutes + segment.endMinutes - segment.startMinutes, 0),
+        session.name,
+      ).toBe(9 * 60);
+    }
+  });
+
   it("aligns the canonical sessions on the Dar es Salaam reference day", () => {
     const reference = new Date("2026-07-13T12:00:00Z");
     expect(getTimelineSegments(config("sydney"), reference, "Africa/Dar_es_Salaam")).toMatchObject([

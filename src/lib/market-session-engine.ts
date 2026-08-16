@@ -33,6 +33,20 @@ export type SessionSnapshot = {
   nextInterval: SessionInterval;
 };
 
+function getSessionIntervalForLocalDate(
+  config: MarketSessionConfig,
+  localDate: ReturnType<typeof getZonedParts>,
+): SessionInterval {
+  const closeDate =
+    config.closeMinutes <= config.openMinutes ? addCalendarDays(localDate, 1) : localDate;
+
+  return {
+    sessionId: config.id,
+    open: zonedDateTimeToDate(localDate, config.openMinutes, config.timeZone),
+    close: zonedDateTimeToDate(closeDate, config.closeMinutes, config.timeZone),
+  };
+}
+
 export function getSessionIntervals(
   config: MarketSessionConfig,
   reference: Date,
@@ -44,13 +58,7 @@ export function getSessionIntervals(
   for (let offset = -daysBefore; offset <= daysAfter; offset += 1) {
     const localDate = addCalendarDays(localReference, offset);
     if (!config.weekdays.includes(localDate.weekday)) continue;
-    const closeDate =
-      config.closeMinutes <= config.openMinutes ? addCalendarDays(localDate, 1) : localDate;
-    intervals.push({
-      sessionId: config.id,
-      open: zonedDateTimeToDate(localDate, config.openMinutes, config.timeZone),
-      close: zonedDateTimeToDate(closeDate, config.closeMinutes, config.timeZone),
-    });
+    intervals.push(getSessionIntervalForLocalDate(config, localDate));
   }
   return intervals.sort((first, second) => first.open.getTime() - second.open.getTime());
 }
@@ -111,7 +119,12 @@ export function getTimelineSegments(
   const dayStart = zonedDateTimeToDate(displayDate, 0, displayTimeZone);
   const nextDate = addCalendarDays(displayDate, 1);
   const dayEnd = zonedDateTimeToDate(nextDate, 0, displayTimeZone);
-  return getSessionIntervals(config, dayStart, 3, 3)
+  const sessionReference = getZonedParts(dayStart, config.timeZone);
+  const referenceIntervals = Array.from({ length: 7 }, (_, index) =>
+    getSessionIntervalForLocalDate(config, addCalendarDays(sessionReference, index - 3)),
+  );
+
+  return referenceIntervals
     .map((interval) => ({
       start: new Date(Math.max(interval.open.getTime(), dayStart.getTime())),
       end: new Date(Math.min(interval.close.getTime(), dayEnd.getTime())),

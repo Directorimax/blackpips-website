@@ -1,6 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Bell, BellOff } from "lucide-react";
-import { flagForRegion } from "@/lib/market-hours-converter";
 import { getAllSessionSnapshots } from "@/lib/market-session-engine";
 import {
   ALERT_LEADS,
@@ -13,6 +12,7 @@ import {
 } from "@/lib/market-session-details";
 import { getOverlapSnapshot, OVERLAP_DEFINITIONS } from "@/lib/market-session-overlaps";
 import { formatCountdown, type TimeFormatPreference } from "@/lib/market-session-time";
+import { CountryFlag } from "./CountryFlag";
 
 type MarketSessionDetailsProps = {
   now: Date;
@@ -74,9 +74,10 @@ const MajorSessions = memo(function MajorSessions({ sessions }: { sessions: Sess
           >
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="text-xl" aria-hidden="true">
-                  {flagForRegion(session.config.regionCode)}
-                </span>
+                <CountryFlag
+                  code={session.config.regionCode}
+                  className="h-auto w-6 shrink-0 rounded-[2px] shadow-sm"
+                />
                 <h3 className="font-display text-base font-extrabold sm:text-lg">
                   {session.config.name}
                 </h3>

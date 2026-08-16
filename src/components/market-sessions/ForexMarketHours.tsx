@@ -8,14 +8,20 @@ import {
   useRef,
   useState,
 } from "react";
-import { ChevronDown, LocateFixed, MoonStar, Sun } from "lucide-react";
+import { LocateFixed, MoonStar, Sun } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useMarketSessions } from "@/hooks/useMarketSessions";
 import {
   axisTicks,
   clientXToMinutes,
   clockHandAngles,
   clockSecondForMode,
-  flagForRegion,
   LAST_MINUTE_OF_DAY,
   MARKER_BUBBLE_WIDTH,
   markerConnectorGeometry,
@@ -35,6 +41,7 @@ import {
   type TimeFormatPreference,
 } from "@/lib/market-session-time";
 import { MarketSessionDetails } from "./MarketSessionDetails";
+import { CountryFlag } from "./CountryFlag";
 
 const SESSION_COLORS: Record<(typeof SESSION_CONFIG)[number]["name"], string> = {
   Sydney: "#2f4fd8",
@@ -301,21 +308,30 @@ const ConverterControls = memo(function ConverterControls({
           Timezone
         </label>
         <div className="mt-1.5 flex flex-wrap gap-2">
-          <div className="relative">
-            <select
+          <Select value={timeZone} onValueChange={(value) => onTimeZoneChange(value)}>
+            <SelectTrigger
               id="market-timezone"
-              value={timeZone}
-              onChange={(event) => onTimeZoneChange(event.target.value)}
-              className="w-[190px] max-w-full cursor-pointer appearance-none rounded-md bg-primary py-2.5 pl-3 pr-9 text-sm font-bold text-primary-foreground outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 sm:w-[220px]"
+              aria-label="Timezone"
+              className="h-10 w-[190px] max-w-full border-border bg-card px-3 text-sm font-bold text-foreground shadow-sm transition-colors hover:border-gold/50 focus:ring-2 focus:ring-gold focus:ring-offset-2 focus:ring-offset-background data-[state=open]:border-gold/60 data-[state=open]:ring-2 data-[state=open]:ring-gold/30 sm:w-[220px]"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent
+              position="popper"
+              sideOffset={4}
+              className="market-timezone-scrollbar z-[70] max-h-80 w-[min(22rem,calc(100vw-1rem))] rounded-lg border-border bg-popover p-1 text-popover-foreground shadow-elegant"
             >
               {timezoneOptions.map(([label, zone]) => (
-                <option key={zone} value={zone} className="bg-popover text-popover-foreground">
+                <SelectItem
+                  key={zone}
+                  value={zone}
+                  className="rounded-md py-2.5 pr-8 text-sm focus:bg-gold/15 focus:text-foreground data-[state=checked]:bg-gold/10 data-[state=checked]:font-bold data-[state=checked]:text-foreground"
+                >
                   {label}
-                </option>
+                </SelectItem>
               ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2" />
-          </div>
+            </SelectContent>
+          </Select>
           <button
             type="button"
             onClick={() => onTimeZoneChange(visitorTimeZone)}
@@ -368,11 +384,11 @@ const SessionLabels = memo(function SessionLabels({
             className="flex h-[var(--row-h)] items-center gap-1 border-t border-border/50 bg-muted/55 px-1 sm:gap-3 sm:px-3.5"
             style={{ marginTop: index === 0 ? 0 : "var(--row-gap)" }}
           >
-            <span
-              className="grid size-6 shrink-0 place-items-center rounded-full bg-card text-base shadow-sm sm:size-9 sm:text-2xl"
-              aria-hidden="true"
-            >
-              {flagForRegion(config.regionCode)}
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-card shadow-sm sm:size-9">
+              <CountryFlag
+                code={config.regionCode}
+                className="h-auto w-5 rounded-[2px] shadow-sm sm:w-7"
+              />
             </span>
             <div className="min-w-0">
               <div className="whitespace-nowrap font-display text-xs font-extrabold leading-tight sm:text-lg">

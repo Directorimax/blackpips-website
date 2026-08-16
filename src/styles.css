@@ -285,6 +285,47 @@
   background: var(--gold);
 }
 
+.market-timezone-scrollbar,
+.market-timezone-scrollbar * {
+  scrollbar-color: color-mix(in oklab, var(--foreground) 32%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+.market-timezone-scrollbar::-webkit-scrollbar,
+.market-timezone-scrollbar *::-webkit-scrollbar {
+  width: 7px;
+}
+
+.market-timezone-scrollbar::-webkit-scrollbar-track,
+.market-timezone-scrollbar *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.market-timezone-scrollbar::-webkit-scrollbar-thumb,
+.market-timezone-scrollbar *::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--foreground) 32%, transparent);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.market-timezone-scrollbar::-webkit-scrollbar-thumb:hover,
+.market-timezone-scrollbar *::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--gold) 58%, var(--muted));
+  background-clip: padding-box;
+}
+
+.dark .market-timezone-scrollbar,
+.dark .market-timezone-scrollbar * {
+  scrollbar-color: color-mix(in oklab, var(--gold) 38%, var(--muted)) transparent;
+}
+
+.dark .market-timezone-scrollbar::-webkit-scrollbar-thumb,
+.dark .market-timezone-scrollbar *::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--gold) 38%, var(--muted));
+  background-clip: padding-box;
+}
+
 .admin-input {
   width: 100%;
   border: 1px solid var(--border);
