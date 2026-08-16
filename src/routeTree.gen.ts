@@ -51,6 +51,7 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as CoursesSlugLessonSlugRouteImport } from './routes/courses/$slug/$lessonSlug'
 import { Route as AdminStudentsStudentIdRouteImport } from './routes/admin/students/$studentId'
 import { Route as AuthenticatedDashboardTradingPlanRouteImport } from './routes/_authenticated/dashboard.trading-plan'
+import { Route as AuthenticatedDashboardGiftGiftIdRouteImport } from './routes/_authenticated/dashboard.gift.$giftId'
 
 const ToolsRoute = ToolsRouteImport.update({
   id: '/tools',
@@ -265,6 +266,12 @@ const AuthenticatedDashboardTradingPlanRoute =
     path: '/trading-plan',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardGiftGiftIdRoute =
+  AuthenticatedDashboardGiftGiftIdRouteImport.update({
+    id: '/gift/$giftId',
+    path: '/gift/$giftId',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -308,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/courses/$slug/': typeof CoursesSlugIndexRoute
+  '/dashboard/gift/$giftId': typeof AuthenticatedDashboardGiftGiftIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -346,6 +354,7 @@ export interface FileRoutesByTo {
   '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/courses/$slug': typeof CoursesSlugIndexRoute
+  '/dashboard/gift/$giftId': typeof AuthenticatedDashboardGiftGiftIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -391,6 +400,7 @@ export interface FileRoutesById {
   '/courses/$slug/$lessonSlug': typeof CoursesSlugLessonSlugRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/courses/$slug/': typeof CoursesSlugIndexRoute
+  '/_authenticated/dashboard/gift/$giftId': typeof AuthenticatedDashboardGiftGiftIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -436,6 +446,7 @@ export interface FileRouteTypes {
     | '/courses/$slug/$lessonSlug'
     | '/dashboard/'
     | '/courses/$slug/'
+    | '/dashboard/gift/$giftId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -474,6 +485,7 @@ export interface FileRouteTypes {
     | '/courses/$slug/$lessonSlug'
     | '/dashboard'
     | '/courses/$slug'
+    | '/dashboard/gift/$giftId'
   id:
     | '__root__'
     | '/'
@@ -518,6 +530,7 @@ export interface FileRouteTypes {
     | '/courses/$slug/$lessonSlug'
     | '/_authenticated/dashboard/'
     | '/courses/$slug/'
+    | '/_authenticated/dashboard/gift/$giftId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -845,12 +858,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardTradingPlanRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/gift/$giftId': {
+      id: '/_authenticated/dashboard/gift/$giftId'
+      path: '/gift/$giftId'
+      fullPath: '/dashboard/gift/$giftId'
+      preLoaderRoute: typeof AuthenticatedDashboardGiftGiftIdRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
   }
 }
 
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardTradingPlanRoute: typeof AuthenticatedDashboardTradingPlanRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedDashboardGiftGiftIdRoute: typeof AuthenticatedDashboardGiftGiftIdRoute
 }
 
 const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
@@ -858,6 +879,8 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardTradingPlanRoute:
       AuthenticatedDashboardTradingPlanRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+    AuthenticatedDashboardGiftGiftIdRoute:
+      AuthenticatedDashboardGiftGiftIdRoute,
   }
 
 const AuthenticatedDashboardRouteWithChildren =

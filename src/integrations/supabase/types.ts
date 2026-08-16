@@ -8,6 +8,27 @@ export type Database = {
   };
   public: {
     Tables: {
+      user_gift_claims: {
+        Row: {
+          id: string;
+          user_id: string;
+          gift_id: string;
+          claimed_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          gift_id: string;
+          claimed_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          gift_id?: string;
+          claimed_at?: string;
+        };
+        Relationships: [];
+      };
       trading_tips: {
         Row: {
           id: string;

@@ -25,6 +25,7 @@ import { useProfileAvatar } from "@/hooks/useProfileAvatar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createSeoHead } from "@/lib/seo";
 import { AvailabilityAwareContactLink } from "@/components/contact/AvailabilityAwareContactLink";
+import { WelcomeGiftPanel } from "@/components/welcome-gift/WelcomeGiftPanel";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () =>
@@ -471,6 +472,8 @@ function Dashboard() {
           </button>
         ))}
       </nav>
+
+      <WelcomeGiftPanel />
 
       <section className="mt-8">
         {tab === "learning" && (
