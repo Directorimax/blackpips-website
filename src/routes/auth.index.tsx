@@ -22,7 +22,8 @@ import {
   logSignupFailure,
 } from "@/lib/signup-confirmation";
 
-type Mode = "signin" | "signup" | "forgot" | "check-email";
+type Mode =
+  "signin" | "signup" | "forgot" | "check-email" | "existing-account" | "account-recovery";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -91,6 +92,22 @@ function AuthPage() {
     }
   }
 
+  function presentSignupFailure(
+    failure: Extract<ReturnType<typeof classifySignupException>, { status: "failed" }>,
+    error?: unknown,
+  ) {
+    logSignupFailure(failure, error);
+    if (
+      failure.category === "already-registered" ||
+      failure.category === "possible-existing-account"
+    ) {
+      setPassword("");
+      setMode(failure.category === "already-registered" ? "existing-account" : "account-recovery");
+      return;
+    }
+    toast.error(failure.message);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -123,15 +140,13 @@ function AuthPage() {
           });
         } catch (error) {
           const failure = classifySignupException(error);
-          logSignupFailure(failure, error);
-          toast.error(failure.message);
+          presentSignupFailure(failure, error);
           return;
         }
 
         const outcome = classifySignupResult(signupResult.data, signupResult.error);
         if (outcome.status === "failed") {
-          logSignupFailure(outcome, signupResult.error);
-          toast.error(outcome.message);
+          presentSignupFailure(outcome, signupResult.error);
           return;
         }
 
@@ -208,10 +223,17 @@ function AuthPage() {
     }
   }
 
-  function resetPendingSignup(nextMode: Extract<Mode, "signin" | "signup">) {
+  function switchAuthMode(
+    nextMode: Extract<Mode, "signin" | "signup" | "forgot">,
+    options: { clearEmail?: boolean } = {},
+  ) {
     setPendingEmail(null);
     setPassword("");
     setResendCooldown(0);
+    if (options.clearEmail) {
+      setEmail("");
+      setName("");
+    }
     setMode(nextMode);
   }
 
@@ -246,7 +268,7 @@ function AuthPage() {
           <button
             type="button"
             disabled={busy}
-            onClick={() => resetPendingSignup("signup")}
+            onClick={() => switchAuthMode("signup", { clearEmail: true })}
             className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-border px-5 py-2.5 text-sm font-semibold transition hover:bg-accent/50 disabled:opacity-60"
           >
             Use a different email
@@ -254,10 +276,51 @@ function AuthPage() {
           <button
             type="button"
             disabled={busy}
-            onClick={() => resetPendingSignup("signin")}
+            onClick={() => switchAuthMode("signin")}
             className="mt-3 text-sm text-muted-foreground hover:text-foreground disabled:opacity-60"
           >
             Back to Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "existing-account" || mode === "account-recovery") {
+    const confirmedExistingAccount = mode === "existing-account";
+    return (
+      <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-16">
+        <div className="glass w-full rounded-3xl p-8 text-center shadow-elegant">
+          <Logo className="justify-center" />
+          <h1 className="mt-6 font-display text-3xl font-bold">
+            {confirmedExistingAccount ? "You’re already with BLACKPIPS" : "Continue with BLACKPIPS"}
+          </h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {confirmedExistingAccount
+              ? "An account already exists for this email. Instead of creating another account, sign in to continue."
+              : "We couldn’t start a new signup for this email. If you already have an account, sign in or reset your password to continue."}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => switchAuthMode("signin")}
+            className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => switchAuthMode("forgot")}
+            className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-border px-5 py-2.5 text-sm font-semibold transition hover:bg-accent/50"
+          >
+            Forgot password?
+          </button>
+          <button
+            type="button"
+            onClick={() => switchAuthMode("signup", { clearEmail: true })}
+            className="mt-3 text-sm text-muted-foreground hover:text-foreground"
+          >
+            Use a different email
           </button>
         </div>
       </div>

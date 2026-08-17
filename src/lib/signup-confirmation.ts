@@ -22,6 +22,7 @@ export type SignupOutcome =
       status: "failed";
       category:
         | "already-registered"
+        | "possible-existing-account"
         | "delivery-provider"
         | "invalid-email"
         | "rate-limit"
@@ -46,8 +47,8 @@ export function classifySignupResult(
   // obfuscated user with no identities for an existing email. No message is sent.
   if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
     return failed(
-      "already-registered",
-      "This email may already have a BLACKPIPS account. Try signing in or resetting your password.",
+      "possible-existing-account",
+      "We couldn't start a new signup for this email. Try signing in or resetting your password.",
     );
   }
 
@@ -107,7 +108,7 @@ function classifySignupError(error: SignupAuthError): Extract<SignupOutcome, { s
     case "user_already_exists":
       return failed(
         "already-registered",
-        "This email may already have a BLACKPIPS account. Try signing in or resetting your password.",
+        "An account already exists for this email. Sign in or reset your password to continue.",
       );
     case "email_address_invalid":
       return failed("invalid-email", "Enter a valid email address and try again.");

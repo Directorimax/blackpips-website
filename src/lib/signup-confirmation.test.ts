@@ -55,7 +55,7 @@ describe("email signup confirmation", () => {
         { session: null, user: { confirmation_sent_at: null, identities: [] } },
         null,
       ),
-    ).toMatchObject({ status: "failed", category: "already-registered" });
+    ).toMatchObject({ status: "failed", category: "possible-existing-account" });
   });
 
   it.each([
@@ -121,5 +121,30 @@ describe("email signup confirmation", () => {
     expect(authRoute).toContain("RESEND_COOLDOWN_SECONDS = 60");
     expect(authRoute).toContain("Verification email sent again.");
     expect(authRoute).toContain("Please wait before requesting another email.");
+  });
+
+  it("replaces the signup form with dedicated success and existing-account states", () => {
+    const authRoute = read("../routes/auth.index.tsx");
+    const checkEmailReturn = authRoute.indexOf('if (mode === "check-email" && pendingEmail)');
+    const existingAccountReturn = authRoute.indexOf('if (mode === "existing-account"');
+    const signupForm = authRoute.indexOf("<form onSubmit={handleSubmit}");
+
+    expect(checkEmailReturn).toBeGreaterThan(-1);
+    expect(existingAccountReturn).toBeGreaterThan(-1);
+    expect(checkEmailReturn).toBeLessThan(signupForm);
+    expect(existingAccountReturn).toBeLessThan(signupForm);
+    expect(authRoute).toContain("We&apos;ve sent a verification link to:");
+    expect(authRoute).toContain("{pendingEmail}");
+    expect(authRoute).toContain("You’re already with BLACKPIPS");
+  });
+
+  it("preserves the submitted email for sign-in and password recovery but clears passwords", () => {
+    const authRoute = read("../routes/auth.index.tsx");
+
+    expect(authRoute).toContain('onClick={() => switchAuthMode("signin")}');
+    expect(authRoute).toContain('onClick={() => switchAuthMode("forgot")}');
+    expect(authRoute).toContain('setPassword("")');
+    expect(authRoute).toContain('switchAuthMode("signup", { clearEmail: true })');
+    expect(authRoute).toContain('setEmail("")');
   });
 });
