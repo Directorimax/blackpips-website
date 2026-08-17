@@ -31,19 +31,25 @@ function supabaseSources() {
 }
 
 function contentSecurityPolicy() {
-  const connectSources = ["'self'", ...supabaseSources()];
+  const connectSources = [
+    "'self'",
+    ...supabaseSources(),
+    "https://*.tradingview.com",
+    "https://*.tradingview-widget.com",
+    "wss://*.tradingview.com",
+  ];
   return [
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' https://s3.tradingview.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https://*.supabase.co https://i.ytimg.com",
+    "font-src 'self' data: https://fonts.gstatic.com https://*.tradingview.com",
+    "img-src 'self' data: blob: https://*.supabase.co https://i.ytimg.com https://*.tradingview.com https://*.tradingview-widget.com",
     "media-src 'self' blob: https://*.supabase.co",
-    `frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com ${supabaseSources()
+    `frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.tradingview.com ${supabaseSources()
       .filter((source) => source.startsWith("https://"))
       .join(" ")}`,
     `connect-src ${connectSources.join(" ")}`,

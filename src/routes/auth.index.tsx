@@ -28,7 +28,10 @@ type Mode =
 const RESEND_COOLDOWN_SECONDS = 60;
 
 export const Route = createFileRoute("/auth/")({
-  validateSearch: z.object({ redirect: z.string().optional() }),
+  validateSearch: z.object({
+    redirect: z.string().optional(),
+    mode: z.enum(["signin", "signup", "forgot"]).optional(),
+  }),
   head: () =>
     createSeoHead({
       title: "Sign in",
@@ -45,8 +48,8 @@ const nameSchema = z.string().trim().min(1, "Enter your name").max(80);
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { redirect } = Route.useSearch();
-  const [mode, setMode] = useState<Mode>("signin");
+  const { redirect, mode: requestedMode = "signin" } = Route.useSearch();
+  const [mode, setMode] = useState<Mode>(requestedMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -62,6 +65,11 @@ function AuthPage() {
   useEffect(() => {
     if (!loading && user) navigate({ to: destination, replace: true });
   }, [destination, loading, navigate, user]);
+
+  useEffect(() => {
+    setPassword("");
+    setMode(requestedMode);
+  }, [requestedMode]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -120,7 +128,7 @@ function AuthPage() {
         });
         if (error) throw error;
         toast.success("Reset link sent — check your inbox.");
-        setMode("signin");
+        switchAuthMode("signin");
         return;
       }
       const em = emailSchema.parse(email);
@@ -235,6 +243,10 @@ function AuthPage() {
       setName("");
     }
     setMode(nextMode);
+    void navigate({
+      to: "/auth",
+      search: { redirect, mode: nextMode },
+    });
   }
 
   if (mode === "check-email" && pendingEmail) {
@@ -455,7 +467,7 @@ function AuthPage() {
             <>
               <button
                 disabled={busy}
-                onClick={() => setMode("forgot")}
+                onClick={() => switchAuthMode("forgot")}
                 className="hover:text-foreground disabled:opacity-60"
               >
                 Forgot password?
@@ -464,7 +476,7 @@ function AuthPage() {
                 New here?{" "}
                 <button
                   disabled={busy}
-                  onClick={() => setMode("signup")}
+                  onClick={() => switchAuthMode("signup")}
                   className="font-semibold text-gold hover:underline"
                 >
                   Create an account
@@ -477,7 +489,7 @@ function AuthPage() {
               Already have an account?{" "}
               <button
                 disabled={busy}
-                onClick={() => setMode("signin")}
+                onClick={() => switchAuthMode("signin")}
                 className="font-semibold text-gold hover:underline"
               >
                 Sign in
@@ -487,7 +499,7 @@ function AuthPage() {
           {mode === "forgot" && (
             <button
               disabled={busy}
-              onClick={() => setMode("signin")}
+              onClick={() => switchAuthMode("signin")}
               className="hover:text-foreground disabled:opacity-60"
             >
               Back to sign in

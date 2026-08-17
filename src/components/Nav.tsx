@@ -296,12 +296,14 @@ export function Nav() {
               <>
                 <Link
                   to="/auth"
+                  search={{ mode: "signin" }}
                   className="hidden rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground sm:inline-flex"
                 >
                   Sign in
                 </Link>
                 <Link
                   to="/auth"
+                  search={{ mode: "signup" }}
                   className="hidden rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03] sm:inline-flex"
                 >
                   Get started
@@ -378,13 +380,24 @@ export function Nav() {
                   </button>
                 </>
               ) : (
-                <Link
-                  to="/auth"
-                  onClick={() => setOpen(false)}
-                  className="flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-semibold hover:bg-accent/60"
-                >
-                  Sign in / Get started
-                </Link>
+                <div className="grid grid-cols-2 gap-2 p-1">
+                  <Link
+                    to="/auth"
+                    search={{ mode: "signin" }}
+                    onClick={() => setOpen(false)}
+                    className="flex min-h-11 items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold hover:bg-accent/60"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    to="/auth"
+                    search={{ mode: "signup" }}
+                    onClick={() => setOpen(false)}
+                    className="flex min-h-11 items-center justify-center rounded-xl bg-gradient-gold px-3 py-2 text-sm font-semibold text-primary-foreground shadow-glow"
+                  >
+                    Get started
+                  </Link>
+                </div>
               )}
             </div>
           </div>

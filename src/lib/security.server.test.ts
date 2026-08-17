@@ -38,6 +38,12 @@ describe("request security", () => {
     const response = secureResponse(new Response("ok"), request);
     expect(response.headers.get("strict-transport-security")).toContain("includeSubDomains");
     expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+    expect(response.headers.get("content-security-policy")).toContain(
+      "script-src 'self' 'unsafe-inline' https://s3.tradingview.com",
+    );
+    expect(response.headers.get("content-security-policy")).toContain(
+      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.tradingview.com",
+    );
     expect(response.headers.get("x-frame-options")).toBe("DENY");
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(response.headers.get("cross-origin-opener-policy")).toBe("same-origin-allow-popups");

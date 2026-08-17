@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Sparkles, TrendingUp, ShieldCheck, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { CandlestickBg } from "@/components/CandlestickBg";
+import { TradingViewTickerTape } from "@/components/TradingViewTickerTape";
 import { useAuth } from "@/contexts/useAuth";
 import { HOME_FAQ, JOURNEY, PRIORITY_DESTINATIONS, WHY } from "@/lib/site-data";
 import { createSeoHead } from "@/lib/seo";
@@ -21,7 +22,7 @@ function Home() {
   return (
     <>
       <Hero />
-      <Ticker />
+      <TradingViewTickerTape />
       <PriorityTools />
       <Why />
       <Journey />
@@ -33,7 +34,10 @@ function Home() {
 
 function PriorityTools() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-20" aria-labelledby="trading-tools-heading">
+    <section
+      className="mx-auto max-w-7xl px-4 pb-7 pt-12 sm:pb-8 sm:pt-16 lg:pb-10 lg:pt-20"
+      aria-labelledby="trading-tools-heading"
+    >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold">Trader tools</p>
@@ -70,9 +74,9 @@ function Hero() {
   const { user } = useAuth();
 
   return (
-    <section className="relative -mt-24 flex min-h-[92vh] items-center overflow-hidden">
+    <section className="relative -mt-24 overflow-hidden">
       <CandlestickBg />
-      <div className="relative mx-auto w-full max-w-6xl px-4 pt-32 pb-20 text-center">
+      <div className="relative mx-auto w-full max-w-6xl px-4 pb-12 pt-28 text-center sm:pb-14 sm:pt-32 lg:pb-16">
         <div className="glass animate-float-up mx-auto inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs">
           <Sparkles className="h-3.5 w-3.5 text-gold" />
           <span>Premium ALC Education</span>
@@ -106,6 +110,7 @@ function Hero() {
             <>
               <Link
                 to="/auth"
+                search={{ mode: "signup" }}
                 className="shine group inline-flex items-center gap-2 rounded-full bg-gradient-gold px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"
               >
                 Create your account
@@ -113,6 +118,7 @@ function Hero() {
               </Link>
               <Link
                 to="/auth"
+                search={{ mode: "signin" }}
                 className="glass inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold hover:text-gold"
               >
                 Sign in
@@ -122,7 +128,7 @@ function Hero() {
         </div>
 
         <div
-          className="animate-float-up mx-auto mt-16 grid max-w-3xl grid-cols-3 gap-2 text-center sm:gap-4"
+          className="animate-float-up mx-auto mt-10 grid max-w-3xl grid-cols-3 gap-2 text-center sm:mt-14 sm:gap-4"
           style={{ animationDelay: "0.35s" }}
         >
           {[
@@ -143,31 +149,6 @@ function Hero() {
   );
 }
 
-function Ticker() {
-  const items = [
-    "XAUUSD 2,384.10 ▲ 0.42%",
-    "EURUSD 1.0821 ▼ 0.11%",
-    "GBPUSD 1.2704 ▲ 0.18%",
-    "USDJPY 156.31 ▲ 0.24%",
-    "BTCUSD 68,214 ▲ 1.02%",
-    "AUDUSD 0.6612 ▼ 0.07%",
-    "USDCAD 1.3684 ▲ 0.09%",
-  ];
-  const row = [...items, ...items];
-  return (
-    <div className="border-y border-border/60 bg-card/40 py-3 overflow-hidden">
-      <div className="flex whitespace-nowrap animate-ticker gap-10 text-xs font-medium text-muted-foreground">
-        {row.map((t, i) => (
-          <span key={i} className="inline-flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold animate-pulse-gold" />
-            {t}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
@@ -184,13 +165,13 @@ function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; 
 
 function Why() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-24">
+    <section className="mx-auto max-w-7xl px-4 py-7 sm:py-8 lg:py-10">
       <SectionHead
         eyebrow="Why BLACKPIPS"
         title="Built for traders who take this seriously"
         sub="No hype, no signals, no shortcuts. Just the framework professional traders actually use."
       />
-      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid gap-4 sm:mt-10 sm:grid-cols-2 lg:grid-cols-3">
         {WHY.map((w, i) => (
           <div
             key={w.title}
@@ -216,12 +197,12 @@ function Why() {
 
 function Journey() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-24">
+    <section className="mx-auto max-w-7xl px-4 pb-14 pt-7 sm:pb-16 sm:pt-8 lg:pb-20 lg:pt-10">
       <SectionHead
         eyebrow="Student Journey"
         title="From your first candle to institutional execution"
       />
-      <div className="mt-12 grid gap-6 md:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:mt-10 md:grid-cols-4 lg:gap-6">
         {JOURNEY.map((j) => (
           <div
             key={j.step}
@@ -241,10 +222,10 @@ function Journey() {
 function FaqSection() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section className="border-y border-border/60 bg-card/30 py-24">
+    <section className="border-y border-border/60 bg-card/30 py-14 sm:py-16 lg:py-20">
       <div className="mx-auto max-w-3xl px-4">
         <SectionHead eyebrow="FAQ" title="Answers, not marketing" />
-        <div className="mt-10 space-y-3">
+        <div className="mt-8 space-y-3 sm:mt-10">
           {HOME_FAQ.map((f, i) => (
             <div key={f.q} className="glass rounded-2xl">
               <button
@@ -275,7 +256,7 @@ function FaqSection() {
 
 function Newsletter() {
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-24">
+    <section className="mx-auto max-w-7xl px-4 py-14 sm:py-16 lg:py-20">
       <div className="glass relative overflow-hidden rounded-3xl p-10 text-center shadow-elegant sm:p-14">
         <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-gold opacity-25 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-gradient-gold opacity-15 blur-3xl" />
