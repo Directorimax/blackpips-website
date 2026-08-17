@@ -14,4 +14,4 @@ Disallow: /courses/
 Disallow: /free
 Disallow: /mentorship
 
-Sitemap: https://blackpips.com/sitemap.xml
+Sitemap: https://www.blackpips.com/sitemap.xml

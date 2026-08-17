@@ -1,8 +1,8 @@
 project_id = "ickerkgpntvokzvldmcj"
 
 [auth]
-site_url = "https://blackpips.com"
-additional_redirect_urls = ["https://www.blackpips.com/**", "http://localhost:8080/**", "http://127.0.0.1:8080/**"]
+site_url = "https://www.blackpips.com"
+additional_redirect_urls = ["https://www.blackpips.com/auth/callback", "http://localhost:3000/auth/callback", "http://127.0.0.1:3000/auth/callback", "http://localhost:8080/auth/callback", "http://127.0.0.1:8080/auth/callback"]
 
 [auth.rate_limit]
 email_sent = 3

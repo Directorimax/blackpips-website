@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/useAuth";
 import { sendNotification } from "@/services/email/notification.functions";
 import {
   DEFAULT_AUTH_DESTINATION,
+  getAuthCallbackUrl,
   getSafeRedirect,
   rememberAuthRedirect,
 } from "@/lib/auth-redirect";
@@ -60,7 +61,7 @@ function AuthPage() {
       clearSessionLifecycleStorage(window.localStorage);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: { redirectTo: getAuthCallbackUrl(window.location) },
       });
       if (error) throw error;
     } catch (error) {
@@ -77,8 +78,9 @@ function AuthPage() {
     try {
       if (mode === "forgot") {
         const em = emailSchema.parse(email);
+        rememberAuthRedirect("/reset-password");
         const { error } = await supabase.auth.resetPasswordForEmail(em, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: getAuthCallbackUrl(window.location),
         });
         if (error) throw error;
         toast.success("Reset link sent — check your inbox.");
@@ -94,7 +96,7 @@ function AuthPage() {
           email: em,
           password: pw,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: getAuthCallbackUrl(window.location),
             data: { display_name: nm, full_name: nm },
           },
         });

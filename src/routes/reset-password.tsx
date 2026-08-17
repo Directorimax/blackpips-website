@@ -5,7 +5,6 @@ import { AlertCircle, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
-import { clearSessionLifecycleStorage } from "@/lib/session-lifecycle";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
@@ -43,51 +42,6 @@ function ResetPassword() {
 
     async function recoverPasswordSession() {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-
-        const callbackError =
-          params.get("error_description") ??
-          params.get("error") ??
-          hashParams.get("error_description") ??
-          hashParams.get("error");
-
-        if (callbackError) {
-          throw new Error(callbackError);
-        }
-
-        const code = params.get("code");
-
-        if (code) {
-          clearSessionLifecycleStorage(window.localStorage);
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-          if (exchangeError) {
-            throw exchangeError;
-          }
-
-          // Remove the one-time recovery code from the visible URL.
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } else {
-          const accessToken = hashParams.get("access_token");
-          const refreshToken = hashParams.get("refresh_token");
-
-          // Supports legacy/implicit recovery links if Supabase returns tokens in the hash.
-          if (accessToken && refreshToken) {
-            clearSessionLifecycleStorage(window.localStorage);
-            const { error: setSessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-
-            if (setSessionError) {
-              throw setSessionError;
-            }
-
-            window.history.replaceState({}, document.title, window.location.pathname);
-          }
-        }
-
         const { data, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {

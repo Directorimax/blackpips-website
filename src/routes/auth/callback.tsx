@@ -1,18 +1,15 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { AlertCircle } from "lucide-react";
+import { z } from "zod";
 
-import { supabase } from "@/integrations/supabase/client";
-import {
-  consumeAuthRedirect,
-  DEFAULT_AUTH_DESTINATION,
-  getSafeRedirect,
-} from "@/lib/auth-redirect";
-import { sendNotification } from "@/services/email/notification.functions";
+import { DEFAULT_AUTH_DESTINATION, getSafeRedirect } from "@/lib/auth-redirect";
 import { createSeoHead } from "@/lib/seo";
-import { clearSessionLifecycleStorage } from "@/lib/session-lifecycle";
 
 export const Route = createFileRoute("/auth/callback")({
+  validateSearch: z.object({
+    status: z.enum(["recovery"]).optional(),
+    redirect: z.string().optional(),
+  }),
   head: () =>
     createSeoHead({
       title: "Completing sign-in",
@@ -24,130 +21,26 @@ export const Route = createFileRoute("/auth/callback")({
 });
 
 function AuthCallback() {
-  const navigate = useNavigate();
-  const startedRef = useRef(false);
-
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState("Recovering your sign-in session...");
-
-  useEffect(() => {
-    // Prevent React Strict Mode or rerenders from executing the callback twice.
-    if (startedRef.current) {
-      return;
-    }
-
-    startedRef.current = true;
-    let active = true;
-
-    const recoverSession = async () => {
-      try {
-        const searchParams = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(
-          window.location.hash.startsWith("#")
-            ? window.location.hash.slice(1)
-            : window.location.hash,
-        );
-
-        const code = searchParams.get("code");
-
-        const callbackError =
-          searchParams.get("error_description") ??
-          searchParams.get("error") ??
-          hashParams.get("error_description") ??
-          hashParams.get("error");
-
-        if (callbackError) {
-          throw new Error(callbackError);
-        }
-
-        setStatus("Exchanging your secure sign-in code...");
-
-        if (code) {
-          clearSessionLifecycleStorage(window.localStorage);
-          const { data: exchangeData, error: exchangeError } =
-            await supabase.auth.exchangeCodeForSession(code);
-
-          if (exchangeError) {
-            throw exchangeError;
-          }
-        }
-
-        setStatus("Confirming your account...");
-
-        const { data, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          throw sessionError;
-        }
-
-        if (!data.session) {
-          throw new Error("We could not recover your sign-in session. Please try again.");
-        }
-
-        const user = data.session.user;
-
-        setStatus("Preparing your BlackPips account...");
-
-        try {
-          await sendNotification({
-            data: {
-              type: "welcome",
-              resourceId: user.id,
-            },
-          });
-        } catch (notificationError) {
-          // Email failure must never prevent successful authentication.
-          console.error("[auth] Welcome notification request failed", notificationError);
-        }
-
-        const callbackRedirect = getSafeRedirect(searchParams.get("redirect"));
-
-        const destination = callbackRedirect ?? consumeAuthRedirect() ?? DEFAULT_AUTH_DESTINATION;
-
-        if (active) {
-          navigate({
-            to: destination,
-            replace: true,
-          });
-        }
-      } catch (callbackError) {
-        console.error("[auth] OAuth callback error", callbackError);
-
-        if (active) {
-          setError(
-            callbackError instanceof Error
-              ? callbackError.message
-              : "We could not complete your sign-in. Please try again.",
-          );
-        }
-      }
-    };
-
-    void recoverSession();
-
-    return () => {
-      active = false;
-    };
-  }, [navigate]);
+  const { redirect } = Route.useSearch();
+  const destination = getSafeRedirect(redirect) ?? DEFAULT_AUTH_DESTINATION;
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-16">
       <div className="glass w-full rounded-3xl p-8 text-center shadow-elegant">
-        {error ? (
-          <>
-            <h1 className="font-display text-2xl font-bold">Sign-in could not be completed</h1>
-
-            <p className="mt-3 text-sm text-muted-foreground">{error}</p>
-          </>
-        ) : (
-          <>
-            <Loader2 className="mx-auto h-6 w-6 animate-spin text-gold" />
-
-            <h1 className="mt-4 font-display text-2xl font-bold">Completing sign-in</h1>
-
-            <p className="mt-2 text-sm text-muted-foreground">{status}</p>
-          </>
-        )}
+        <AlertCircle className="mx-auto h-7 w-7 text-gold" />
+        <h1 className="mt-4 font-display text-2xl font-bold">Please start sign-in again</h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Your sign-in session expired or was opened in a different browser. Please start sign-in
+          again.
+        </p>
+        <Link
+          to="/auth"
+          search={{ redirect: destination }}
+          replace
+          className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"
+        >
+          Try Sign In Again
+        </Link>
       </div>
     </div>
   );

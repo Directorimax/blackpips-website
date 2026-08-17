@@ -1,6 +1,7 @@
 import { getRequest } from "@tanstack/react-start/server";
 
-const DEFAULT_ALLOWED_ORIGINS = new Set(["https://blackpips.com", "https://www.blackpips.com"]);
+const CANONICAL_ORIGIN = "https://www.blackpips.com";
+const DEFAULT_ALLOWED_ORIGINS = new Set([CANONICAL_ORIGIN, "https://blackpips.com"]);
 
 type RateLimitBucket = { count: number; resetAt: number };
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
@@ -65,8 +66,13 @@ export function enforceRequestSecurity(request: Request): Response | null {
   const url = new URL(request.url);
   const production = process.env.NODE_ENV === "production";
   const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  if (production && (forwardedProto === "http" || url.protocol === "http:")) {
+  const nonCanonicalProductionHost = production && url.hostname === "blackpips.com";
+  if (
+    production &&
+    (forwardedProto === "http" || url.protocol === "http:" || nonCanonicalProductionHost)
+  ) {
     url.protocol = "https:";
+    if (nonCanonicalProductionHost) url.hostname = "www.blackpips.com";
     return new Response(null, { status: 308, headers: { Location: url.toString() } });
   }
 
@@ -80,7 +86,7 @@ export function enforceRequestSecurity(request: Request): Response | null {
     return new Response(null, {
       status: 204,
       headers: {
-        "Access-Control-Allow-Origin": origin ?? "https://blackpips.com",
+        "Access-Control-Allow-Origin": origin ?? CANONICAL_ORIGIN,
         "Access-Control-Allow-Methods": "GET,HEAD,POST,OPTIONS",
         "Access-Control-Allow-Headers": "Authorization,Content-Type,X-Requested-With",
         "Access-Control-Max-Age": "86400",

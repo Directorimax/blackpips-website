@@ -10,9 +10,20 @@ afterEach(() => {
 describe("request security", () => {
   it("permanently redirects production HTTP requests to HTTPS", () => {
     process.env.NODE_ENV = "production";
-    const response = enforceRequestSecurity(new Request("http://blackpips.com/about"));
+    const response = enforceRequestSecurity(new Request("http://www.blackpips.com/about"));
     expect(response?.status).toBe(308);
-    expect(response?.headers.get("location")).toBe("https://blackpips.com/about");
+    expect(response?.headers.get("location")).toBe("https://www.blackpips.com/about");
+  });
+
+  it("redirects the production apex host to the canonical www host", () => {
+    process.env.NODE_ENV = "production";
+    const response = enforceRequestSecurity(
+      new Request("https://blackpips.com/auth/callback?code=secret"),
+    );
+    expect(response?.status).toBe(308);
+    expect(response?.headers.get("location")).toBe(
+      "https://www.blackpips.com/auth/callback?code=secret",
+    );
   });
 
   it("rejects unapproved cross-origin requests", () => {

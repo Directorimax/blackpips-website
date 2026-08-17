@@ -31,10 +31,10 @@ describe("BLACKPIPS priority SEO architecture", () => {
         { name: "Market Sessions", path: "/tools/market-sessions" },
       ],
     });
-    expect(SITE_URL).toBe("https://blackpips.com");
+    expect(SITE_URL).toBe("https://www.blackpips.com");
     expect(head.links).toContainEqual({
       rel: "canonical",
-      href: "https://blackpips.com/tools/market-sessions",
+      href: "https://www.blackpips.com/tools/market-sessions",
     });
     const jsonLd = JSON.parse(head.scripts[0].children);
     expect(jsonLd["@graph"].map((item: { "@type": string }) => item["@type"])).toEqual([
@@ -50,7 +50,7 @@ describe("BLACKPIPS priority SEO architecture", () => {
     expect(graph[0]["@type"]).toBe("Organization");
     expect(graph[0].name).toBe("BLACKPIPS");
     expect(graph[1]["@type"]).toBe("WebSite");
-    expect(graph[1].url).toBe("https://blackpips.com/");
+    expect(graph[1].url).toBe("https://www.blackpips.com/");
   });
 
   it("lists public priority canonicals in the sitemap and keeps private apps out", () => {

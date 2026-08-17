@@ -4,7 +4,7 @@
  * Keep the public URL here rather than deriving it from `window` so canonical
  * links, crawlers, and TanStack Start SSR all receive the same absolute URL.
  */
-export const SITE_URL = "https://blackpips.com";
+export const SITE_URL = "https://www.blackpips.com";
 
 const DEFAULT_DESCRIPTION =
   "BLACKPIPS provides structured forex education, premium lessons, free learning resources and mentorship.";
