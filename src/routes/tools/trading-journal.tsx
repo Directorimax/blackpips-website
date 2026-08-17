@@ -20,6 +20,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SeoBreadcrumbs } from "@/components/SeoBreadcrumbs";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,7 @@ import {
   type TradingJournalEntry,
 } from "@/lib/trading-journal";
 import { extensionForImageMime, validateImageFile } from "@/lib/upload-security";
+import { createSeoHead } from "@/lib/seo";
 import {
   createTradingJournalEntry,
   deleteTradingJournalEntry,
@@ -62,12 +64,18 @@ import {
 } from "@/services/trading-journal/trading-journal.functions";
 
 export const Route = createFileRoute("/tools/trading-journal")({
-  head: () => ({
-    meta: [
-      { title: "Trading Journal — BlackPips" },
-      { name: "description", content: "Record, review and improve your trading decisions." },
-    ],
-  }),
+  head: () =>
+    createSeoHead({
+      title: "Trading Journal",
+      description:
+        "Track, review and improve your trading performance with the private BLACKPIPS Trading Journal.",
+      path: "/tools/trading-journal",
+      breadcrumbs: [
+        { name: "Home", path: "/" },
+        { name: "Tools", path: "/tools" },
+        { name: "Trading Journal", path: "/tools/trading-journal" },
+      ],
+    }),
   component: TradingJournalPage,
 });
 
@@ -275,6 +283,7 @@ function TradingJournalPage() {
   if (!user)
     return (
       <main className="mx-auto max-w-3xl px-4 py-24 text-center">
+        <SeoBreadcrumbs current="Trading Journal" />
         <NotebookPen className="mx-auto h-10 w-10 text-gold" />
         <h1 className="mt-4 font-display text-3xl font-bold">Your Trading Journal</h1>
         <p className="mt-3 text-muted-foreground">
@@ -290,6 +299,7 @@ function TradingJournalPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 sm:py-16">
+      <SeoBreadcrumbs current="Trading Journal" />
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 text-sm font-semibold text-gold">

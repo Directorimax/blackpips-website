@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TradingTipsRouteImport } from './routes/trading-tips'
+import { Route as TradingPlanRouteImport } from './routes/trading-plan'
 import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -53,6 +55,16 @@ import { Route as AdminStudentsStudentIdRouteImport } from './routes/admin/stude
 import { Route as AuthenticatedDashboardTradingPlanRouteImport } from './routes/_authenticated/dashboard.trading-plan'
 import { Route as AuthenticatedDashboardGiftGiftIdRouteImport } from './routes/_authenticated/dashboard.gift.$giftId'
 
+const TradingTipsRoute = TradingTipsRouteImport.update({
+  id: '/trading-tips',
+  path: '/trading-tips',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TradingPlanRoute = TradingPlanRouteImport.update({
+  id: '/trading-plan',
+  path: '/trading-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ToolsRoute = ToolsRouteImport.update({
   id: '/tools',
   path: '/tools',
@@ -288,6 +300,8 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
   '/tools': typeof ToolsRouteWithChildren
+  '/trading-plan': typeof TradingPlanRoute
+  '/trading-tips': typeof TradingTipsRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
   '/tips': typeof AuthenticatedTipsRoute
@@ -329,6 +343,8 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
+  '/trading-plan': typeof TradingPlanRoute
+  '/trading-tips': typeof TradingTipsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/tips': typeof AuthenticatedTipsRoute
   '/admin/alc-access': typeof AdminAlcAccessRoute
@@ -373,6 +389,8 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
   '/tools': typeof ToolsRouteWithChildren
+  '/trading-plan': typeof TradingPlanRoute
+  '/trading-tips': typeof TradingTipsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/tips': typeof AuthenticatedTipsRoute
@@ -419,6 +437,8 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/testimonials'
     | '/tools'
+    | '/trading-plan'
+    | '/trading-tips'
     | '/dashboard'
     | '/profile'
     | '/tips'
@@ -460,6 +480,8 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
+    | '/trading-plan'
+    | '/trading-tips'
     | '/profile'
     | '/tips'
     | '/admin/alc-access'
@@ -503,6 +525,8 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/testimonials'
     | '/tools'
+    | '/trading-plan'
+    | '/trading-tips'
     | '/_authenticated/dashboard'
     | '/_authenticated/profile'
     | '/_authenticated/tips'
@@ -549,6 +573,8 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TestimonialsRoute: typeof TestimonialsRoute
   ToolsRoute: typeof ToolsRouteWithChildren
+  TradingPlanRoute: typeof TradingPlanRoute
+  TradingTipsRoute: typeof TradingTipsRoute
   AdminAlcAccessRoute: typeof AdminAlcAccessRoute
   AdminAlcLibraryRoute: typeof AdminAlcLibraryRoute
   AdminCertificatesRoute: typeof AdminCertificatesRoute
@@ -564,6 +590,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trading-tips': {
+      id: '/trading-tips'
+      path: '/trading-tips'
+      fullPath: '/trading-tips'
+      preLoaderRoute: typeof TradingTipsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trading-plan': {
+      id: '/trading-plan'
+      path: '/trading-plan'
+      fullPath: '/trading-plan'
+      preLoaderRoute: typeof TradingPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tools': {
       id: '/tools'
       path: '/tools'
@@ -986,6 +1026,8 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TestimonialsRoute: TestimonialsRoute,
   ToolsRoute: ToolsRouteWithChildren,
+  TradingPlanRoute: TradingPlanRoute,
+  TradingTipsRoute: TradingTipsRoute,
   AdminAlcAccessRoute: AdminAlcAccessRoute,
   AdminAlcLibraryRoute: AdminAlcLibraryRoute,
   AdminCertificatesRoute: AdminCertificatesRoute,

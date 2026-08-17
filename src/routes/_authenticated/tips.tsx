@@ -14,8 +14,18 @@ import {
   TradingTipLightbox,
   type ResolvedTipImage,
 } from "@/components/trading-tips/TipMedia";
+import { createSeoHead } from "@/lib/seo";
 
-export const Route = createFileRoute("/_authenticated/tips")({ component: TradingTipsFeed });
+export const Route = createFileRoute("/_authenticated/tips")({
+  head: () =>
+    createSeoHead({
+      title: "Trading Tips Members Feed",
+      description: "Private BLACKPIPS trading tips members feed.",
+      path: "/tips",
+      noindex: true,
+    }),
+  component: TradingTipsFeed,
+});
 
 function TradingTipsFeed() {
   const [tips, setTips] = useState<TradingTip[]>([]);

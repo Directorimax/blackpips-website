@@ -1,14 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { Instagram, Youtube, Send, Mail, MessageCircle } from "lucide-react";
 import { Logo } from "./Logo";
-import { SITE, NAV } from "@/lib/site-data";
+import { SITE, NAV, PRIORITY_DESTINATIONS } from "@/lib/site-data";
 import { AvailabilityAwareContactLink } from "@/components/contact/AvailabilityAwareContactLink";
 
 export function Footer() {
   return (
     <footer className="no-print border-t border-border/60 bg-background">
       <div className="mx-auto max-w-7xl px-4 py-14">
-        <div className="grid gap-10 md:grid-cols-5">
+        <div className="grid gap-10 md:grid-cols-6">
           <div className="md:col-span-2">
             <Logo />
             <p className="mt-4 max-w-sm text-sm text-muted-foreground">
@@ -45,6 +45,19 @@ export function Footer() {
                 <Mail className="h-4 w-4" />
               </AvailabilityAwareContactLink>
             </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold">Trading Tools</h4>
+            <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
+              {PRIORITY_DESTINATIONS.map((destination) => (
+                <li key={destination.to}>
+                  <Link to={destination.to} className="hover:text-foreground">
+                    {destination.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div>

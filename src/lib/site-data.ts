@@ -22,6 +22,34 @@ export const NAV = [
   { to: "/contact", label: "Contact" },
 ] as const;
 
+export const PRIORITY_DESTINATIONS = [
+  {
+    to: "/tools/trading-journal",
+    label: "Trading Journal",
+    description: "Track and review trading decisions in a private journal.",
+  },
+  {
+    to: "/tools/market-sessions",
+    label: "Market Sessions",
+    description: "View timezone-adjusted hours for major forex sessions.",
+  },
+  {
+    to: "/tools/pip-calculator",
+    label: "Pips Calculator",
+    description: "Estimate forex pip values by instrument and trade size.",
+  },
+  {
+    to: "/trading-tips",
+    label: "Trading Tips",
+    description: "Access fresh educational insights from BLACKPIPS.",
+  },
+  {
+    to: "/trading-plan",
+    label: "Trading Plan",
+    description: "Build structured rules for risk, execution and review.",
+  },
+] as const;
+
 export const WHY = [
   {
     title: "Institutional Approach",

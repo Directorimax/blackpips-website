@@ -5,6 +5,7 @@ Allow: /
 Disallow: /admin/
 Disallow: /auth
 Disallow: /dashboard
+Disallow: /tips
 Disallow: /profile
 Disallow: /payment/
 Disallow: /certificates/

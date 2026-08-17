@@ -19,7 +19,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SessionLifecycleProvider } from "@/components/SessionLifecycleProvider";
 import { ContactAvailabilityProvider } from "@/contexts/ContactAvailabilityContext";
-import { createSeoHead } from "@/lib/seo";
+import { SITE_IDENTITY_STRUCTURED_DATA } from "@/lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -78,30 +78,35 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => {
-    const seo = createSeoHead({
-      title: "BLACKPIPS",
-      path: "/",
-    });
-
     return {
       meta: [
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { title: "BLACKPIPS" },
+        {
+          name: "description",
+          content:
+            "BLACKPIPS provides structured forex education, premium lessons, free learning resources and mentorship.",
+        },
         { name: "author", content: "BlackPips" },
         { name: "theme-color", content: "#0b0b12" },
-        ...seo.meta,
       ],
       links: [
         { rel: "stylesheet", href: appCss },
         { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
         { rel: "apple-touch-icon", href: "/favicon.ico" },
         { rel: "manifest", href: "/manifest.webmanifest" },
-        ...seo.links,
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
         {
           rel: "stylesheet",
           href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap",
+        },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(SITE_IDENTITY_STRUCTURED_DATA),
         },
       ],
     };

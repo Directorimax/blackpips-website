@@ -56,7 +56,7 @@ const ADMIN_NAV = [
 
 const TOOL_NAV = [
   {
-    to: "/tips" as const,
+    to: "/trading-tips" as const,
     label: "Trading Tips",
     description: "Fresh insights from BlackPips",
     icon: Sparkles,
@@ -69,7 +69,7 @@ const TOOL_NAV = [
   },
   {
     to: "/tools/pip-calculator" as const,
-    label: "Pip Calculator",
+    label: "Pips Calculator",
     description: "Estimate pip values",
     icon: Calculator,
   },
@@ -86,7 +86,7 @@ const TOOL_NAV = [
     icon: NotebookPen,
   },
   {
-    to: "/dashboard/trading-plan" as const,
+    to: "/trading-plan" as const,
     label: "Trading Plan",
     description: "Define your trading rules",
     icon: ClipboardList,
@@ -131,7 +131,10 @@ export function Nav() {
 
   const dashboardDestination = isAdmin ? "/admin" : "/dashboard";
   const toolsActive =
-    location.pathname.startsWith("/tools") || location.pathname === "/dashboard/trading-plan";
+    location.pathname.startsWith("/tools") ||
+    location.pathname === "/trading-tips" ||
+    location.pathname === "/trading-plan" ||
+    location.pathname === "/dashboard/trading-plan";
   const activeToolPath = location.pathname;
   const initials = (profileIdentity.fullName || profileIdentity.username || user?.email || "U")
     .split(/\s+/)

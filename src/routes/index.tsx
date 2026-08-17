@@ -3,7 +3,7 @@ import { ArrowRight, Sparkles, TrendingUp, ShieldCheck, ChevronDown } from "luci
 import { useState } from "react";
 import { CandlestickBg } from "@/components/CandlestickBg";
 import { useAuth } from "@/contexts/useAuth";
-import { HOME_FAQ, JOURNEY, WHY } from "@/lib/site-data";
+import { HOME_FAQ, JOURNEY, PRIORITY_DESTINATIONS, WHY } from "@/lib/site-data";
 import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
@@ -22,11 +22,47 @@ function Home() {
     <>
       <Hero />
       <Ticker />
+      <PriorityTools />
       <Why />
       <Journey />
       <FaqSection />
       <Newsletter />
     </>
+  );
+}
+
+function PriorityTools() {
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-20" aria-labelledby="trading-tools-heading">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold">Trader tools</p>
+          <h2
+            id="trading-tools-heading"
+            className="mt-2 font-display text-3xl font-bold sm:text-4xl"
+          >
+            Build a stronger trading process
+          </h2>
+        </div>
+        <Link to="/tools" className="inline-flex items-center gap-1.5 text-sm font-bold text-gold">
+          Explore all tools <ArrowRight className="size-4" aria-hidden="true" />
+        </Link>
+      </div>
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {PRIORITY_DESTINATIONS.map((destination) => (
+          <Link
+            key={destination.to}
+            to={destination.to}
+            className="group rounded-2xl border border-border bg-card p-4 shadow-elegant transition hover:-translate-y-0.5 hover:border-gold/35"
+          >
+            <h3 className="font-display font-bold group-hover:text-gold">{destination.label}</h3>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              {destination.description}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 

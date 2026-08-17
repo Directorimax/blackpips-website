@@ -14,8 +14,16 @@ import {
   getTradingPlan,
   updateTradingPlan,
 } from "@/services/trading-plan/trading-plan.functions";
+import { createSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/dashboard/trading-plan")({
+  head: () =>
+    createSeoHead({
+      title: "Trading Plan Workspace",
+      description: "Private BLACKPIPS trading plan workspace.",
+      path: "/dashboard/trading-plan",
+      noindex: true,
+    }),
   component: TradingPlanPage,
 });
 
