@@ -35,6 +35,30 @@ describe("authentication architecture", () => {
     expect(callback).not.toContain("PKCE code verifier");
   });
 
+  it("keeps OAuth PKCE and email token-hash verification as separate server flows", () => {
+    const middleware = read("../integrations/supabase/session-middleware.ts");
+    const oauthCallback = read("../routes/auth/callback.tsx");
+    const emailConfirmation = read("../routes/auth/confirm.tsx");
+
+    expect(middleware.match(/exchangeCodeForSession/g)).toHaveLength(1);
+    expect(middleware.match(/\.auth\.verifyOtp/g)).toHaveLength(1);
+    expect(oauthCallback).not.toContain("verifyOtp");
+    expect(emailConfirmation).not.toContain("exchangeCodeForSession");
+    expect(emailConfirmation).not.toContain("verifyOtp");
+  });
+
+  it("preserves Google, password login, password reset, and logout entry points", () => {
+    const authPage = read("../routes/auth.index.tsx");
+    const authProvider = read("../contexts/AuthContext.tsx");
+
+    expect(authPage).toContain("supabase.auth.signInWithOAuth({");
+    expect(authPage).toContain('provider: "google"');
+    expect(authPage).toContain("redirectTo: getAuthCallbackUrl(window.location)");
+    expect(authPage).toContain("supabase.auth.signInWithPassword");
+    expect(authPage).toContain("supabase.auth.resetPasswordForEmail");
+    expect(authProvider).toContain("supabase.auth.signOut({ scope })");
+  });
+
   it("uses compatible SSR cookie clients without auth localStorage", () => {
     const browserClient = read("../integrations/supabase/client.ts");
     const serverClient = read("../integrations/supabase/server.ts");

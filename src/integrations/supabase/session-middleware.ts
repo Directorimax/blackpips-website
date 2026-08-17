@@ -2,6 +2,7 @@ import { createMiddleware } from "@tanstack/react-start";
 import { deleteCookie, getCookie, getCookies, getRequest } from "@tanstack/react-start/server";
 
 import { processAuthCallbackRequest } from "@/lib/auth-callback";
+import { processEmailConfirmationRequest } from "@/lib/email-confirmation";
 import { AUTH_REDIRECT_COOKIE, getSafeRedirect } from "@/lib/auth-redirect";
 import { createSupabaseServerClient } from "./server";
 
@@ -21,6 +22,57 @@ export const supabaseSessionMiddleware = createMiddleware().server(async ({ next
       name.startsWith("sb-") && name.includes("-auth-token") && !name.includes("code-verifier"),
   );
   let authenticatedReplay = false;
+
+  const emailConfirmationResponse = await processEmailConfirmationRequest(request, {
+    verifyToken: async (tokenHash) => {
+      try {
+        const supabase = createSupabaseServerClient();
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "email",
+        });
+
+        if (error) {
+          console.warn("[auth] Email confirmation failed", {
+            code: error.code,
+            name: error.name,
+            status: error.status,
+          });
+        }
+
+        return {
+          error,
+          sessionEstablished: Boolean(data.session),
+          userId: data.user?.id,
+        };
+      } catch (error) {
+        console.warn("[auth] Email confirmation request failed", {
+          code: "verification_request_failed",
+          name: error instanceof Error ? error.name : "UnknownError",
+        });
+        return {
+          error: {
+            code: "verification_request_failed",
+            name: error instanceof Error ? error.name : "UnknownError",
+          },
+          sessionEstablished: false,
+        };
+      }
+    },
+    afterVerification: async (userId) => {
+      try {
+        const { sendNotification } = await import("@/services/email/email.service.server");
+        await sendNotification({ type: "welcome", resourceId: userId, actorId: userId });
+      } catch (error) {
+        console.error("[auth] Welcome notification request failed", error);
+      }
+    },
+  });
+
+  if (emailConfirmationResponse) {
+    deleteCookie(AUTH_REDIRECT_COOKIE, { path: "/" });
+    return emailConfirmationResponse;
+  }
 
   if (
     requestUrl.pathname === "/auth/callback" &&

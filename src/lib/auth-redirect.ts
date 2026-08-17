@@ -38,9 +38,16 @@ export function consumeAuthRedirect() {
 }
 
 export function getAuthCallbackUrl(location: Pick<Location, "origin" | "hostname">) {
-  const origin =
-    location.hostname === "blackpips.com" || location.hostname === "www.blackpips.com"
-      ? CANONICAL_PRODUCTION_ORIGIN
-      : location.origin;
+  const origin = getAuthOrigin(location);
   return new URL("/auth/callback", origin).toString();
+}
+
+export function getEmailConfirmationUrl(location: Pick<Location, "origin" | "hostname">) {
+  return new URL("/auth/confirm", getAuthOrigin(location)).toString();
+}
+
+function getAuthOrigin(location: Pick<Location, "origin" | "hostname">) {
+  return location.hostname === "blackpips.com" || location.hostname === "www.blackpips.com"
+    ? CANONICAL_PRODUCTION_ORIGIN
+    : location.origin;
 }

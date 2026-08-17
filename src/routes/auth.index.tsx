@@ -2,21 +2,29 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail, MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
 import { sendNotification } from "@/services/email/notification.functions";
 import {
   DEFAULT_AUTH_DESTINATION,
   getAuthCallbackUrl,
+  getEmailConfirmationUrl,
   getSafeRedirect,
   rememberAuthRedirect,
 } from "@/lib/auth-redirect";
 import { createSeoHead } from "@/lib/seo";
 import { clearSessionLifecycleStorage } from "@/lib/session-lifecycle";
 import { Logo } from "@/components/Logo";
+import {
+  classifySignupException,
+  classifySignupResult,
+  logSignupFailure,
+} from "@/lib/signup-confirmation";
 
-type Mode = "signin" | "signup" | "forgot";
+type Mode = "signin" | "signup" | "forgot" | "check-email";
+
+const RESEND_COOLDOWN_SECONDS = 60;
 
 export const Route = createFileRoute("/auth/")({
   validateSearch: z.object({ redirect: z.string().optional() }),
@@ -44,6 +52,8 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const { user, loading } = useAuth();
   const destination = getSafeRedirect(redirect) ?? DEFAULT_AUTH_DESTINATION;
 
@@ -51,6 +61,15 @@ function AuthPage() {
   useEffect(() => {
     if (!loading && user) navigate({ to: destination, replace: true });
   }, [destination, loading, navigate, user]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timeout = window.setTimeout(
+      () => setResendCooldown((seconds) => Math.max(0, seconds - 1)),
+      1_000,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [resendCooldown]);
 
   async function handleGoogle() {
     if (busy || googleLoading) return;
@@ -92,16 +111,32 @@ function AuthPage() {
       if (mode === "signup") {
         const nm = nameSchema.parse(name);
         clearSessionLifecycleStorage(window.localStorage);
-        const { data, error } = await supabase.auth.signUp({
-          email: em,
-          password: pw,
-          options: {
-            emailRedirectTo: getAuthCallbackUrl(window.location),
-            data: { display_name: nm, full_name: nm },
-          },
-        });
-        if (error) throw error;
-        if (data.session) {
+        let signupResult;
+        try {
+          signupResult = await supabase.auth.signUp({
+            email: em,
+            password: pw,
+            options: {
+              emailRedirectTo: getEmailConfirmationUrl(window.location),
+              data: { display_name: nm, full_name: nm },
+            },
+          });
+        } catch (error) {
+          const failure = classifySignupException(error);
+          logSignupFailure(failure, error);
+          toast.error(failure.message);
+          return;
+        }
+
+        const outcome = classifySignupResult(signupResult.data, signupResult.error);
+        if (outcome.status === "failed") {
+          logSignupFailure(outcome, signupResult.error);
+          toast.error(outcome.message);
+          return;
+        }
+
+        if (outcome.status === "signed-in") {
+          const { data } = signupResult;
           if (!data.user) throw new Error("We could not create your account. Please try again.");
           void sendNotification({ data: { type: "welcome", resourceId: data.user.id } }).catch(
             (error) => console.error("Welcome notification could not be queued:", error),
@@ -110,7 +145,10 @@ function AuthPage() {
           navigate({ to: destination });
         } else {
           rememberAuthRedirect(destination);
-          toast.success("Check your email to confirm your account.");
+          setPendingEmail(em);
+          setPassword("");
+          setResendCooldown(RESEND_COOLDOWN_SECONDS);
+          setMode("check-email");
         }
       } else {
         clearSessionLifecycleStorage(window.localStorage);
@@ -125,13 +163,105 @@ function AuthPage() {
       const msg =
         err instanceof z.ZodError
           ? err.issues[0].message
-          : err instanceof Error
-            ? err.message
-            : "Something went wrong";
+          : mode === "signup"
+            ? classifySignupException(err).message
+            : err instanceof Error
+              ? err.message
+              : "Something went wrong";
       toast.error(msg);
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleResendVerification() {
+    if (!pendingEmail || busy || resendCooldown > 0) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: pendingEmail,
+        options: { emailRedirectTo: getEmailConfirmationUrl(window.location) },
+      });
+      if (error) {
+        const failure = classifySignupException(error);
+        logSignupFailure(failure, error);
+        toast.error(
+          failure.category === "rate-limit"
+            ? "Please wait before requesting another email."
+            : failure.message,
+        );
+        if (failure.category === "rate-limit") {
+          setResendCooldown(RESEND_COOLDOWN_SECONDS);
+        }
+        return;
+      }
+
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      toast.success("Verification email sent again.");
+    } catch (error) {
+      const failure = classifySignupException(error);
+      logSignupFailure(failure, error);
+      toast.error(failure.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function resetPendingSignup(nextMode: Extract<Mode, "signin" | "signup">) {
+    setPendingEmail(null);
+    setPassword("");
+    setResendCooldown(0);
+    setMode(nextMode);
+  }
+
+  if (mode === "check-email" && pendingEmail) {
+    return (
+      <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-16">
+        <div className="glass w-full rounded-3xl p-8 text-center shadow-elegant">
+          <Logo className="justify-center" />
+          <MailCheck className="mx-auto mt-6 h-9 w-9 text-gold" />
+          <h1 className="mt-4 font-display text-3xl font-bold">Check your email</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            We&apos;ve sent a verification link to:
+          </p>
+          <p className="mt-2 break-all font-semibold text-foreground">{pendingEmail}</p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Open the email and click Verify Email to activate your BLACKPIPS account.
+          </p>
+
+          <button
+            type="button"
+            onClick={handleResendVerification}
+            disabled={busy || resendCooldown > 0}
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+          >
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+            {busy
+              ? "Sending…"
+              : resendCooldown > 0
+                ? `Resend available in ${resendCooldown}s`
+                : "Resend verification email"}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => resetPendingSignup("signup")}
+            className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-border px-5 py-2.5 text-sm font-semibold transition hover:bg-accent/50 disabled:opacity-60"
+          >
+            Use a different email
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => resetPendingSignup("signin")}
+            className="mt-3 text-sm text-muted-foreground hover:text-foreground disabled:opacity-60"
+          >
+            Back to Sign In
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const title =

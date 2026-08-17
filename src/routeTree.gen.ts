@@ -36,6 +36,7 @@ import { Route as ToolsMarketSessionsRouteImport } from './routes/tools/market-s
 import { Route as PaymentSlugRouteImport } from './routes/payment/$slug'
 import { Route as CoursesSlugRouteImport } from './routes/courses/$slug'
 import { Route as CertificatesCertificateIdRouteImport } from './routes/certificates/$certificateId'
+import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminTradingTipsRouteImport } from './routes/admin/trading-tips'
 import { Route as AdminStudentsRouteImport } from './routes/admin/students'
@@ -190,6 +191,11 @@ const CertificatesCertificateIdRoute =
     path: '/certificates/$certificateId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthConfirmRoute = AuthConfirmRouteImport.update({
+  id: '/confirm',
+  path: '/confirm',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -314,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/admin/students': typeof AdminStudentsRouteWithChildren
   '/admin/trading-tips': typeof AdminTradingTipsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
   '/courses/$slug': typeof CoursesSlugRouteWithChildren
   '/payment/$slug': typeof PaymentSlugRoute
@@ -356,6 +363,7 @@ export interface FileRoutesByTo {
   '/admin/students': typeof AdminStudentsRouteWithChildren
   '/admin/trading-tips': typeof AdminTradingTipsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
   '/payment/$slug': typeof PaymentSlugRoute
   '/tools/market-sessions': typeof ToolsMarketSessionsRoute
@@ -403,6 +411,7 @@ export interface FileRoutesById {
   '/admin/students': typeof AdminStudentsRouteWithChildren
   '/admin/trading-tips': typeof AdminTradingTipsRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/certificates/$certificateId': typeof CertificatesCertificateIdRoute
   '/courses/$slug': typeof CoursesSlugRouteWithChildren
   '/payment/$slug': typeof PaymentSlugRoute
@@ -451,6 +460,7 @@ export interface FileRouteTypes {
     | '/admin/students'
     | '/admin/trading-tips'
     | '/auth/callback'
+    | '/auth/confirm'
     | '/certificates/$certificateId'
     | '/courses/$slug'
     | '/payment/$slug'
@@ -493,6 +503,7 @@ export interface FileRouteTypes {
     | '/admin/students'
     | '/admin/trading-tips'
     | '/auth/callback'
+    | '/auth/confirm'
     | '/certificates/$certificateId'
     | '/payment/$slug'
     | '/tools/market-sessions'
@@ -539,6 +550,7 @@ export interface FileRouteTypes {
     | '/admin/students'
     | '/admin/trading-tips'
     | '/auth/callback'
+    | '/auth/confirm'
     | '/certificates/$certificateId'
     | '/courses/$slug'
     | '/payment/$slug'
@@ -779,6 +791,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CertificatesCertificateIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/confirm': {
+      id: '/auth/confirm'
+      path: '/confirm'
+      fullPath: '/auth/confirm'
+      preLoaderRoute: typeof AuthConfirmRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/callback'
@@ -945,11 +964,13 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface AuthRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthConfirmRoute: typeof AuthConfirmRoute
   AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
+  AuthConfirmRoute: AuthConfirmRoute,
   AuthIndexRoute: AuthIndexRoute,
 }
 
