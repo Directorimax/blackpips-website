@@ -136,6 +136,39 @@ export function humanizeJournalValue(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+export type RiskRewardParseResult =
+  { valid: true; value: number | null } | { valid: false; value: null };
+
+/** Converts numeric or trader-style risk:reward input to the numeric DB ratio. */
+export function parseRiskReward(input: string): RiskRewardParseResult {
+  const value = input.trim();
+  if (!value) return { valid: true, value: null };
+
+  const colonMatch = value.match(/^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/);
+  if (colonMatch) {
+    const risk = Number(colonMatch[1]);
+    const reward = Number(colonMatch[2]);
+    if (risk > 0 && reward > 0) return { valid: true, value: reward / risk };
+    return { valid: false, value: null };
+  }
+
+  if (!/^\d+(?:\.\d+)?$/.test(value)) return { valid: false, value: null };
+  const numeric = Number(value);
+  return numeric > 0 && Number.isFinite(numeric)
+    ? { valid: true, value: numeric }
+    : { valid: false, value: null };
+}
+
+/** Numeric historical records are presented in consistent 1:reward notation. */
+export function formatRiskReward(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "—";
+  return `1:${Number(value)}`;
+}
+
+export function removeJournalEntryById<T extends { id: string }>(entries: T[], id: string) {
+  return entries.filter((entry) => entry.id !== id);
+}
+
 export function summarizeJournalEntries(
   entries: Pick<TradingJournalEntry, "profit_loss" | "result">[],
 ) {

@@ -50,9 +50,16 @@ import {
   summarizeJournalEntries,
   tradingJournalEntrySchema,
   humanizeJournalValue,
+  formatRiskReward,
+  parseRiskReward,
+  removeJournalEntryById,
   type JournalResult,
   type TradingJournalEntry,
 } from "@/lib/trading-journal";
+import {
+  journalColumns,
+  journalGridTemplateColumns,
+} from "@/components/trading-journal/journal-columns";
 import { extensionForImageMime, validateImageFile } from "@/lib/upload-security";
 import { createSeoHead } from "@/lib/seo";
 import {
@@ -273,6 +280,18 @@ function TradingJournalPage() {
     };
   }, [entries]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const deleteTrade = useCallback(
+    async (entry: TradingJournalEntry) => {
+      await removeTrade(entry, user!.id);
+      // Update both query projections only after the persisted ID delete succeeds.
+      setEntries((current) => removeJournalEntryById(current, entry.id));
+      setMonthEntries((current) => removeJournalEntryById(current, entry.id));
+      setTotal((current) => Math.max(0, current - 1));
+      setViewing((current) => (current?.id === entry.id ? null : current));
+      await Promise.all([load(), loadMonth()]);
+    },
+    [load, loadMonth, user],
+  );
 
   if (loading)
     return (
@@ -492,6 +511,7 @@ function TradingJournalPage() {
             setNewTradeDate(date);
             setEditing(null);
           }}
+          onDelete={deleteTrade}
         />
       ) : isLoading ? (
         <div className="mt-6 grid gap-3">
@@ -504,10 +524,7 @@ function TradingJournalPage() {
           entries={entries}
           onView={setViewing}
           onEdit={setEditing}
-          onDelete={async (entry) => {
-            await removeTrade(entry, user.id);
-            await load();
-          }}
+          onDelete={deleteTrade}
         />
       ) : (
         <div className="glass mt-6 rounded-3xl p-10 text-center">
@@ -637,25 +654,13 @@ function TradeList({
   return (
     <section className="mt-6 space-y-3">
       <div className="journal-scrollbar hidden overflow-x-auto rounded-2xl border border-border bg-card md:block">
-        <div className="min-w-[1050px]">
-          <div className="sticky top-0 z-10 grid grid-cols-[.9fr_1fr_.85fr_.8fr_1.2fr_.8fr_.8fr_.8fr_.8fr_.7fr_.55fr_.8fr_.55fr_.7fr] gap-3 border-b border-border bg-card px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-            {[
-              "Pair",
-              "Trade date",
-              "Trade type",
-              "Session",
-              "Strategy",
-              "Entry",
-              "Stop loss",
-              "Take profit",
-              "Exit",
-              "Result",
-              "RR",
-              "P/L",
-              "Shots",
-              "Actions",
-            ].map((heading) => (
-              <span key={heading}>{heading}</span>
+        <div className="min-w-[1320px]">
+          <div
+            className="sticky top-0 z-10 grid gap-3 border-b border-border bg-card px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground"
+            style={{ gridTemplateColumns: journalGridTemplateColumns }}
+          >
+            {journalColumns.map((column) => (
+              <span key={column.key}>{column.heading}</span>
             ))}
           </div>
           {entries.map((entry) => (
@@ -686,7 +691,7 @@ function TradeList({
                 label="P/L"
                 value={<Pnl value={entry.profit_loss} result={entry.result} />}
               />
-              <MobileRow label="RR" value={entry.risk_reward_ratio ?? "—"} />
+              <MobileRow label="RR" value={formatRiskReward(entry.risk_reward_ratio)} />
             </div>
             <TradeActions
               entry={entry}
@@ -698,48 +703,60 @@ function TradeList({
           </article>
         ))}
       </div>
-      <Dialog
-        open={Boolean(confirming)}
-        onOpenChange={(open) => !open && !deleting && setConfirming(null)}
-      >
-        <DialogContent className="max-w-md rounded-3xl bg-card">
-          <DialogHeader>
-            <DialogTitle>Delete {confirming?.pair} trade?</DialogTitle>
-            <DialogDescription>
-              This permanently removes the trade and its private screenshots. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              disabled={Boolean(deleting)}
-              onClick={() => setConfirming(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={!confirming || Boolean(deleting)}
-              onClick={async () => {
-                if (!confirming) return;
-                setDeleting(confirming.id);
-                try {
-                  await onDelete(confirming);
-                  toast.success("Trade deleted.");
-                  setConfirming(null);
-                } catch {
-                  toast.error("We could not delete this trade.");
-                } finally {
-                  setDeleting(null);
-                }
-              }}
-            >
-              {deleting && <Loader2 className="animate-spin" />}Delete trade
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <TradeDeleteDialog
+        entry={confirming}
+        deleting={Boolean(deleting)}
+        onClose={() => setConfirming(null)}
+        onConfirm={async (entry) => {
+          setDeleting(entry.id);
+          try {
+            await onDelete(entry);
+            toast.success("Trade deleted.");
+            setConfirming(null);
+          } catch {
+            toast.error("We could not delete this trade.");
+          } finally {
+            setDeleting(null);
+          }
+        }}
+      />
     </section>
+  );
+}
+function TradeDeleteDialog({
+  entry,
+  deleting,
+  onClose,
+  onConfirm,
+}: {
+  entry: TradingJournalEntry | null;
+  deleting: boolean;
+  onClose: () => void;
+  onConfirm: (entry: TradingJournalEntry) => Promise<void>;
+}) {
+  return (
+    <Dialog open={Boolean(entry)} onOpenChange={(open) => !open && !deleting && onClose()}>
+      <DialogContent className="max-w-md rounded-3xl bg-card">
+        <DialogHeader>
+          <DialogTitle>Delete {entry?.pair} trade?</DialogTitle>
+          <DialogDescription>
+            This permanently removes the trade and its private screenshots. This cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" disabled={deleting} onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={!entry || deleting}
+            onClick={() => entry && void onConfirm(entry)}
+          >
+            {deleting && <Loader2 className="animate-spin" />}Delete trade
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 function MobileRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -823,7 +840,10 @@ function DesktopTradeRow({
   deleting: boolean;
 }) {
   return (
-    <div className="grid grid-cols-[.9fr_1fr_.85fr_.8fr_1.2fr_.8fr_.8fr_.8fr_.8fr_.7fr_.55fr_.8fr_.55fr_.7fr] items-center gap-3 border-b border-border/70 px-4 py-3 text-sm last:border-0">
+    <div
+      className="grid items-center gap-3 border-b border-border/70 px-4 py-3 text-sm last:border-0"
+      style={{ gridTemplateColumns: journalGridTemplateColumns }}
+    >
       <strong>{entry.pair}</strong>
       <span>{new Date(entry.trade_at).toLocaleDateString()}</span>
       <Badge value={entry.direction} />
@@ -834,7 +854,7 @@ function DesktopTradeRow({
       <span>{entry.take_profit ?? "—"}</span>
       <span>{entry.exit_price ?? "—"}</span>
       <Badge value={entry.result} />
-      <span>{entry.risk_reward_ratio ?? "—"}</span>
+      <span>{formatRiskReward(entry.risk_reward_ratio)}</span>
       <Pnl value={entry.profit_loss} result={entry.result} />
       <span>
         {entry.before_image_url || entry.after_image_url ? (
@@ -885,6 +905,7 @@ function JournalCalendar({
   onView,
   onEdit,
   onNew,
+  onDelete,
 }: {
   month: Date;
   entries: TradingJournalEntry[];
@@ -897,7 +918,10 @@ function JournalCalendar({
   onView: (entry: TradingJournalEntry) => void;
   onEdit: (entry: TradingJournalEntry) => void;
   onNew: (date: Date) => void;
+  onDelete: (entry: TradingJournalEntry) => Promise<void>;
 }) {
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<TradingJournalEntry | null>(null);
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
   const start = new Date(first);
   start.setDate(first.getDate() - ((first.getDay() + 6) % 7));
@@ -1074,6 +1098,12 @@ function JournalCalendar({
                     <p className="mt-1 text-sm text-muted-foreground">
                       {entry.strategy || "No strategy recorded"}
                     </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {humanizeJournalValue(entry.session)} ·{" "}
+                      {journalResultConfig[entry.result].label}
+                      {" · "}
+                      {formatRiskReward(entry.risk_reward_ratio)} RR
+                    </p>
                   </div>
                   <Pnl value={entry.profit_loss} result={entry.result} />
                 </div>
@@ -1084,10 +1114,35 @@ function JournalCalendar({
                   <Button size="sm" variant="ghost" onClick={() => onEdit(entry)}>
                     Edit
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={deleting === entry.id}
+                    onClick={() => setConfirming(entry)}
+                  >
+                    <Trash2 className="text-destructive" /> Delete
+                  </Button>
                 </div>
               </article>
             ))}
           </div>
+          <TradeDeleteDialog
+            entry={confirming}
+            deleting={Boolean(deleting)}
+            onClose={() => setConfirming(null)}
+            onConfirm={async (entry) => {
+              setDeleting(entry.id);
+              try {
+                await onDelete(entry);
+                toast.success("Trade deleted.");
+                setConfirming(null);
+              } catch {
+                toast.error("We could not delete this trade.");
+              } finally {
+                setDeleting(null);
+              }
+            }}
+          />
         </DialogContent>
       </Dialog>
     </section>
@@ -1491,7 +1546,7 @@ function TradeDetails({
         ["Take profit", entry.take_profit],
         ["Exit", entry.exit_price],
         ["Lot size", entry.lot_size],
-        ["RR", entry.risk_reward_ratio],
+        ["RR", formatRiskReward(entry.risk_reward_ratio)],
       ],
     ],
     [
@@ -1688,7 +1743,7 @@ function entryToDraft(entry: TradingJournalEntry): Draft {
     lot_size: asText(entry.lot_size),
     risk_percent: asText(entry.risk_percent),
     reward_percent: asText(entry.reward_percent),
-    risk_reward_ratio: asText(entry.risk_reward_ratio),
+    risk_reward_ratio: formatRiskReward(entry.risk_reward_ratio).replace("—", ""),
     result: entry.result,
     profit_loss: asText(normalizeJournalProfitLoss(entry.result, entry.profit_loss)),
     emotion_before: entry.emotion_before ?? "",
@@ -1703,6 +1758,7 @@ function entryToDraft(entry: TradingJournalEntry): Draft {
 function toPayload(draft: Draft) {
   const number = (value: string) => (value.trim() === "" ? null : Number(value));
   const text = (value: string) => value.trim() || null;
+  const riskReward = parseRiskReward(draft.risk_reward_ratio);
   return {
     ...draft,
     trade_at: new Date(draft.trade_at).toISOString(),
@@ -1713,7 +1769,7 @@ function toPayload(draft: Draft) {
     lot_size: Number(draft.lot_size),
     risk_percent: number(draft.risk_percent),
     reward_percent: number(draft.reward_percent),
-    risk_reward_ratio: number(draft.risk_reward_ratio),
+    risk_reward_ratio: riskReward.valid ? riskReward.value : Number.NaN,
     profit_loss: normalizeJournalProfitLoss(
       draft.result as JournalResult,
       number(draft.profit_loss),
