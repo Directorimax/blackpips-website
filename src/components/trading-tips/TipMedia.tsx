@@ -10,11 +10,40 @@ const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
 const glassControl =
   "border border-white/15 bg-black/20 text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_4px_16px_rgba(0,0,0,0.18)] backdrop-blur-md transition duration-150 hover:border-gold/45 hover:bg-black/40 hover:text-gold focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold";
 
+export function SecureTipVideo({ src, className }: { src: string; className?: string }) {
+  const [unsupported, setUnsupported] = useState(false);
+  return (
+    <div
+      className={`relative overflow-hidden bg-black ${className ?? ""}`}
+      onContextMenu={(event) => event.preventDefault()}
+    >
+      <video
+        className="aspect-video h-auto max-h-[80vh] w-full object-contain"
+        controls
+        controlsList="nodownload"
+        disablePictureInPicture
+        playsInline
+        preload="metadata"
+        src={src}
+        draggable={false}
+        onDragStart={(event) => event.preventDefault()}
+        onError={() => setUnsupported(true)}
+      >
+        Your browser does not support in-app video playback.
+      </video>
+      {unsupported && (
+        <p className="absolute inset-x-3 bottom-14 rounded-lg bg-black/80 p-3 text-center text-xs text-white">
+          This video codec is not supported by your browser. Try Safari for iPhone MOV videos.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function SignedMedia({
   tipId,
   media,
   alt,
-  active,
   onReady,
   onPreview,
   priority,
@@ -22,7 +51,6 @@ function SignedMedia({
   tipId: string;
   media: TradingTipMedia;
   alt: string;
-  active: boolean;
   onReady: (item: ResolvedTipImage) => void;
   onPreview: () => void;
   priority: boolean;
@@ -75,14 +103,7 @@ function SignedMedia({
       </div>
     );
   if (media.media_type === "video")
-    return (
-      <video
-        className="aspect-[4/3] w-full bg-black object-contain"
-        controls={active}
-        preload="metadata"
-        src={url}
-      />
-    );
+    return <SecureTipVideo className="aspect-[4/3] w-full" src={url} />;
   return (
     <button
       type="button"
@@ -286,7 +307,6 @@ export function TipMedia({
                 tipId={tipId}
                 media={item}
                 alt={`${alt}${multi ? `, item ${index + 1}` : ""}`}
-                active={selected === index}
                 onReady={register}
                 priority={priority && index === 0}
                 onPreview={() => {

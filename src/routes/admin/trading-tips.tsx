@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import {
   TipMedia,
+  SecureTipVideo,
   TradingTipLightbox,
   type ResolvedTipImage,
 } from "@/components/trading-tips/TipMedia";
@@ -38,10 +39,12 @@ import {
   mediaTypeFor,
   remainingTipTime,
   TIP_REACTIONS,
+  TIP_MEDIA_ACCEPT,
   TRADING_TIPS_BUCKET,
   type TradingTip,
   type TradingTipMedia,
   validateTipFile,
+  tipFileExtension,
 } from "@/lib/trading-tips";
 import {
   deleteTradingTip,
@@ -58,18 +61,43 @@ export const Route = createFileRoute("/admin/trading-tips")({
   ),
 });
 type Expiry = "24h" | "72h" | "7d" | "forever" | "custom";
-const extensionFor = (type: string) =>
-  (
-    ({
-      "image/jpeg": "jpg",
-      "image/png": "png",
-      "image/webp": "webp",
-      "video/mp4": "mp4",
-      "video/webm": "webm",
-    }) as Record<string, string>
-  )[type];
 const tipSelect =
   "id,title,caption,media_type,media_path,mime_type,created_at,expires_at,trading_tip_media(id,media_type,media_path,mime_type,sort_order)";
+
+async function uploadTipFiles(tipId: string, files: File[], startOrder: number) {
+  const uploadedPaths: string[] = [];
+  try {
+    for (const [offset, file] of files.entries()) {
+      const extension = tipFileExtension(file);
+      if (!extension) throw new Error(`${file.name}: unsupported media format.`);
+      const path = `tips/${tipId}/${crypto.randomUUID()}.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from(TRADING_TIPS_BUCKET)
+        .upload(path, file, { contentType: file.type, upsert: false, cacheControl: "3600" });
+      if (uploadError) throw new Error(`${file.name}: ${uploadError.message}`);
+      // Track immediately so a following database failure cannot orphan the object.
+      uploadedPaths.push(path);
+      const { error: mediaError } = await supabase.from("trading_tip_media").insert({
+        tip_id: tipId,
+        media_type: mediaTypeFor(file.type),
+        media_path: path,
+        mime_type: file.type,
+        sort_order: startOrder + offset,
+      });
+      if (mediaError) throw new Error(`${file.name}: ${mediaError.message}`);
+    }
+  } catch (cause) {
+    if (uploadedPaths.length) {
+      await supabase
+        .from("trading_tip_media")
+        .delete()
+        .eq("tip_id", tipId)
+        .in("media_path", uploadedPaths);
+      await supabase.storage.from(TRADING_TIPS_BUCKET).remove(uploadedPaths);
+    }
+    throw cause;
+  }
+}
 function ExpiryPicker({
   value,
   setValue,
@@ -200,32 +228,6 @@ function AdminTradingTips() {
     setFileErrors(errors);
     setFiles((current) => [...current, ...valid].slice(0, MAX_TIP_MEDIA));
   }
-  async function uploadFiles(tipId: string, toUpload: File[], startOrder: number) {
-    const uploaded: string[] = [];
-    try {
-      for (const [offset, file] of toUpload.entries()) {
-        const extension = extensionFor(file.type);
-        if (!extension) throw new Error("Unsupported media format.");
-        const path = `tips/${tipId}/${crypto.randomUUID()}.${extension}`;
-        const { error: uploadError } = await supabase.storage
-          .from(TRADING_TIPS_BUCKET)
-          .upload(path, file, { contentType: file.type, upsert: false, cacheControl: "3600" });
-        if (uploadError) throw uploadError;
-        uploaded.push(path);
-        const { error: mediaError } = await supabase.from("trading_tip_media").insert({
-          tip_id: tipId,
-          media_type: mediaTypeFor(file.type),
-          media_path: path,
-          mime_type: file.type,
-          sort_order: startOrder + offset,
-        });
-        if (mediaError) throw mediaError;
-      }
-    } catch (cause) {
-      if (uploaded.length) await supabase.storage.from(TRADING_TIPS_BUCKET).remove(uploaded);
-      throw cause;
-    }
-  }
   async function publish() {
     const expiresAt = expiryAt(expiry, custom);
     if (!files.length || !caption.trim())
@@ -248,7 +250,7 @@ function AdminTradingTips() {
         expires_at: expiresAt,
       });
       if (insertError) throw insertError;
-      await uploadFiles(tipId, files, 0);
+      await uploadTipFiles(tipId, files, 0);
       const { data: firstMedia } = await supabase
         .from("trading_tip_media")
         .select("media_path,media_type,mime_type")
@@ -273,8 +275,11 @@ function AdminTradingTips() {
       setCreating(false);
     } catch (cause) {
       await supabase.from("trading_tips").delete().eq("id", tipId);
-      console.error(cause);
-      setError("Could not publish the tip. Uploaded media was cleaned up where possible.");
+      setError(
+        cause instanceof Error
+          ? `Could not publish: ${cause.message}`
+          : "Could not publish the tip. Uploaded media was cleaned up.",
+      );
     } finally {
       setBusy(false);
     }
@@ -396,7 +401,7 @@ function AdminTradingTips() {
                 className="sr-only"
                 type="file"
                 multiple
-                accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+                accept={TIP_MEDIA_ACCEPT}
                 onChange={(event) => {
                   if (event.target.files) addFiles(event.target.files);
                   event.currentTarget.value = "";
@@ -432,11 +437,7 @@ function AdminTradingTips() {
                     <X className="h-4 w-4" />
                   </button>
                   {file.type.startsWith("video/") ? (
-                    <video
-                      className="aspect-video w-full bg-black object-contain"
-                      src={url}
-                      controls
-                    />
+                    <SecureTipVideo src={url} />
                   ) : (
                     <img
                       className="aspect-video w-full object-cover"
@@ -805,25 +806,7 @@ function EditTip({
       if (error) throw error;
       if (files.length) {
         const start = media.length;
-        for (const [i, file] of files.entries()) {
-          const ext = extensionFor(file.type)!;
-          const path = `tips/${tip.id}/${crypto.randomUUID()}.${ext}`;
-          const { error: uploadError } = await supabase.storage
-            .from(TRADING_TIPS_BUCKET)
-            .upload(path, file, { contentType: file.type, upsert: false });
-          if (uploadError) throw uploadError;
-          const { error: rowError } = await supabase.from("trading_tip_media").insert({
-            tip_id: tip.id,
-            media_type: mediaTypeFor(file.type),
-            media_path: path,
-            mime_type: file.type,
-            sort_order: start + i,
-          });
-          if (rowError) {
-            await supabase.storage.from(TRADING_TIPS_BUCKET).remove([path]);
-            throw rowError;
-          }
-        }
+        await uploadTipFiles(tip.id, files, start);
       }
       toast.success("Tip updated.");
       await onSaved();
@@ -922,14 +905,18 @@ function EditTip({
           <Input
             type="file"
             multiple
-            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+            accept={TIP_MEDIA_ACCEPT}
             onChange={(event) => {
-              const valid = Array.from(event.target.files ?? []).filter(
-                (file) => !validateTipFile(file),
-              );
+              const selected = Array.from(event.target.files ?? []);
+              const valid = selected.filter((file) => {
+                const reason = validateTipFile(file);
+                if (reason) toast.error(`${file.name}: ${reason}`);
+                return !reason;
+              });
               if (media.length + files.length + valid.length > MAX_TIP_MEDIA)
                 toast.error(`Maximum ${MAX_TIP_MEDIA} media items.`);
               else setFiles((current) => [...current, ...valid]);
+              event.currentTarget.value = "";
             }}
           />
           {files.map((file, i) => (

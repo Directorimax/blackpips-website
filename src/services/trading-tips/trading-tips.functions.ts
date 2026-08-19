@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { TRADING_TIPS_BUCKET } from "@/lib/trading-tips";
+import { exactTipMediaPaths, TRADING_TIPS_BUCKET } from "@/lib/trading-tips";
 
 const table = (client: unknown) => client as SupabaseClient;
 const idSchema = z.object({ tipId: z.string().uuid() }).strict();
@@ -95,8 +95,11 @@ export const deleteTradingTip = createServerFn({ method: "POST" })
       .eq("id", data.tipId)
       .maybeSingle();
     if (error || !tip) throw new Error("Tip was not found.");
-    const paths = ((tip.trading_tip_media ?? []) as { media_path: string }[]).map(
-      ({ media_path }) => media_path,
+    const paths = exactTipMediaPaths(
+      data.tipId,
+      ((tip.trading_tip_media ?? []) as { media_path: string }[]).map(
+        ({ media_path }) => media_path,
+      ),
     );
     const { error: storageError } = paths.length
       ? await table(context.supabase).storage.from(TRADING_TIPS_BUCKET).remove(paths)
@@ -126,6 +129,8 @@ export const deleteTradingTipMedia = createServerFn({ method: "POST" })
       .eq("tip_id", data.tipId)
       .maybeSingle();
     if (error || !media) throw new Error("Media was not found.");
+    if (!exactTipMediaPaths(data.tipId, [media.media_path]).length)
+      throw new Error("Media path is invalid.");
     const { count } = await table(context.supabase)
       .from("trading_tip_media")
       .select("id", { count: "exact", head: true })
