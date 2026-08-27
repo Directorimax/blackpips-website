@@ -47,8 +47,8 @@ function contentSecurityPolicy() {
     "script-src 'self' 'unsafe-inline' https://s3.tradingview.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com https://*.tradingview.com",
-    "img-src 'self' data: blob: https://*.supabase.co https://i.ytimg.com https://*.tradingview.com https://*.tradingview-widget.com",
-    "media-src 'self' blob: https://*.supabase.co",
+    "img-src 'self' data: blob: https://*.supabase.co https://supabase.blackpips.com https://i.ytimg.com https://*.tradingview.com https://*.tradingview-widget.com",
+    "media-src 'self' blob: https://*.supabase.co https://supabase.blackpips.com",
     `frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://*.tradingview.com ${supabaseSources()
       .filter((source) => source.startsWith("https://"))
       .join(" ")}`,
