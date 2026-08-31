@@ -4,13 +4,18 @@ import {
   ArrowUp,
   Eye,
   EyeOff,
+  FileVideo,
+  Image as ImageIcon,
   Loader2,
   Pencil,
   Plus,
+  RotateCcw,
   ShieldCheck,
   Trash2,
+  UploadCloud,
+  X,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import {
@@ -25,6 +30,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  COURSE_MEDIA_BUCKET,
+  type MediaSource,
+  type UploadProgress,
+  coursePosterPath,
+  courseVideoPath,
+  formatBytes,
+  posterAsWebp,
+  readVideoDuration,
+  resumableEndpoint,
+  startResumableCourseVideoUpload,
+  validateCourseVideo,
+  validatePoster,
+} from "@/lib/admin-course-media";
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
 
 export const Route = createFileRoute("/admin/lessons")({
@@ -45,6 +64,11 @@ type Lesson = {
   video_url: string | null;
   position: number;
   is_published: boolean;
+  media_source: MediaSource;
+  video_storage_path: string | null;
+  video_poster_path: string | null;
+  video_mime_type: string | null;
+  video_duration_seconds: number | null;
 };
 type FormState = {
   id: string | null;
@@ -55,6 +79,7 @@ type FormState = {
   videoUrl: string;
   position: string;
   isPublished: boolean;
+  mediaSource: MediaSource;
 };
 
 const blankForm = (courseId = ""): FormState => ({
@@ -66,7 +91,17 @@ const blankForm = (courseId = ""): FormState => ({
   videoUrl: "",
   position: "",
   isPublished: false,
+  mediaSource: "none",
 });
+
+type MediaStatusRow = Pick<
+  Lesson,
+  | "media_source"
+  | "video_storage_path"
+  | "video_poster_path"
+  | "video_mime_type"
+  | "video_duration_seconds"
+>;
 
 function AdminLessons() {
   const { isAdmin, loading: adminLoading } = useAdmin();
@@ -88,12 +123,39 @@ function AdminLessons() {
       console.error("Could not load admin lessons", error);
       toast.error("Could not load lessons.");
     } else {
-      setLessons(
-        (data ?? []).map(({ lesson_position, ...lesson }) => ({
-          ...lesson,
-          position: lesson_position,
-        })),
-      );
+      const baseLessons = (data ?? []).map(({ lesson_position, ...lesson }) => ({
+        ...lesson,
+        position: lesson_position,
+      }));
+      try {
+        const withMedia = await Promise.all(
+          baseLessons.map(async (lesson) => {
+            const { data: mediaData, error: mediaError } = await (
+              supabase.rpc as unknown as (
+                name: string,
+                args: Record<string, unknown>,
+              ) => Promise<{
+                data: Array<MediaStatusRow & { lesson_id: string }> | null;
+                error: unknown;
+              }>
+            )("admin_get_lesson_media", { p_lesson_id: lesson.id });
+            if (mediaError) throw mediaError;
+            const media = mediaData?.[0];
+            return {
+              ...lesson,
+              media_source: media?.media_source ?? "none",
+              video_storage_path: media?.video_storage_path ?? null,
+              video_poster_path: media?.video_poster_path ?? null,
+              video_mime_type: media?.video_mime_type ?? null,
+              video_duration_seconds: media?.video_duration_seconds ?? null,
+            } as Lesson;
+          }),
+        );
+        setLessons(withMedia);
+      } catch (mediaError) {
+        console.error("Could not load lesson media status", mediaError);
+        toast.error("Lessons loaded, but private media status is unavailable.");
+      }
     }
     setLoading(false);
   }, []);
@@ -138,7 +200,7 @@ function AdminLessons() {
     setForm(blankForm(courseId));
   }
 
-  function editLesson(lesson: Lesson) {
+  function editLesson(lesson: Lesson, scroll = true) {
     setForm({
       id: lesson.id,
       courseId: lesson.course_id,
@@ -148,8 +210,9 @@ function AdminLessons() {
       videoUrl: lesson.video_url ?? "",
       position: String(lesson.position),
       isPublished: lesson.is_published,
+      mediaSource: lesson.media_source,
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function updateTitle(title: string) {
@@ -166,21 +229,34 @@ function AdminLessons() {
     const title = form.title.trim();
     if (!title) return toast.error("Lesson title is required.");
     if (!form.courseId) return toast.error("Select a course first.");
-    if (form.videoUrl.trim() && !getEmbeddableVideoUrl(form.videoUrl)) {
+    if (
+      form.mediaSource === "youtube_legacy" &&
+      (!form.videoUrl.trim() || !getEmbeddableVideoUrl(form.videoUrl))
+    ) {
       return toast.error("Use a supported HTTPS YouTube watch, short, Shorts, or embed URL.");
     }
     const position = form.position.trim() ? Number(form.position) : null;
     if (position !== null && (!Number.isInteger(position) || position < 1)) {
       return toast.error("Position must be a whole number greater than zero.");
     }
+    const existingLesson = form.id ? lessons.find((lesson) => lesson.id === form.id) : null;
+    if (existingLesson?.media_source === "self_hosted" && form.mediaSource !== "self_hosted") {
+      return toast.error("Use Remove video before changing an attached private video's source.");
+    }
+    const videoUrlForSave =
+      form.mediaSource === "youtube_legacy"
+        ? form.videoUrl.trim()
+        : form.mediaSource === "self_hosted" && existingLesson?.media_source === "youtube_legacy"
+          ? existingLesson.video_url
+          : null;
     setSaving(true);
-    const { error } = await supabase.rpc("admin_save_lesson", {
+    const { data, error } = await supabase.rpc("admin_save_lesson", {
       p_lesson_id: form.id,
       p_course_id: form.courseId,
       p_title: title,
       p_slug: form.slug.trim() || null,
       p_description: form.description.trim() || null,
-      p_video_url: form.videoUrl.trim() || null,
+      p_video_url: videoUrlForSave,
       p_position: position,
       p_is_published: form.isPublished,
     });
@@ -188,12 +264,70 @@ function AdminLessons() {
       console.error("Could not save lesson", error);
       toast.error("Could not save lesson. Please review the fields and try again.");
     } else {
-      toast.success(form.id ? "Lesson updated." : "Lesson created.");
+      const saved = data?.[0];
+      if (saved && form.mediaSource !== "self_hosted") {
+        const { error: mediaError } = await supabase.rpc(
+          "admin_set_lesson_media" as never,
+          {
+            p_lesson_id: saved.id,
+            p_media_source: form.mediaSource,
+            p_video_mime_type: null,
+            p_video_duration_seconds: null,
+            p_has_poster: false,
+          } as never,
+        );
+        if (mediaError) {
+          console.error("Could not save lesson media source", mediaError);
+          toast.error("Lesson saved, but its media source could not be updated.");
+          setSaving(false);
+          await loadLessons(form.courseId);
+          return;
+        }
+      }
+      toast.success(form.id ? "Lesson updated." : "Lesson created. You can now attach media.");
       setSelectedCourseId(form.courseId);
-      setForm(blankForm(form.courseId));
       await loadLessons(form.courseId);
+      if (saved) {
+        const created = (await loadLessonForEditing(form.courseId, saved.id)) ?? null;
+        if (created) {
+          editLesson(
+            form.mediaSource === "self_hosted"
+              ? { ...created, media_source: "self_hosted" }
+              : created,
+            false,
+          );
+        } else setForm(blankForm(form.courseId));
+      } else {
+        setForm(blankForm(form.courseId));
+      }
     }
     setSaving(false);
+  }
+
+  async function loadLessonForEditing(courseId: string, lessonId: string) {
+    const { data, error } = await supabase.rpc("admin_list_lessons", { p_course_id: courseId });
+    if (error) return null;
+    const row = data?.find((item) => item.id === lessonId);
+    if (!row) return null;
+    const { data: media, error: mediaError } = await (
+      supabase.rpc as unknown as (
+        name: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: Array<MediaStatusRow> | null; error: unknown }>
+    )("admin_get_lesson_media", {
+      p_lesson_id: lessonId,
+    });
+    if (mediaError) return null;
+    const status = media?.[0];
+    return {
+      ...row,
+      position: row.lesson_position,
+      media_source: status?.media_source ?? "none",
+      video_storage_path: status?.video_storage_path ?? null,
+      video_poster_path: status?.video_poster_path ?? null,
+      video_mime_type: status?.video_mime_type ?? null,
+      video_duration_seconds: status?.video_duration_seconds ?? null,
+    } as Lesson;
   }
 
   async function moveLesson(lesson: Lesson, direction: "up" | "down") {
@@ -327,20 +461,41 @@ function AdminLessons() {
               placeholder="Generated from title"
             />
           </Field>
-          <Field label="Video URL (YouTube HTTPS)">
-            <input
-              value={form.videoUrl}
+          <Field label="Video source">
+            <select
+              value={form.mediaSource}
               onChange={(event) =>
-                setForm((current) => ({ ...current, videoUrl: event.target.value }))
+                setForm((current) => ({
+                  ...current,
+                  mediaSource: event.target.value as MediaSource,
+                }))
               }
-              type="url"
-              placeholder="https://…"
               className="admin-input"
-            />
+            >
+              <option value="none">No video</option>
+              <option value="self_hosted">Upload private recorded video</option>
+              <option value="youtube_legacy">YouTube legacy</option>
+            </select>
             <p className="mt-1 text-xs text-muted-foreground">
-              Watch, youtu.be, Shorts, and embed URLs are supported.
+              Private MP4 is preferred for production lessons.
             </p>
           </Field>
+          {form.mediaSource === "youtube_legacy" && (
+            <Field label="YouTube URL (legacy HTTPS)">
+              <input
+                value={form.videoUrl}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, videoUrl: event.target.value }))
+                }
+                type="url"
+                placeholder="https://…"
+                className="admin-input"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Watch, youtu.be, Shorts, and embed URLs are supported during migration.
+              </p>
+            </Field>
+          )}
           <label className="flex items-end gap-3 rounded-xl border border-border bg-background/50 px-3 py-2.5 text-sm font-semibold">
             <input
               type="checkbox"
@@ -372,6 +527,31 @@ function AdminLessons() {
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{" "}
           {saving ? "Saving…" : form.id ? "Save lesson" : "Create lesson"}
         </button>
+        {form.mediaSource === "self_hosted" && !form.id && (
+          <p className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-3 text-sm text-muted-foreground">
+            Create the lesson first. Its real UUID is required before a private video can be
+            uploaded.
+          </p>
+        )}
+        {form.id &&
+          form.mediaSource === "self_hosted" &&
+          (() => {
+            const mediaLesson = lessons.find((lesson) => lesson.id === form.id);
+            return mediaLesson ? (
+              <LessonMediaManager
+                lesson={mediaLesson}
+                onChanged={async () => {
+                  await loadLessons(form.courseId);
+                  const refreshed = await loadLessonForEditing(form.courseId, form.id!);
+                  if (refreshed) editLesson(refreshed, false);
+                }}
+              />
+            ) : (
+              <p className="mt-4 rounded-xl border border-border p-3 text-sm text-muted-foreground">
+                Reloading private media status…
+              </p>
+            );
+          })()}
       </form>
 
       <section className="mt-8">
@@ -423,7 +603,11 @@ function AdminLessons() {
                     </div>
                     <p className="mt-1 truncate text-xs text-muted-foreground">
                       /{lesson.slug}
-                      {lesson.video_url ? " · Video linked" : " · No video URL"}
+                      {lesson.media_source === "self_hosted"
+                        ? ` · Private video${lesson.video_duration_seconds ? ` · ${formatDuration(lesson.video_duration_seconds)}` : ""}`
+                        : lesson.media_source === "youtube_legacy"
+                          ? " · YouTube legacy"
+                          : " · No video"}
                     </p>
                   </div>
                 </div>
@@ -494,12 +678,338 @@ function AdminLessons() {
   );
 }
 
+type UploadState = "ready" | "uploading" | "processing" | "complete" | "failed";
+
+function LessonMediaManager({
+  lesson,
+  onChanged,
+}: {
+  lesson: Lesson;
+  onChanged: () => Promise<void>;
+}) {
+  const [video, setVideo] = useState<File | null>(null);
+  const [poster, setPoster] = useState<File | null>(null);
+  const [state, setState] = useState<UploadState>("ready");
+  const [progress, setProgress] = useState<UploadProgress>({
+    uploaded: 0,
+    total: 0,
+    percentage: 0,
+  });
+  const [error, setError] = useState("");
+  const [removing, setRemoving] = useState(false);
+  const cancelRef = useRef<null | (() => Promise<void>)>(null);
+
+  const attached = lesson.media_source === "self_hosted" && Boolean(lesson.video_storage_path);
+  const busy = state === "uploading" || state === "processing" || removing;
+
+  async function uploadMedia() {
+    if (busy) return;
+    if (!video && !poster) return toast.error("Choose an MP4 video or poster first.");
+    if (!video && !attached)
+      return toast.error("Choose an MP4 before attaching self-hosted media.");
+    if (video) {
+      const validation = validateCourseVideo(video);
+      if (validation) return toast.error(validation);
+    }
+    if (poster) {
+      const validation = validatePoster(poster);
+      if (validation) return toast.error(validation);
+    }
+
+    setError("");
+    setProgress({ uploaded: 0, total: video?.size ?? 0, percentage: 0 });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData.session;
+      if (!session) throw new Error("Your administrator session expired. Sign in again.");
+
+      let duration = lesson.video_duration_seconds;
+      if (video) {
+        duration = await readVideoDuration(video);
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
+        const publishableKey =
+          import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+          process.env.SUPABASE_PUBLISHABLE_KEY ||
+          "";
+        if (!supabaseUrl || !publishableKey)
+          throw new Error("Storage configuration is unavailable.");
+
+        setState("uploading");
+        const task = startResumableCourseVideoUpload({
+          file: video,
+          endpoint: resumableEndpoint(supabaseUrl),
+          accessToken: session.access_token,
+          publishableKey,
+          objectPath: courseVideoPath(lesson.course_id, lesson.id),
+          upsert: attached,
+          onProgress: setProgress,
+        });
+        cancelRef.current = task.cancel;
+        await task.completion;
+        cancelRef.current = null;
+      }
+
+      setState("processing");
+      let hasPoster = Boolean(lesson.video_poster_path);
+      if (poster) {
+        const posterBlob = await posterAsWebp(poster);
+        const { error: posterError } = await supabase.storage
+          .from(COURSE_MEDIA_BUCKET)
+          .upload(coursePosterPath(lesson.course_id, lesson.id), posterBlob, {
+            contentType: "image/webp",
+            cacheControl: "0",
+            upsert: hasPoster,
+          });
+        if (posterError) throw posterError;
+        hasPoster = true;
+      }
+
+      const { error: mediaError } = await supabase.rpc(
+        "admin_set_lesson_media" as never,
+        {
+          p_lesson_id: lesson.id,
+          p_media_source: "self_hosted",
+          p_video_mime_type: "video/mp4",
+          p_video_duration_seconds: duration,
+          p_has_poster: hasPoster,
+        } as never,
+      );
+      if (mediaError) throw mediaError;
+
+      if (lesson.video_url) {
+        const { error: clearLegacyError } = await supabase.rpc("admin_save_lesson", {
+          p_lesson_id: lesson.id,
+          p_course_id: lesson.course_id,
+          p_title: lesson.title,
+          p_slug: lesson.slug,
+          p_description: lesson.description,
+          p_video_url: null,
+          p_position: lesson.position,
+          p_is_published: lesson.is_published,
+        });
+        if (clearLegacyError) {
+          console.error(
+            "Self-hosted media attached but legacy URL was not cleared",
+            clearLegacyError,
+          );
+          toast.warning("Private video attached. Retry saving the lesson to clear its legacy URL.");
+        }
+      }
+
+      setState("complete");
+      setVideo(null);
+      setPoster(null);
+      toast.success(video ? "Private video uploaded and attached." : "Poster updated.");
+      await onChanged();
+    } catch (uploadError) {
+      console.error("Could not upload course media", uploadError);
+      setError(uploadError instanceof Error ? uploadError.message : "Course media upload failed.");
+      setState("failed");
+    } finally {
+      cancelRef.current = null;
+    }
+  }
+
+  async function cancelUpload() {
+    const cancel = cancelRef.current;
+    if (!cancel) return;
+    await cancel();
+    cancelRef.current = null;
+    setError("Upload cancelled. Existing lesson media was not changed.");
+    setState("failed");
+  }
+
+  async function removeMedia() {
+    if (!attached || busy) return;
+    if (!window.confirm("Detach and remove this private lesson video? This cannot be undone."))
+      return;
+    setRemoving(true);
+    try {
+      const { error: detachError } = await supabase.rpc(
+        "admin_set_lesson_media" as never,
+        {
+          p_lesson_id: lesson.id,
+          p_media_source: "none",
+          p_video_mime_type: null,
+          p_video_duration_seconds: null,
+          p_has_poster: false,
+        } as never,
+      );
+      if (detachError) throw detachError;
+
+      const paths = [courseVideoPath(lesson.course_id, lesson.id)];
+      if (lesson.video_poster_path) paths.push(coursePosterPath(lesson.course_id, lesson.id));
+      const { error: deleteError } = await supabase.storage.from(COURSE_MEDIA_BUCKET).remove(paths);
+      if (deleteError) {
+        console.error("Lesson detached but Storage cleanup failed", deleteError);
+        toast.warning("Video detached safely, but Storage cleanup needs to be retried.");
+      } else {
+        toast.success("Private video removed.");
+      }
+      await onChanged();
+    } catch (removeError) {
+      console.error("Could not remove course media", removeError);
+      toast.error("The private video could not be removed.");
+    } finally {
+      setRemoving(false);
+    }
+  }
+
+  return (
+    <section className="mt-5 rounded-2xl border border-border bg-background/40 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-2 font-semibold">
+            <FileVideo className="h-4 w-4 text-gold" /> Private lesson media
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {attached
+              ? `Attached · ${lesson.video_mime_type ?? "video/mp4"}${lesson.video_duration_seconds ? ` · ${formatDuration(lesson.video_duration_seconds)}` : ""}`
+              : "No private video attached."}
+          </p>
+        </div>
+        {attached && (
+          <button
+            type="button"
+            onClick={() => void removeMedia()}
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-full border border-destructive/40 px-3 py-2 text-xs font-semibold text-destructive disabled:opacity-50"
+          >
+            <Trash2 className="h-4 w-4" /> {removing ? "Removing…" : "Remove video"}
+          </button>
+        )}
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Field label={attached ? "Replace private MP4" : "Private MP4"}>
+          <input
+            type="file"
+            accept="video/mp4,.mp4"
+            disabled={busy}
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              if (file) {
+                const validation = validateCourseVideo(file);
+                if (validation) {
+                  event.target.value = "";
+                  toast.error(validation);
+                  return;
+                }
+              }
+              setVideo(file);
+              setState("ready");
+            }}
+            className="admin-input file:mr-3 file:rounded-full file:border-0 file:bg-gold/10 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-gold"
+          />
+          {video && (
+            <p className="mt-1 text-xs">
+              {video.name} · {formatBytes(video.size)}
+            </p>
+          )}
+        </Field>
+        <Field label="Optional poster (WebP or JPEG)">
+          <input
+            type="file"
+            accept="image/webp,image/jpeg,.webp,.jpg,.jpeg"
+            disabled={busy}
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              if (file) {
+                const validation = validatePoster(file);
+                if (validation) {
+                  event.target.value = "";
+                  toast.error(validation);
+                  return;
+                }
+              }
+              setPoster(file);
+              setState("ready");
+            }}
+            className="admin-input file:mr-3 file:rounded-full file:border-0 file:bg-gold/10 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-gold"
+          />
+          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+            <ImageIcon className="h-3 w-3" /> JPEG is converted explicitly to private WebP.
+          </p>
+        </Field>
+      </div>
+
+      {(state === "uploading" || progress.total > 0) && (
+        <div className="mt-4" aria-live="polite">
+          <div className="flex justify-between text-xs font-semibold">
+            <span>
+              {state === "uploading"
+                ? "Uploading"
+                : state === "processing"
+                  ? "Saving metadata"
+                  : state}
+            </span>
+            <span>{progress.percentage}%</span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-gradient-gold transition-[width]"
+              style={{ width: `${progress.percentage}%` }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {formatBytes(progress.uploaded)} / {formatBytes(progress.total)}
+          </p>
+        </div>
+      )}
+
+      {state === "processing" && (
+        <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Processing and saving private metadata…
+        </p>
+      )}
+      {state === "complete" && <p className="mt-3 text-sm text-emerald-600">Upload complete.</p>}
+      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => void uploadMedia()}
+          disabled={busy || (!video && !poster)}
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          {state === "failed" ? (
+            <RotateCcw className="h-4 w-4" />
+          ) : (
+            <UploadCloud className="h-4 w-4" />
+          )}
+          {state === "failed" ? "Retry" : attached ? "Upload replacement" : "Upload and attach"}
+        </button>
+        {state === "uploading" && (
+          <button
+            type="button"
+            onClick={() => void cancelUpload()}
+            className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold"
+          >
+            <X className="h-4 w-4" /> Cancel upload
+          </button>
+        )}
+      </div>
+      {attached && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Replacements keep the current video active until the resumable upload completes. Existing
+          signed URLs expire within five minutes.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+function formatDuration(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}:${remainder.toString().padStart(2, "0")}`;
 }
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
