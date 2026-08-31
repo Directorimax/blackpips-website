@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
+import { MediaDropzone } from "@/components/admin/MediaDropzone";
 import {
   TipMedia,
   SecureTipVideo,
@@ -389,34 +390,19 @@ function AdminTradingTips() {
                 <X />
               </Button>
             </div>
-            <label
-              className="mt-5 grid min-h-36 cursor-pointer place-items-center rounded-2xl border border-dashed border-gold/40 bg-gold/5 p-4 text-center"
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                addFiles(event.dataTransfer.files);
-              }}
-            >
-              <input
-                className="sr-only"
-                type="file"
-                multiple
-                accept={TIP_MEDIA_ACCEPT}
-                onChange={(event) => {
-                  if (event.target.files) addFiles(event.target.files);
-                  event.currentTarget.value = "";
-                }}
-              />
-              <span>
-                <ImagePlus className="mx-auto h-7 w-7 text-gold" />
-                <span className="mt-2 block text-sm font-semibold">
-                  Drag and drop or select media
+            <div className="mt-5">
+              <MediaDropzone accept={TIP_MEDIA_ACCEPT} multiple onFiles={addFiles}>
+                <span>
+                  <ImagePlus className="mx-auto h-7 w-7 text-gold" />
+                  <span className="mt-2 block text-sm font-semibold">
+                    Drag and drop or select media
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {files.length} / {MAX_TIP_MEDIA} media items · Images 10 MB · Videos 50 MB
+                  </span>
                 </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  {files.length} / {MAX_TIP_MEDIA} media items · Images 10 MB · Videos 50 MB
-                </span>
-              </span>
-            </label>
+              </MediaDropzone>
+            </div>
             {fileErrors.map((message) => (
               <p key={message} className="mt-2 text-sm text-destructive">
                 {message}

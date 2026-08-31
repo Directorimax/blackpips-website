@@ -18,6 +18,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
+import { MediaDropzone } from "@/components/admin/MediaDropzone";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -696,11 +697,27 @@ function LessonMediaManager({
     percentage: 0,
   });
   const [error, setError] = useState("");
+  const [videoError, setVideoError] = useState("");
   const [removing, setRemoving] = useState(false);
   const cancelRef = useRef<null | (() => Promise<void>)>(null);
 
   const attached = lesson.media_source === "self_hosted" && Boolean(lesson.video_storage_path);
   const busy = state === "uploading" || state === "processing" || removing;
+
+  function selectVideo(files: FileList) {
+    const file = files[0] ?? null;
+    if (!file) return;
+    const validation = validateCourseVideo(file);
+    if (validation) {
+      setVideo(null);
+      setVideoError(`${file.name}: ${validation}`);
+      return;
+    }
+    setVideo(file);
+    setVideoError("");
+    setError("");
+    setState("ready");
+  }
 
   async function uploadMedia() {
     if (busy) return;
@@ -880,33 +897,48 @@ function LessonMediaManager({
         )}
       </div>
 
+      <div className="mt-4">
+        <MediaDropzone accept="video/mp4,.mp4" disabled={busy} onFiles={selectVideo}>
+          <span>
+            <FileVideo className="mx-auto h-7 w-7 text-gold" />
+            <span className="mt-2 block text-sm font-semibold">
+              Drag and drop or select an MP4 video
+            </span>
+            <span className="mt-1 block text-xs text-muted-foreground">
+              H.264 video with AAC audio · Up to 3 GiB · MOV files must be converted first
+            </span>
+          </span>
+        </MediaDropzone>
+        {videoError && <p className="mt-2 text-sm text-destructive">{videoError}</p>}
+        {video && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border bg-background/60 p-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gold/10 text-gold">
+                <FileVideo className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 text-left">
+                <span className="block truncate text-sm font-semibold">{video.name}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {formatBytes(video.size)} · Ready to upload
+                </span>
+              </span>
+            </div>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setVideo(null);
+                setState("ready");
+              }}
+              className="rounded-full bg-black/70 p-1.5 text-white disabled:opacity-50"
+              aria-label={`Remove ${video.name}`}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Field label={attached ? "Replace private MP4" : "Private MP4"}>
-          <input
-            type="file"
-            accept="video/mp4,.mp4"
-            disabled={busy}
-            onChange={(event) => {
-              const file = event.target.files?.[0] ?? null;
-              if (file) {
-                const validation = validateCourseVideo(file);
-                if (validation) {
-                  event.target.value = "";
-                  toast.error(validation);
-                  return;
-                }
-              }
-              setVideo(file);
-              setState("ready");
-            }}
-            className="admin-input file:mr-3 file:rounded-full file:border-0 file:bg-gold/10 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-gold"
-          />
-          {video && (
-            <p className="mt-1 text-xs">
-              {video.name} · {formatBytes(video.size)}
-            </p>
-          )}
-        </Field>
         <Field label="Optional poster (WebP or JPEG)">
           <input
             type="file"
