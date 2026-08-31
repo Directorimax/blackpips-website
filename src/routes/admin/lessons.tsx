@@ -5,7 +5,9 @@ import {
   Eye,
   EyeOff,
   FileVideo,
+  GraduationCap,
   Image as ImageIcon,
+  KeyRound,
   Loader2,
   Pencil,
   Plus,
@@ -19,6 +21,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { MediaDropzone } from "@/components/admin/MediaDropzone";
+import { AdminAlcLibrary } from "@/routes/admin/alc-library";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +49,7 @@ import {
   validatePoster,
 } from "@/lib/admin-course-media";
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
+import { FREE_LESSONS } from "@/lib/site-data";
 
 export const Route = createFileRoute("/admin/lessons")({
   component: () => (
@@ -56,6 +60,7 @@ export const Route = createFileRoute("/admin/lessons")({
 });
 
 type Course = { id: string; title: string; slug: string };
+type LearningArea = "premium" | "free" | "alc_access";
 type Lesson = {
   id: string;
   course_id: string;
@@ -92,7 +97,7 @@ const blankForm = (courseId = ""): FormState => ({
   videoUrl: "",
   position: "",
   isPublished: false,
-  mediaSource: "none",
+  mediaSource: "self_hosted",
 });
 
 type MediaStatusRow = Pick<
@@ -115,6 +120,7 @@ function AdminLessons() {
   const [moving, setMoving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Lesson | null>(null);
   const [form, setForm] = useState<FormState>(blankForm());
+  const [area, setArea] = useState<LearningArea>("premium");
 
   const loadLessons = useCallback(async (courseId: string) => {
     if (!courseId) return;
@@ -393,289 +399,361 @@ function AdminLessons() {
       <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gold">
         <ShieldCheck className="h-4 w-4" /> Administration
       </div>
-      <h1 className="mt-2 font-display text-3xl font-bold">Premium lesson management</h1>
+      <h1 className="mt-2 font-display text-3xl font-bold">Lesson management</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Create, publish, reorder, and maintain premium course lessons.
+        Choose a learning area, then manage its existing course or library structure.
       </p>
 
-      <form onSubmit={saveLesson} className="glass mt-8 rounded-3xl p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-xl font-semibold">
-            {form.id ? "Edit lesson" : "Create lesson"}
-          </h2>
-          {form.id && (
-            <button
-              type="button"
-              onClick={() => setForm(blankForm(selectedCourseId))}
-              className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-            >
-              Cancel editing
-            </button>
-          )}
-        </div>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Field label="Course">
-            <select
-              value={form.courseId}
-              onChange={(event) => {
-                setForm((current) => ({ ...current, courseId: event.target.value }));
-                setSelectedCourseId(event.target.value);
-              }}
-              className="admin-input"
-            >
-              <option value="">Select a premium course</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Position">
-            <input
-              value={form.position}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, position: event.target.value }))
-              }
-              inputMode="numeric"
-              placeholder="Automatic"
-              className="admin-input"
-            />
-          </Field>
-          <Field label="Lesson title">
-            <input
-              value={form.title}
-              onChange={(event) => updateTitle(event.target.value)}
-              maxLength={160}
-              className="admin-input"
-              required
-            />
-          </Field>
-          <Field label="Slug">
-            <input
-              value={form.slug}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, slug: slugify(event.target.value) }))
-              }
-              maxLength={180}
-              className="admin-input"
-              placeholder="Generated from title"
-            />
-          </Field>
-          <Field label="Video source">
-            <select
-              value={form.mediaSource}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  mediaSource: event.target.value as MediaSource,
-                }))
-              }
-              className="admin-input"
-            >
-              <option value="none">No video</option>
-              <option value="self_hosted">Upload private recorded video</option>
-              <option value="youtube_legacy">YouTube legacy</option>
-            </select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Private MP4 is preferred for production lessons.
-            </p>
-          </Field>
-          {form.mediaSource === "youtube_legacy" && (
-            <Field label="YouTube URL (legacy HTTPS)">
-              <input
-                value={form.videoUrl}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, videoUrl: event.target.value }))
-                }
-                type="url"
-                placeholder="https://…"
-                className="admin-input"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Watch, youtu.be, Shorts, and embed URLs are supported during migration.
-              </p>
-            </Field>
-          )}
-          <label className="flex items-end gap-3 rounded-xl border border-border bg-background/50 px-3 py-2.5 text-sm font-semibold">
-            <input
-              type="checkbox"
-              checked={form.isPublished}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, isPublished: event.target.checked }))
-              }
-              className="h-4 w-4 accent-amber-500"
-            />
-            Published and visible to entitled learners
-          </label>
-          <div className="sm:col-span-2">
-            <Field label="Description">
-              <textarea
-                value={form.description}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, description: event.target.value }))
-                }
-                maxLength={1000}
-                className="admin-input min-h-28 resize-y"
-              />
-            </Field>
-          </div>
-        </div>
-        <button
-          disabled={saving}
-          className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
-        >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{" "}
-          {saving ? "Saving…" : form.id ? "Save lesson" : "Create lesson"}
-        </button>
-        {form.mediaSource === "self_hosted" && !form.id && (
-          <p className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-3 text-sm text-muted-foreground">
-            Create the lesson first. Its real UUID is required before a private video can be
-            uploaded.
-          </p>
-        )}
-        {form.id &&
-          form.mediaSource === "self_hosted" &&
-          (() => {
-            const mediaLesson = lessons.find((lesson) => lesson.id === form.id);
-            return mediaLesson ? (
-              <LessonMediaManager
-                lesson={mediaLesson}
-                onChanged={async () => {
-                  await loadLessons(form.courseId);
-                  const refreshed = await loadLessonForEditing(form.courseId, form.id!);
-                  if (refreshed) editLesson(refreshed, false);
-                }}
-              />
-            ) : (
-              <p className="mt-4 rounded-xl border border-border p-3 text-sm text-muted-foreground">
-                Reloading private media status…
-              </p>
-            );
-          })()}
-      </form>
-
-      <section className="mt-8">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="font-display text-xl font-semibold">Course lessons</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Ordered lesson list for the selected premium course.
-            </p>
-          </div>
-          <select
-            value={selectedCourseId}
-            onChange={(event) => selectCourse(event.target.value)}
-            className="admin-input max-w-xs"
+      <div className="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Learning area">
+        {(
+          [
+            ["premium", "Premium Lessons", GraduationCap],
+            ["free", "Free Lessons", FileVideo],
+            ["alc_access", "ALC Access", KeyRound],
+          ] as const
+        ).map(([value, label, Icon]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setArea(value)}
+            className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors ${area === value ? "border-gold/50 bg-gold/10 text-foreground" : "border-border bg-card/50 text-muted-foreground hover:border-gold/30 hover:text-foreground"}`}
+            aria-pressed={area === value}
           >
-            <option value="">Select a premium course</option>
-            {courses.map((course) => (
-              <option key={course.id} value={course.id}>
-                {course.title}
-              </option>
-            ))}
-          </select>
-        </div>
-        {loading ? (
-          <AdminLoading />
-        ) : !selectedCourseId ? (
-          <Empty message="Select a course to manage its lessons." />
-        ) : lessons.length === 0 ? (
-          <Empty message="No lessons have been created for this course." />
-        ) : (
-          <div className="glass mt-5 divide-y divide-border overflow-hidden rounded-3xl">
-            {lessons.map((lesson, index) => (
-              <article
-                key={lesson.id}
-                className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex min-w-0 gap-4">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold/10 text-sm font-semibold text-gold">
-                    {lesson.position}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-display font-semibold">{lesson.title}</h3>
-                      <span
-                        className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${lesson.is_published ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-muted-foreground/30 bg-muted text-muted-foreground"}`}
-                      >
-                        {lesson.is_published ? "Published" : "Draft"}
-                      </span>
-                    </div>
-                    <p className="mt-1 truncate text-xs text-muted-foreground">
-                      /{lesson.slug}
-                      {lesson.media_source === "self_hosted"
-                        ? ` · Private video${lesson.video_duration_seconds ? ` · ${formatDuration(lesson.video_duration_seconds)}` : ""}`
-                        : lesson.media_source === "youtube_legacy"
-                          ? " · YouTube legacy"
-                          : " · No video"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
-                  <button
-                    onClick={() => void togglePublished(lesson)}
-                    disabled={saving || Boolean(moving)}
-                    className="admin-publish-action"
-                    aria-label={`${lesson.is_published ? "Unpublish" : "Publish"} ${lesson.title}`}
-                  >
-                    {lesson.is_published ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                    {lesson.is_published ? "Unpublish" : "Publish"}
-                  </button>
-                  <div className="grid grid-cols-4 gap-2 sm:flex sm:flex-nowrap">
-                    <button
-                      onClick={() => void moveLesson(lesson, "up")}
-                      disabled={Boolean(moving) || index === 0}
-                      className="admin-icon"
-                      aria-label={`Move ${lesson.title} up`}
-                      title="Move up"
-                    >
-                      <ArrowUp className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => void moveLesson(lesson, "down")}
-                      disabled={Boolean(moving) || index === lessons.length - 1}
-                      className="admin-icon"
-                      aria-label={`Move ${lesson.title} down`}
-                      title="Move down"
-                    >
-                      <ArrowDown className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => editLesson(lesson)}
-                      className="admin-icon"
-                      aria-label={`Edit ${lesson.title}`}
-                      title="Edit lesson"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeleting(lesson)}
-                      className="admin-icon border-destructive/40 text-destructive"
-                      aria-label={`Delete ${lesson.title}`}
-                      title="Delete lesson"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold/10 text-gold">
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="text-sm font-semibold">{label}</span>
+          </button>
+        ))}
+      </div>
 
-      <DeleteDialog
-        lesson={deleting}
-        processing={saving}
-        onCancel={() => setDeleting(null)}
-        onConfirm={() => void deleteLesson()}
-      />
+      {area === "free" && <FreeLessonsStatus />}
+      {area === "alc_access" && <AdminAlcLibrary embedded />}
+      {area === "premium" && (
+        <>
+          <form onSubmit={saveLesson} className="glass mt-8 rounded-3xl p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-display text-xl font-semibold">
+                {form.id ? "Edit lesson" : "Create lesson"}
+              </h2>
+              {form.id && (
+                <button
+                  type="button"
+                  onClick={() => setForm(blankForm(selectedCourseId))}
+                  className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  Cancel editing
+                </button>
+              )}
+            </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Field label="Course">
+                <select
+                  value={form.courseId}
+                  onChange={(event) => {
+                    setForm((current) => ({ ...current, courseId: event.target.value }));
+                    setSelectedCourseId(event.target.value);
+                  }}
+                  className="admin-input"
+                >
+                  <option value="">Select a premium course</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Position">
+                <input
+                  value={form.position}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, position: event.target.value }))
+                  }
+                  inputMode="numeric"
+                  placeholder="Automatic"
+                  className="admin-input"
+                />
+              </Field>
+              <Field label="Lesson title">
+                <input
+                  value={form.title}
+                  onChange={(event) => updateTitle(event.target.value)}
+                  maxLength={160}
+                  className="admin-input"
+                  required
+                />
+              </Field>
+              <Field label="Slug">
+                <input
+                  value={form.slug}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, slug: slugify(event.target.value) }))
+                  }
+                  maxLength={180}
+                  className="admin-input"
+                  placeholder="Generated from title"
+                />
+              </Field>
+              <Field label="Video source">
+                <select
+                  value={form.mediaSource}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      mediaSource: event.target.value as MediaSource,
+                    }))
+                  }
+                  className="admin-input"
+                >
+                  <option value="none">No video</option>
+                  <option value="self_hosted">Upload lesson video from device</option>
+                  <option value="youtube_legacy">YouTube legacy</option>
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Uploading from a device is the recommended workflow for recorded lessons.
+                </p>
+              </Field>
+              {form.mediaSource === "youtube_legacy" && (
+                <Field label="YouTube URL (legacy HTTPS)">
+                  <input
+                    value={form.videoUrl}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, videoUrl: event.target.value }))
+                    }
+                    type="url"
+                    placeholder="https://…"
+                    className="admin-input"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Watch, youtu.be, Shorts, and embed URLs are supported during migration.
+                  </p>
+                </Field>
+              )}
+              <label className="flex items-end gap-3 rounded-xl border border-border bg-background/50 px-3 py-2.5 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={form.isPublished}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, isPublished: event.target.checked }))
+                  }
+                  className="h-4 w-4 accent-amber-500"
+                />
+                Published and visible to entitled learners
+              </label>
+              <div className="sm:col-span-2">
+                <Field label="Description">
+                  <textarea
+                    value={form.description}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, description: event.target.value }))
+                    }
+                    maxLength={1000}
+                    className="admin-input min-h-28 resize-y"
+                  />
+                </Field>
+              </div>
+            </div>
+            <button
+              disabled={saving}
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{" "}
+              {saving ? "Saving…" : form.id ? "Save lesson" : "Create lesson"}
+            </button>
+            {form.mediaSource === "self_hosted" && !form.id && (
+              <div className="mt-5">
+                <MediaDropzone accept="video/mp4,.mp4" disabled onFiles={() => undefined}>
+                  <span>
+                    <FileVideo className="mx-auto h-7 w-7 text-gold" />
+                    <span className="mt-2 block text-sm font-semibold">
+                      Drag and drop or select media
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Save the lesson details to activate MP4 upload · Up to 3 GiB
+                    </span>
+                  </span>
+                </MediaDropzone>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Step 1: create the lesson to obtain its secure UUID. Step 2: this upload area
+                  becomes active immediately for the lesson video.
+                </p>
+              </div>
+            )}
+            {form.id &&
+              form.mediaSource === "self_hosted" &&
+              (() => {
+                const mediaLesson = lessons.find((lesson) => lesson.id === form.id);
+                return mediaLesson ? (
+                  <LessonMediaManager
+                    lesson={mediaLesson}
+                    onChanged={async () => {
+                      await loadLessons(form.courseId);
+                      const refreshed = await loadLessonForEditing(form.courseId, form.id!);
+                      if (refreshed) editLesson(refreshed, false);
+                    }}
+                  />
+                ) : (
+                  <p className="mt-4 rounded-xl border border-border p-3 text-sm text-muted-foreground">
+                    Reloading private media status…
+                  </p>
+                );
+              })()}
+          </form>
+
+          <section className="mt-8">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="font-display text-xl font-semibold">Course lessons</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ordered lesson list for the selected premium course.
+                </p>
+              </div>
+              <select
+                value={selectedCourseId}
+                onChange={(event) => selectCourse(event.target.value)}
+                className="admin-input max-w-xs"
+              >
+                <option value="">Select a premium course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {loading ? (
+              <AdminLoading />
+            ) : !selectedCourseId ? (
+              <Empty message="Select a course to manage its lessons." />
+            ) : lessons.length === 0 ? (
+              <Empty message="No lessons have been created for this course." />
+            ) : (
+              <div className="glass mt-5 divide-y divide-border overflow-hidden rounded-3xl">
+                {lessons.map((lesson, index) => (
+                  <article
+                    key={lesson.id}
+                    className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex min-w-0 gap-4">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold/10 text-sm font-semibold text-gold">
+                        {lesson.position}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-display font-semibold">{lesson.title}</h3>
+                          <span
+                            className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${lesson.is_published ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-muted-foreground/30 bg-muted text-muted-foreground"}`}
+                          >
+                            {lesson.is_published ? "Published" : "Draft"}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                          /{lesson.slug}
+                          {lesson.media_source === "self_hosted"
+                            ? ` · Private video${lesson.video_duration_seconds ? ` · ${formatDuration(lesson.video_duration_seconds)}` : ""}`
+                            : lesson.media_source === "youtube_legacy"
+                              ? " · YouTube legacy"
+                              : " · No video"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+                      <button
+                        onClick={() => void togglePublished(lesson)}
+                        disabled={saving || Boolean(moving)}
+                        className="admin-publish-action"
+                        aria-label={`${lesson.is_published ? "Unpublish" : "Publish"} ${lesson.title}`}
+                      >
+                        {lesson.is_published ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                        {lesson.is_published ? "Unpublish" : "Publish"}
+                      </button>
+                      <div className="grid grid-cols-4 gap-2 sm:flex sm:flex-nowrap">
+                        <button
+                          onClick={() => void moveLesson(lesson, "up")}
+                          disabled={Boolean(moving) || index === 0}
+                          className="admin-icon"
+                          aria-label={`Move ${lesson.title} up`}
+                          title="Move up"
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => void moveLesson(lesson, "down")}
+                          disabled={Boolean(moving) || index === lessons.length - 1}
+                          className="admin-icon"
+                          aria-label={`Move ${lesson.title} down`}
+                          title="Move down"
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => editLesson(lesson)}
+                          className="admin-icon"
+                          aria-label={`Edit ${lesson.title}`}
+                          title="Edit lesson"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleting(lesson)}
+                          className="admin-icon border-destructive/40 text-destructive"
+                          aria-label={`Delete ${lesson.title}`}
+                          title="Delete lesson"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <DeleteDialog
+            lesson={deleting}
+            processing={saving}
+            onCancel={() => setDeleting(null)}
+            onConfirm={() => void deleteLesson()}
+          />
+        </>
+      )}
     </div>
+  );
+}
+
+function FreeLessonsStatus() {
+  return (
+    <section className="glass mt-8 rounded-3xl p-5 sm:p-6">
+      <h2 className="font-display text-xl font-semibold">Free Lessons</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Free lessons currently come from the website’s static lesson catalog, not the editable
+        course and lesson tables. They are shown here without write controls so no duplicate or
+        incompatible production records are created.
+      </p>
+      <div className="mt-5 divide-y divide-border rounded-2xl border border-border">
+        {FREE_LESSONS.map((lesson, index) => (
+          <div key={lesson.id} className="flex items-center justify-between gap-4 p-4">
+            <div className="min-w-0">
+              <p className="font-semibold">{lesson.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {lesson.level} · {lesson.duration}
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-muted-foreground">{index + 1}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-muted-foreground">
+        Editable Free Lesson uploads require a dedicated persisted lesson model and playback
+        contract. That backend work is intentionally not introduced by this frontend change.
+      </p>
+    </section>
   );
 }
 
@@ -877,12 +955,12 @@ function LessonMediaManager({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 font-semibold">
-            <FileVideo className="h-4 w-4 text-gold" /> Private lesson media
+            <FileVideo className="h-4 w-4 text-gold" /> Lesson video
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
             {attached
-              ? `Attached · ${lesson.video_mime_type ?? "video/mp4"}${lesson.video_duration_seconds ? ` · ${formatDuration(lesson.video_duration_seconds)}` : ""}`
-              : "No private video attached."}
+              ? `Video attached · ${lesson.video_mime_type ?? "video/mp4"}${lesson.video_duration_seconds ? ` · ${formatDuration(lesson.video_duration_seconds)}` : ""}`
+              : "No lesson video attached."}
           </p>
         </div>
         {attached && (
@@ -901,9 +979,7 @@ function LessonMediaManager({
         <MediaDropzone accept="video/mp4,.mp4" disabled={busy} onFiles={selectVideo}>
           <span>
             <FileVideo className="mx-auto h-7 w-7 text-gold" />
-            <span className="mt-2 block text-sm font-semibold">
-              Drag and drop or select an MP4 video
-            </span>
+            <span className="mt-2 block text-sm font-semibold">Drag and drop or select media</span>
             <span className="mt-1 block text-xs text-muted-foreground">
               H.264 video with AAC audio · Up to 3 GiB · MOV files must be converted first
             </span>

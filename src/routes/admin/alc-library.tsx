@@ -65,7 +65,7 @@ const blankVideo = (moduleId = ""): VideoForm => ({
   published: false,
 });
 
-function AdminAlcLibrary() {
+export function AdminAlcLibrary({ embedded = false }: { embedded?: boolean }) {
   const { isAdmin, loading: adminLoading } = useAdmin();
   const navigate = useNavigate();
   const [modules, setModules] = useState<Module[]>([]);
@@ -187,14 +187,18 @@ function AdminAlcLibrary() {
   if (adminLoading || !isAdmin) return null;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-16">
-      <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gold">
-        <ShieldCheck className="h-4 w-4" /> Administration
-      </div>
-      <h1 className="mt-2 font-display text-3xl font-bold">ALC video library</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Manage the separate library available only to approved ALC Access learners.
-      </p>
+    <main className={embedded ? "mt-8" : "mx-auto max-w-6xl px-4 py-16"}>
+      {!embedded && (
+        <>
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gold">
+            <ShieldCheck className="h-4 w-4" /> Administration
+          </div>
+          <h1 className="mt-2 font-display text-3xl font-bold">ALC video library</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Manage the separate library available only to approved ALC Access learners.
+          </p>
+        </>
+      )}
 
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
         <Editor
