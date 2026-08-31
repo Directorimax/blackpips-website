@@ -80,7 +80,9 @@ describe("authentication architecture", () => {
     expect(authProvider).toContain("supabase.auth.getSession()");
     expect(protectedLayout).toContain("if (!loading && !user");
     expect(protectedLayout).toContain('to: "/auth"');
-    expect(protectedLayout).toContain("search: { redirect: intendedUrlRef.current }");
+    expect(protectedLayout).toContain(
+      "search: { redirect: getSafeRedirect(intendedUrlRef.current) ?? undefined }",
+    );
     expect(protectedLayout).toContain("if (loading || !user) return null");
     expect(protectedLayout).toContain("return <Outlet />");
   });

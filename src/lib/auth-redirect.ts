@@ -3,6 +3,28 @@ export const AUTH_REDIRECT_KEY = "blackpips:auth-redirect";
 export const AUTH_REDIRECT_COOKIE = "blackpips-auth-redirect";
 export const CANONICAL_PRODUCTION_ORIGIN = "https://www.blackpips.com";
 
+export function isAuthRoutePath(pathname: string) {
+  return pathname === "/auth" || pathname.startsWith("/auth/");
+}
+
+export function buildInternalLocationPath(location: {
+  pathname: string;
+  searchStr?: string;
+  hash?: string;
+}) {
+  const search = location.searchStr
+    ? location.searchStr.startsWith("?")
+      ? location.searchStr
+      : `?${location.searchStr}`
+    : "";
+  const hash = location.hash
+    ? location.hash.startsWith("#")
+      ? location.hash
+      : `#${location.hash}`
+    : "";
+  return `${location.pathname}${search}${hash}`;
+}
+
 export function getSafeRedirect(value: unknown) {
   if (
     typeof value !== "string" ||
@@ -16,6 +38,7 @@ export function getSafeRedirect(value: unknown) {
   try {
     const parsed = new URL(value, "https://blackpips.internal");
     if (parsed.origin !== "https://blackpips.internal") return null;
+    if (isAuthRoutePath(parsed.pathname)) return null;
     return `${parsed.pathname}${parsed.search}${parsed.hash}`;
   } catch {
     return null;

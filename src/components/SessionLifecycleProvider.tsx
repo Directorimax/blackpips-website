@@ -25,6 +25,7 @@ import {
   writeSessionLifecycleState,
 } from "@/lib/session-lifecycle";
 import { getInactivityPolicy, type SessionLifecycleRole } from "@/lib/session-policy";
+import { buildInternalLocationPath } from "@/lib/auth-redirect";
 
 export function SessionLifecycleProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -60,7 +61,11 @@ export function SessionLifecycleProvider({ children }: { children: ReactNode }) 
     logoutInProgressRef.current = true;
     clearTimers();
     setWarningOpen(false);
-    const returnPath = `${location.pathname}${location.searchStr}${location.hash}`;
+    const returnPath = buildInternalLocationPath({
+      pathname: location.pathname,
+      searchStr: location.searchStr,
+      hash: location.hash,
+    });
     try {
       await signOut({ scope: "local" });
     } finally {

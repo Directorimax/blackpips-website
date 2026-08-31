@@ -1,21 +1,25 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/useAuth";
-import { getSafeRedirect } from "@/lib/auth-redirect";
+import { buildInternalLocationPath, getSafeRedirect } from "@/lib/auth-redirect";
 import { ContentSkeleton } from "@/components/ContentSkeleton";
 
 export function AuthenticatedRouteGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const destination = useLocation({
-    select: (location) => `${location.pathname}${location.searchStr}${location.hash}`,
-  });
+  const destination = useLocation({ select: buildInternalLocationPath });
+  const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (user) {
+      hasRedirectedRef.current = false;
+      return;
+    }
+    if (!loading && !hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
       navigate({
         to: "/auth",
-        search: { redirect: getSafeRedirect(destination) ?? "/" },
+        search: { redirect: getSafeRedirect(destination) ?? undefined },
         replace: true,
       });
     }

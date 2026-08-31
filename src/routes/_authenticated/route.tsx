@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/useAuth";
+import { buildInternalLocationPath, getSafeRedirect } from "@/lib/auth-redirect";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -11,7 +12,7 @@ function AuthenticatedLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const intendedUrlRef = useRef(`${location.pathname}${location.searchStr}${location.hash}`);
+  const intendedUrlRef = useRef(buildInternalLocationPath(location));
   const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
@@ -19,7 +20,7 @@ function AuthenticatedLayout() {
       hasRedirectedRef.current = true;
       navigate({
         to: "/auth",
-        search: { redirect: intendedUrlRef.current },
+        search: { redirect: getSafeRedirect(intendedUrlRef.current) ?? undefined },
         replace: true,
       });
     }

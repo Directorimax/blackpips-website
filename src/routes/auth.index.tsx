@@ -67,6 +67,18 @@ function AuthPage() {
   }, [destination, loading, navigate, user]);
 
   useEffect(() => {
+    if (loading || user || redirect === undefined || getSafeRedirect(redirect)) return;
+    navigate({
+      to: "/auth",
+      search: {
+        redirect: undefined,
+        mode: requestedMode === "signin" ? undefined : requestedMode,
+      },
+      replace: true,
+    });
+  }, [loading, navigate, redirect, requestedMode, user]);
+
+  useEffect(() => {
     setPassword("");
     setMode(requestedMode);
   }, [requestedMode]);
