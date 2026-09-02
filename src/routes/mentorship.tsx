@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { FormEvent, memo, useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Crown, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { MENTORSHIP } from "@/lib/site-data";
+import { formatTZS, MENTORSHIP } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
@@ -23,6 +23,11 @@ import {
 import { createSeoHead } from "@/lib/seo";
 import { sendNotification } from "@/services/email/notification.functions";
 import { getCurriculumPreview } from "@/lib/mentorship-presentation";
+import {
+  isMentorshipPromotionActive,
+  mentorshipOfferCountdown,
+  mentorshipPayablePrice,
+} from "@/lib/mentorship-pricing";
 
 export const Route = createFileRoute("/mentorship")({
   head: () =>
@@ -45,6 +50,9 @@ type MentorshipPackage = {
   slug: string;
   name: string;
   is_active: boolean;
+  normal_price: number;
+  promotion_price: number | null;
+  promotion_ends_at: string | null;
 };
 type MentorshipProgram = (typeof MENTORSHIP)[number];
 const PACKAGE_SLUGS = ["regular-class", "advanced-class", "master-class"] as const;
@@ -84,6 +92,7 @@ function Mentorship() {
   const [form, setForm] = useState<ApplicationForm>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
+  const offerNow = useOfferClock();
 
   useEffect(() => {
     if (user?.email)
@@ -93,7 +102,7 @@ function Mentorship() {
   useEffect(() => {
     supabase
       .from("mentorship_packages")
-      .select("id,slug,name,is_active")
+      .select("id,slug,name,is_active,normal_price,promotion_price,promotion_ends_at")
       .eq("is_active", true)
       .order("display_order")
       .then(({ data, error }) => {
@@ -211,6 +220,7 @@ function Mentorship() {
                 onEnroll={openApplication}
                 expanded={expandedTier === mentorshipPackage.tier}
                 onToggle={toggleCurriculum}
+                offerNow={offerNow}
               />
             );
           })
@@ -237,6 +247,12 @@ function Mentorship() {
               <div className="mt-1 flex items-center gap-2 font-display text-lg font-semibold">
                 <CheckCircle2 className="h-4 w-4 text-gold" /> {selectedPackage?.name}
               </div>
+              {selectedPackage && (
+                <div className="mt-1 text-sm text-muted-foreground">
+                  Current price:{" "}
+                  {formatTZS(mentorshipPayablePrice(selectedPackage, offerNow ?? Infinity))}
+                </div>
+              )}
             </div>
             <ApplicationField label="Selected mentorship package">
               <input value={selectedPackage?.name ?? ""} readOnly aria-readonly="true" />
@@ -353,6 +369,19 @@ function Mentorship() {
   );
 }
 
+function useOfferClock() {
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    update();
+    const timer = window.setInterval(update, 1_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return now;
+}
+
 const MentorshipProgramCard = memo(function MentorshipProgramCard({
   program,
   packageOption,
@@ -361,6 +390,7 @@ const MentorshipProgramCard = memo(function MentorshipProgramCard({
   onEnroll,
   expanded,
   onToggle,
+  offerNow,
 }: {
   program: MentorshipProgram;
   packageOption: MentorshipPackage | undefined;
@@ -369,9 +399,24 @@ const MentorshipProgramCard = memo(function MentorshipProgramCard({
   onEnroll: (packageOption: MentorshipPackage | undefined) => void;
   expanded: boolean;
   onToggle: (tier: string) => void;
+  offerNow: number | null;
 }) {
   const curriculumId = `mentorship-curriculum-${program.tier.toLowerCase()}`;
   const previewModules = getCurriculumPreview(program.modules);
+  const promotionActive = Boolean(
+    packageOption && offerNow !== null && isMentorshipPromotionActive(packageOption, offerNow),
+  );
+  const currentPrice = packageOption
+    ? mentorshipPayablePrice(packageOption, offerNow ?? Infinity)
+    : null;
+  const savings =
+    promotionActive && packageOption && currentPrice !== null
+      ? packageOption.normal_price - currentPrice
+      : 0;
+  const countdown =
+    promotionActive && packageOption?.promotion_ends_at && offerNow !== null
+      ? mentorshipOfferCountdown(packageOption.promotion_ends_at, offerNow)
+      : null;
 
   return (
     <article
@@ -387,17 +432,56 @@ const MentorshipProgramCard = memo(function MentorshipProgramCard({
         <span className="text-xs font-semibold uppercase tracking-wide">
           {packageOption?.name ?? program.tier}
         </span>
+        {promotionActive && (
+          <span className="ml-auto rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-gold">
+            Limited offer
+          </span>
+        )}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-0.5">
-        <div className="font-display font-black leading-none text-gradient-gold">
-          <span className="block text-xl sm:text-2xl">TSh</span>
-          <span className="block text-4xl sm:text-5xl">
-            {program.price.toLocaleString("en-US")}
-          </span>
+      <div className="mt-3">
+        {promotionActive && packageOption && (
+          <div className="mb-1 text-sm font-semibold text-muted-foreground line-through decoration-gold/70 decoration-2">
+            {formatTZS(packageOption.normal_price)}
+          </div>
+        )}
+        <div className="flex flex-wrap items-end gap-x-3 gap-y-0.5">
+          <div className="font-display font-black leading-none text-gradient-gold">
+            <span className="block text-xl sm:text-2xl">TSh</span>
+            <span className="block text-4xl sm:text-5xl">
+              {currentPrice?.toLocaleString("en-US") ?? "—"}
+            </span>
+          </div>
+          <span className="mb-1 text-sm text-muted-foreground">per program</span>
         </div>
-        <span className="mb-1 text-sm text-muted-foreground">per program</span>
       </div>
+      {promotionActive && countdown && (
+        <div className="mt-4 rounded-2xl border border-gold/25 bg-gold/5 p-3">
+          <p className="text-xs font-semibold text-gold">Save {formatTZS(savings)}</p>
+          <div className="mt-2 grid grid-cols-4 gap-2" aria-label="Masterclass offer countdown">
+            {(
+              [
+                ["Days", countdown.days],
+                ["Hours", countdown.hours],
+                ["Minutes", countdown.minutes],
+                ["Seconds", countdown.seconds],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} className="rounded-xl bg-background/60 px-1 py-2 text-center">
+                <div className="font-display text-lg font-bold tabular-nums">
+                  {String(value).padStart(2, "0")}
+                </div>
+                <div className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-[9px]">
+                  {label}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] text-muted-foreground">
+            Ends Sunday, 6 September 2026 at 23:59:59 EAT
+          </p>
+        </div>
+      )}
       <p className="mt-3 text-sm leading-5 text-muted-foreground">
         Application required · Scheduling and payment follow approval
       </p>

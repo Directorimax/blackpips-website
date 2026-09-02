@@ -165,7 +165,6 @@ export const FREE_LESSONS = [
 export const MENTORSHIP = [
   {
     tier: "Regular",
-    price: 250000,
     popular: false,
     modules: [
       {
@@ -192,7 +191,6 @@ export const MENTORSHIP = [
   },
   {
     tier: "Advanced",
-    price: 500000,
     popular: true,
     modules: [
       { name: "Directional Bias", items: ["Timeframe coordination", "Shift coordination"] },
@@ -212,7 +210,6 @@ export const MENTORSHIP = [
   },
   {
     tier: "Masterclass",
-    price: 750000,
     popular: false,
     modules: [
       {

@@ -476,6 +476,8 @@ export type Database = {
           status: "pending" | "approved" | "waitlisted" | "rejected";
           internal_admin_notes: string | null;
           learner_message: string | null;
+          payable_amount: number | null;
+          currency: string;
           created_at: string;
           updated_at: string;
           reviewed_at: string | null;
@@ -498,6 +500,8 @@ export type Database = {
           status?: "pending" | "approved" | "waitlisted" | "rejected";
           internal_admin_notes?: string | null;
           learner_message?: string | null;
+          payable_amount?: number | null;
+          currency?: string;
           created_at?: string;
           updated_at?: string;
           reviewed_at?: string | null;
@@ -520,6 +524,8 @@ export type Database = {
           status?: "pending" | "approved" | "waitlisted" | "rejected";
           internal_admin_notes?: string | null;
           learner_message?: string | null;
+          payable_amount?: number | null;
+          currency?: string;
           created_at?: string;
           updated_at?: string;
           reviewed_at?: string | null;
@@ -534,6 +540,9 @@ export type Database = {
           name: string;
           short_description: string;
           price_display: string;
+          normal_price: number;
+          promotion_price: number | null;
+          promotion_ends_at: string | null;
           is_active: boolean;
           display_order: number;
           created_at: string;
@@ -545,6 +554,9 @@ export type Database = {
           name: string;
           short_description: string;
           price_display: string;
+          normal_price: number;
+          promotion_price?: number | null;
+          promotion_ends_at?: string | null;
           is_active?: boolean;
           display_order?: number;
           created_at?: string;
@@ -556,6 +568,9 @@ export type Database = {
           name?: string;
           short_description?: string;
           price_display?: string;
+          normal_price?: number;
+          promotion_price?: number | null;
+          promotion_ends_at?: string | null;
           is_active?: boolean;
           display_order?: number;
           created_at?: string;
