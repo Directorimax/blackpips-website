@@ -194,7 +194,13 @@ export type Database = {
           module_id: string | null;
           title: string;
           description: string | null;
-          video_url: string;
+          video_url: string | null;
+          media_source: "none" | "external" | "self_hosted";
+          video_storage_path: string | null;
+          video_poster_path: string | null;
+          video_mime_type: string | null;
+          video_duration_seconds: number | null;
+          media_finalized_at: string | null;
           section: string;
           sort_order: number;
           is_published: boolean;
@@ -206,7 +212,13 @@ export type Database = {
           module_id?: string | null;
           title: string;
           description?: string | null;
-          video_url: string;
+          video_url?: string | null;
+          media_source?: "none" | "external" | "self_hosted";
+          video_storage_path?: string | null;
+          video_poster_path?: string | null;
+          video_mime_type?: string | null;
+          video_duration_seconds?: number | null;
+          media_finalized_at?: string | null;
           section?: string;
           sort_order?: number;
           is_published?: boolean;
@@ -218,7 +230,13 @@ export type Database = {
           module_id?: string | null;
           title?: string;
           description?: string | null;
-          video_url?: string;
+          video_url?: string | null;
+          media_source?: "none" | "external" | "self_hosted";
+          video_storage_path?: string | null;
+          video_poster_path?: string | null;
+          video_mime_type?: string | null;
+          video_duration_seconds?: number | null;
+          media_finalized_at?: string | null;
           section?: string;
           sort_order?: number;
           is_published?: boolean;
@@ -271,22 +289,34 @@ export type Database = {
       };
       courses: {
         Row: {
+          access_type: "free" | "premium";
+          description: string | null;
           id: string;
           slug: string;
           title: string;
           price: number;
+          image: string | null;
+          published: boolean;
         };
         Insert: {
+          access_type?: "free" | "premium";
+          description?: string | null;
           id?: string;
           slug: string;
           title: string;
           price: number;
+          image?: string | null;
+          published?: boolean;
         };
         Update: {
+          access_type?: "free" | "premium";
+          description?: string | null;
           id?: string;
           slug?: string;
           title?: string;
           price?: number;
+          image?: string | null;
+          published?: boolean;
         };
         Relationships: [];
       };
@@ -799,7 +829,7 @@ export type Database = {
           module_id: string;
           title: string;
           description: string | null;
-          video_url: string;
+          video_url: string | null;
           sort_order: number;
           is_published: boolean;
         }[];
@@ -825,6 +855,81 @@ export type Database = {
           p_is_published?: boolean;
         };
         Returns: string;
+      };
+      admin_list_alc_video_media: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          video_id: string;
+          module_id: string;
+          media_source: "none" | "external" | "self_hosted";
+          video_storage_path: string | null;
+          video_poster_path: string | null;
+          video_mime_type: string | null;
+          video_duration_seconds: number | null;
+          media_finalized_at: string | null;
+          is_published: boolean;
+        }[];
+      };
+      admin_initialize_alc_self_hosted_video: {
+        Args: {
+          p_module_id: string;
+          p_title: string;
+          p_description: string | null;
+          p_sort_order: number | null;
+          p_video_mime_type: string;
+          p_video_duration_seconds: number;
+          p_has_poster: boolean;
+        };
+        Returns: string;
+      };
+      admin_update_alc_self_hosted_video: {
+        Args: {
+          p_video_id: string;
+          p_title: string;
+          p_description: string | null;
+          p_sort_order: number | null;
+          p_is_published: boolean;
+        };
+        Returns: undefined;
+      };
+      admin_finalize_alc_self_hosted_video: {
+        Args: {
+          p_video_id: string;
+          p_video_mime_type: string;
+          p_video_duration_seconds: number;
+          p_has_poster: boolean;
+          p_is_published: boolean;
+        };
+        Returns: undefined;
+      };
+      admin_clear_alc_self_hosted_media: {
+        Args: { p_video_id: string };
+        Returns: undefined;
+      };
+      admin_create_course: {
+        Args: {
+          p_title: string;
+          p_slug: string;
+          p_description: string | null;
+          p_price: number;
+          p_image: string | null;
+          p_published: boolean;
+          p_access_type: "free" | "premium";
+        };
+        Returns: string;
+      };
+      admin_update_course: {
+        Args: {
+          p_course_id: string;
+          p_title: string;
+          p_slug: string;
+          p_description: string | null;
+          p_price: number;
+          p_image: string | null;
+          p_published: boolean;
+          p_access_type: "free" | "premium";
+        };
+        Returns: undefined;
       };
       admin_move_alc_video: {
         Args: { p_video_id: string; p_direction: string };

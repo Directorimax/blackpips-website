@@ -7,7 +7,6 @@ import {
   FileVideo,
   GraduationCap,
   Image as ImageIcon,
-  KeyRound,
   Loader2,
   Pencil,
   Plus,
@@ -21,7 +20,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { MediaDropzone } from "@/components/admin/MediaDropzone";
-import { AdminAlcLibrary } from "@/routes/admin/alc-library";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,7 +47,6 @@ import {
   validatePoster,
 } from "@/lib/admin-course-media";
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
-import { FREE_LESSONS } from "@/lib/site-data";
 
 export const Route = createFileRoute("/admin/lessons")({
   component: () => (
@@ -59,8 +56,18 @@ export const Route = createFileRoute("/admin/lessons")({
   ),
 });
 
-type Course = { id: string; title: string; slug: string };
-type LearningArea = "premium" | "free" | "alc_access";
+type CourseAccessType = "free" | "premium";
+type Course = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  price: number;
+  image: string | null;
+  published: boolean;
+  access_type: CourseAccessType;
+};
+type LearningArea = CourseAccessType;
 type Lesson = {
   id: string;
   course_id: string;
@@ -87,6 +94,15 @@ type FormState = {
   isPublished: boolean;
   mediaSource: MediaSource;
 };
+type CourseForm = {
+  id: string | null;
+  title: string;
+  slug: string;
+  description: string;
+  price: string;
+  image: string;
+  published: boolean;
+};
 
 const blankForm = (courseId = ""): FormState => ({
   id: null,
@@ -98,6 +114,15 @@ const blankForm = (courseId = ""): FormState => ({
   position: "",
   isPublished: false,
   mediaSource: "self_hosted",
+});
+const blankCourse = (): CourseForm => ({
+  id: null,
+  title: "",
+  slug: "",
+  description: "",
+  price: "0",
+  image: "",
+  published: false,
 });
 
 type MediaStatusRow = Pick<
@@ -121,6 +146,9 @@ function AdminLessons() {
   const [deleting, setDeleting] = useState<Lesson | null>(null);
   const [form, setForm] = useState<FormState>(blankForm());
   const [area, setArea] = useState<LearningArea>("premium");
+  const [courseForm, setCourseForm] = useState<CourseForm>(blankCourse());
+  const [courseSaving, setCourseSaving] = useState(false);
+  const areaCourses = courses.filter((course) => course.access_type === area);
 
   const loadLessons = useCallback(async (courseId: string) => {
     if (!courseId) return;
@@ -176,19 +204,22 @@ function AdminLessons() {
     let active = true;
     supabase
       .from("courses")
-      .select("id,title,slug")
+      .select("id,title,slug,description,price,image,published,access_type")
       .order("title")
       .then(({ data, error }) => {
         if (!active) return;
         if (error) {
           console.error("Could not load courses", error);
-          toast.error("Could not load premium courses.");
+          toast.error("Could not load lesson courses.");
           setLoading(false);
           return;
         }
-        const rows = data ?? [];
+        const rows = (data ?? []).filter(
+          (course): course is Course =>
+            course.access_type === "free" || course.access_type === "premium",
+        );
         setCourses(rows);
-        const firstCourseId = rows[0]?.id ?? "";
+        const firstCourseId = rows.find((course) => course.access_type === "premium")?.id ?? "";
         setSelectedCourseId(firstCourseId);
         setForm(blankForm(firstCourseId));
         if (!firstCourseId) setLoading(false);
@@ -205,6 +236,74 @@ function AdminLessons() {
   function selectCourse(courseId: string) {
     setSelectedCourseId(courseId);
     setForm(blankForm(courseId));
+  }
+
+  function selectArea(nextArea: LearningArea) {
+    const firstCourseId = courses.find((course) => course.access_type === nextArea)?.id ?? "";
+    setArea(nextArea);
+    setSelectedCourseId(firstCourseId);
+    setLessons([]);
+    setForm(blankForm(firstCourseId));
+    setCourseForm(blankCourse());
+    if (!firstCourseId) setLoading(false);
+  }
+
+  function editCourse(course: Course) {
+    if (course.access_type !== area) return;
+    setCourseForm({
+      id: course.id,
+      title: course.title,
+      slug: course.slug,
+      description: course.description ?? "",
+      price: String(course.price),
+      image: course.image ?? "",
+      published: course.published,
+    });
+  }
+
+  async function saveCourse(event: React.FormEvent) {
+    event.preventDefault();
+    if (courseSaving) return;
+    const title = courseForm.title.trim();
+    const slug = slugify(courseForm.slug || title);
+    const price = Number(courseForm.price);
+    if (!title || !slug) return toast.error("Course title and slug are required.");
+    if (!Number.isFinite(price) || price < 0) return toast.error("Enter a valid course price.");
+    setCourseSaving(true);
+    const common = {
+      p_title: title,
+      p_slug: slug,
+      p_description: courseForm.description.trim() || null,
+      p_price: price,
+      p_image: courseForm.image.trim() || null,
+      p_published: courseForm.published,
+      p_access_type: area,
+    };
+    const result = courseForm.id
+      ? await supabase.rpc("admin_update_course", { ...common, p_course_id: courseForm.id })
+      : await supabase.rpc("admin_create_course", common);
+    setCourseSaving(false);
+    if (result.error) return toast.error(result.error.message);
+    toast.success(
+      courseForm.id
+        ? `${area === "free" ? "Free" : "Premium"} course updated.`
+        : `${area === "free" ? "Free" : "Premium"} course created.`,
+    );
+    setCourseForm(blankCourse());
+    const { data } = await supabase
+      .from("courses")
+      .select("id,title,slug,description,price,image,published,access_type")
+      .order("title");
+    const rows = (data ?? []).filter(
+      (course): course is Course =>
+        course.access_type === "free" || course.access_type === "premium",
+    );
+    setCourses(rows);
+    const selected =
+      rows.find(
+        (course) => course.access_type === area && (!courseForm.id || course.id === courseForm.id),
+      ) ?? rows.find((course) => course.access_type === area);
+    if (selected) selectCourse(selected.id);
   }
 
   function editLesson(lesson: Lesson, scroll = true) {
@@ -247,6 +346,13 @@ function AdminLessons() {
       return toast.error("Position must be a whole number greater than zero.");
     }
     const existingLesson = form.id ? lessons.find((lesson) => lesson.id === form.id) : null;
+    if (
+      form.isPublished &&
+      form.mediaSource === "self_hosted" &&
+      !existingLesson?.video_storage_path
+    ) {
+      return toast.error("Save the lesson as a draft and finish its MP4 upload before publishing.");
+    }
     if (existingLesson?.media_source === "self_hosted" && form.mediaSource !== "self_hosted") {
       return toast.error("Use Remove video before changing an attached private video's source.");
     }
@@ -355,6 +461,14 @@ function AdminLessons() {
 
   async function togglePublished(lesson: Lesson) {
     if (saving || moving) return;
+    if (
+      !lesson.is_published &&
+      lesson.media_source === "self_hosted" &&
+      !lesson.video_storage_path
+    ) {
+      toast.error("Finish the MP4 upload before publishing this lesson.");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.rpc("admin_save_lesson", {
       p_lesson_id: lesson.id,
@@ -404,18 +518,17 @@ function AdminLessons() {
         Choose a learning area, then manage its existing course or library structure.
       </p>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Learning area">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2" aria-label="Learning area">
         {(
           [
             ["premium", "Premium Lessons", GraduationCap],
             ["free", "Free Lessons", FileVideo],
-            ["alc_access", "ALC Access", KeyRound],
           ] as const
         ).map(([value, label, Icon]) => (
           <button
             key={value}
             type="button"
-            onClick={() => setArea(value)}
+            onClick={() => selectArea(value)}
             className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors ${area === value ? "border-gold/50 bg-gold/10 text-foreground" : "border-border bg-card/50 text-muted-foreground hover:border-gold/30 hover:text-foreground"}`}
             aria-pressed={area === value}
           >
@@ -427,9 +540,103 @@ function AdminLessons() {
         ))}
       </div>
 
-      {area === "free" && <FreeLessonsStatus />}
-      {area === "alc_access" && <AdminAlcLibrary embedded />}
-      {area === "premium" && (
+      <form onSubmit={saveCourse} className="glass mt-8 rounded-3xl p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-xl font-semibold">
+            {courseForm.id ? "Edit course" : `Create ${area} course`}
+          </h2>
+          {courseForm.id && (
+            <button
+              type="button"
+              className="text-xs font-semibold text-muted-foreground"
+              onClick={() => setCourseForm(blankCourse())}
+            >
+              Cancel editing
+            </button>
+          )}
+        </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <Field label="Course title">
+            <input
+              className="admin-input"
+              required
+              maxLength={160}
+              value={courseForm.title}
+              onChange={(event) =>
+                setCourseForm((current) => ({
+                  ...current,
+                  title: event.target.value,
+                  slug: current.id || current.slug ? current.slug : slugify(event.target.value),
+                }))
+              }
+            />
+          </Field>
+          <Field label="Slug">
+            <input
+              className="admin-input"
+              required
+              value={courseForm.slug}
+              onChange={(event) =>
+                setCourseForm((current) => ({ ...current, slug: slugify(event.target.value) }))
+              }
+            />
+          </Field>
+          <Field label="Price (TZS)">
+            <input
+              className="admin-input"
+              inputMode="decimal"
+              value={courseForm.price}
+              onChange={(event) =>
+                setCourseForm((current) => ({ ...current, price: event.target.value }))
+              }
+            />
+          </Field>
+          <Field label="Image URL">
+            <input
+              className="admin-input"
+              type="url"
+              placeholder="Optional HTTPS image"
+              value={courseForm.image}
+              onChange={(event) =>
+                setCourseForm((current) => ({ ...current, image: event.target.value }))
+              }
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Description">
+              <textarea
+                className="admin-input min-h-24"
+                value={courseForm.description}
+                onChange={(event) =>
+                  setCourseForm((current) => ({ ...current, description: event.target.value }))
+                }
+              />
+            </Field>
+          </div>
+          <label className="flex items-center gap-3 text-sm font-semibold">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-amber-500"
+              checked={courseForm.published}
+              onChange={(event) =>
+                setCourseForm((current) => ({ ...current, published: event.target.checked }))
+              }
+            />
+            Published course
+          </label>
+        </div>
+        <button
+          disabled={courseSaving}
+          className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          <Plus className="h-4 w-4" />
+          {courseSaving ? "Saving…" : courseForm.id ? "Save course" : "Create course"}
+        </button>
+        <p className="mt-3 text-xs text-muted-foreground">
+          This checked Admin operation explicitly preserves <code>access_type='{area}'</code>.
+        </p>
+      </form>
+      {(area === "premium" || area === "free") && (
         <>
           <form onSubmit={saveLesson} className="glass mt-8 rounded-3xl p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -456,13 +663,25 @@ function AdminLessons() {
                   }}
                   className="admin-input"
                 >
-                  <option value="">Select a premium course</option>
-                  {courses.map((course) => (
+                  <option value="">Select a {area} course</option>
+                  {areaCourses.map((course) => (
                     <option key={course.id} value={course.id}>
                       {course.title}
                     </option>
                   ))}
                 </select>
+                {selectedCourseId && (
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-semibold text-gold"
+                    onClick={() => {
+                      const course = courses.find((item) => item.id === selectedCourseId);
+                      if (course) editCourse(course);
+                    }}
+                  >
+                    Edit selected course
+                  </button>
+                )}
               </Field>
               <Field label="Position">
                 <input
@@ -539,7 +758,9 @@ function AdminLessons() {
                   }
                   className="h-4 w-4 accent-amber-500"
                 />
-                Published and visible to entitled learners
+                {area === "free"
+                  ? "Published and visible to authenticated learners"
+                  : "Published and visible to entitled learners"}
               </label>
               <div className="sm:col-span-2">
                 <Field label="Description">
@@ -555,7 +776,7 @@ function AdminLessons() {
               </div>
             </div>
             <button
-              disabled={saving}
+              disabled={saving || !form.courseId}
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{" "}
@@ -606,7 +827,7 @@ function AdminLessons() {
               <div>
                 <h2 className="font-display text-xl font-semibold">Course lessons</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Ordered lesson list for the selected premium course.
+                  Ordered lesson list for the selected {area} course.
                 </p>
               </div>
               <select
@@ -614,8 +835,8 @@ function AdminLessons() {
                 onChange={(event) => selectCourse(event.target.value)}
                 className="admin-input max-w-xs"
               >
-                <option value="">Select a premium course</option>
-                {courses.map((course) => (
+                <option value="">Select a {area} course</option>
+                {areaCourses.map((course) => (
                   <option key={course.id} value={course.id}>
                     {course.title}
                   </option>
@@ -724,36 +945,6 @@ function AdminLessons() {
         </>
       )}
     </div>
-  );
-}
-
-function FreeLessonsStatus() {
-  return (
-    <section className="glass mt-8 rounded-3xl p-5 sm:p-6">
-      <h2 className="font-display text-xl font-semibold">Free Lessons</h2>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Free lessons currently come from the website’s static lesson catalog, not the editable
-        course and lesson tables. They are shown here without write controls so no duplicate or
-        incompatible production records are created.
-      </p>
-      <div className="mt-5 divide-y divide-border rounded-2xl border border-border">
-        {FREE_LESSONS.map((lesson, index) => (
-          <div key={lesson.id} className="flex items-center justify-between gap-4 p-4">
-            <div className="min-w-0">
-              <p className="font-semibold">{lesson.title}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {lesson.level} · {lesson.duration}
-              </p>
-            </div>
-            <span className="text-xs font-semibold text-muted-foreground">{index + 1}</span>
-          </div>
-        ))}
-      </div>
-      <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-muted-foreground">
-        Editable Free Lesson uploads require a dedicated persisted lesson model and playback
-        contract. That backend work is intentionally not introduced by this frontend change.
-      </p>
-    </section>
   );
 }
 

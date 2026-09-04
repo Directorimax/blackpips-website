@@ -95,17 +95,21 @@ export async function posterAsWebp(file: File): Promise<Blob> {
   }
 }
 
-type ResumableUploadOptions = {
+export type ResumableUploadOptions = {
   file: File;
   endpoint: string;
   accessToken: string;
   publishableKey: string;
   objectPath: string;
+  bucketName?: string;
+  contentType?: string;
+  fingerprintNamespace?: string;
   upsert: boolean;
   onProgress: (progress: UploadProgress) => void;
 };
 
-export function startResumableCourseVideoUpload(options: ResumableUploadOptions) {
+export function startResumableMediaUpload(options: ResumableUploadOptions) {
+  const bucketName = options.bucketName ?? COURSE_MEDIA_BUCKET;
   const upload = new Upload(options.file, {
     endpoint: options.endpoint,
     chunkSize: COURSE_MEDIA_CHUNK_BYTES,
@@ -115,7 +119,7 @@ export function startResumableCourseVideoUpload(options: ResumableUploadOptions)
     fingerprint: () =>
       Promise.resolve(
         [
-          "blackpips-course-media",
+          options.fingerprintNamespace ?? `blackpips-${bucketName}`,
           options.objectPath,
           options.file.name,
           options.file.size,
@@ -128,9 +132,9 @@ export function startResumableCourseVideoUpload(options: ResumableUploadOptions)
       "x-upsert": options.upsert ? "true" : "false",
     },
     metadata: {
-      bucketName: COURSE_MEDIA_BUCKET,
+      bucketName,
       objectName: options.objectPath,
-      contentType: "video/mp4",
+      contentType: options.contentType ?? options.file.type ?? "application/octet-stream",
     },
     onProgress: (uploaded, total) =>
       options.onProgress({
@@ -156,6 +160,15 @@ export function startResumableCourseVideoUpload(options: ResumableUploadOptions)
     completion,
     cancel: () => upload.abort(true),
   };
+}
+
+export function startResumableCourseVideoUpload(options: ResumableUploadOptions) {
+  return startResumableMediaUpload({
+    ...options,
+    bucketName: COURSE_MEDIA_BUCKET,
+    contentType: "video/mp4",
+    fingerprintNamespace: "blackpips-course-media",
+  });
 }
 
 export function resumableEndpoint(supabaseUrl: string) {

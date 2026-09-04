@@ -9,12 +9,27 @@ const tipsSource = readFileSync(
 );
 
 describe("admin lesson learning areas", () => {
-  it("presents the three real learning areas without merging their data contracts", () => {
+  it("keeps Lesson Management focused on Premium and Free courses", () => {
     expect(lessonsSource).toContain('"Premium Lessons"');
     expect(lessonsSource).toContain('"Free Lessons"');
-    expect(lessonsSource).toContain('"ALC Access"');
-    expect(lessonsSource).toContain("<AdminAlcLibrary embedded />");
-    expect(lessonsSource).toContain("FREE_LESSONS.map");
+    expect(lessonsSource).not.toContain('"ALC Access"');
+    expect(lessonsSource).not.toContain("<AdminAlcLibrary embedded />");
+    expect(alcSource).toContain('createFileRoute("/admin/alc-library")');
+  });
+
+  it("filters authoritative courses by access_type without using price", () => {
+    expect(lessonsSource).toContain('course.access_type === "free"');
+    expect(lessonsSource).toContain('course.access_type === "premium"');
+    expect(lessonsSource).toContain("course.access_type === area");
+    expect(lessonsSource).not.toContain("course.price === 0");
+  });
+
+  it("creates and updates courses only through checked RPCs with the selected classification", () => {
+    expect(lessonsSource).toContain('supabase.rpc("admin_create_course"');
+    expect(lessonsSource).toContain('supabase.rpc("admin_update_course"');
+    expect(lessonsSource).toContain("p_access_type: area");
+    expect(lessonsSource).not.toContain('.from("courses").insert');
+    expect(lessonsSource).not.toMatch(/randomUUID|crypto\.randomUUID/);
   });
 
   it("makes device upload the default premium lesson workflow and exposes save-first guidance", () => {
@@ -29,5 +44,24 @@ describe("admin lesson learning areas", () => {
     expect(tipsSource).toContain("<MediaDropzone");
     expect(alcSource).not.toContain("ExpiryPicker");
     expect(lessonsSource).not.toContain("ExpiryPicker");
+  });
+
+  it("does not publish an incomplete self-hosted lesson", () => {
+    expect(lessonsSource).toContain("finish its MP4 upload before publishing");
+    expect(lessonsSource).toContain("Finish the MP4 upload before publishing this lesson");
+  });
+
+  it("preserves legacy links and adds the checked private ALC media flow", () => {
+    expect(alcSource).toContain("Video URL (YouTube HTTPS)");
+    expect(alcSource).toContain("admin_save_alc_video");
+    expect(alcSource).not.toContain("startResumableCourseVideoUpload");
+    expect(alcSource).toContain("<MediaDropzone");
+    expect(alcSource).toContain("admin_initialize_alc_self_hosted_video");
+    expect(alcSource).toContain("startResumableAlcVideoUpload");
+    expect(alcSource).toContain("admin_finalize_alc_self_hosted_video");
+    expect(alcSource).toContain("admin_update_alc_self_hosted_video");
+    expect(alcSource).toContain("admin_clear_alc_self_hosted_media");
+    expect(alcSource).toContain("Uploaded media removed. The video record remains as a draft.");
+    expect(alcSource).toContain("Publication is applied only after Storage upload");
   });
 });
