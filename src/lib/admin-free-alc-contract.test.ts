@@ -11,8 +11,8 @@ describe("Free course and ALC Admin integration contracts", () => {
   it("keeps explicit Free/Premium course identity behind checked RPCs", () => {
     expect(lessons).toContain("adminCourseMutationArgs");
     expect(courseMutation).toContain("p_access_type: accessType");
-    expect(lessons).toContain('supabase.rpc("admin_create_course"');
-    expect(lessons).toContain('supabase.rpc("admin_update_course"');
+    expect(lessons).toContain('"admin_create_course"');
+    expect(lessons).toContain('supabase.rpc("admin_update_course", args)');
     expect(lessons).not.toContain('.from("courses").insert');
     expect(lessons).not.toContain("price === 0");
     expect(lessons).not.toMatch(/randomUUID|crypto\.randomUUID/);

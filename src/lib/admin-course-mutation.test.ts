@@ -1,5 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { adminCourseMutationArgs, courseMutationPersisted } from "./admin-course-mutation";
+import { readFileSync } from "node:fs";
+import { describe, expect, it, vi } from "vitest";
+import {
+  adminCourseMutationArgs,
+  courseMutationPersisted,
+  updateAdminCourseAndVerify,
+} from "./admin-course-mutation";
+
+const componentSource = readFileSync(
+  new URL("../routes/admin/lessons.tsx", import.meta.url),
+  "utf8",
+);
 
 const form = {
   title: "Free lesson",
@@ -43,5 +53,87 @@ describe("Admin course update payload", () => {
         expected,
       ),
     ).toBe(false);
+  });
+
+  it("captures the actual edit form state and verifies the same course UUID", async () => {
+    const update = vi.fn().mockResolvedValue({ error: null });
+    const refetch = vi.fn().mockResolvedValue({
+      data: { id: "course-id", published: true, access_type: "free" },
+      error: null,
+    });
+    const result = await updateAdminCourseAndVerify({
+      courseId: "course-id",
+      values: { ...form, published: true },
+      accessType: "free",
+      update,
+      refetch,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        p_course_id: "course-id",
+        p_published: true,
+        p_access_type: "free",
+      }),
+    );
+    expect(refetch).toHaveBeenCalledWith("course-id");
+  });
+
+  it("sends an explicit false publication state and preserves Premium classification", async () => {
+    const update = vi.fn().mockResolvedValue({ error: null });
+    const result = await updateAdminCourseAndVerify({
+      courseId: "premium-id",
+      values: { ...form, price: 0, published: false },
+      accessType: "premium",
+      update,
+      refetch: vi.fn().mockResolvedValue({
+        data: { id: "premium-id", published: false, access_type: "premium" },
+        error: null,
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ p_published: false, p_access_type: "premium" }),
+    );
+  });
+
+  it("fails without reporting success when the authoritative state mismatches", async () => {
+    const result = await updateAdminCourseAndVerify({
+      courseId: "course-id",
+      values: form,
+      accessType: "free",
+      update: vi.fn().mockResolvedValue({ error: null }),
+      refetch: vi.fn().mockResolvedValue({
+        data: { id: "course-id", published: false, access_type: "free" },
+        error: null,
+      }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("not confirmed");
+  });
+
+  it("returns RPC errors without performing the authoritative refetch", async () => {
+    const refetch = vi.fn();
+    const result = await updateAdminCourseAndVerify({
+      courseId: "course-id",
+      values: form,
+      accessType: "free",
+      update: vi.fn().mockResolvedValue({ error: { message: "RPC denied" } }),
+      refetch,
+    });
+    expect(result).toMatchObject({ ok: false, message: "RPC denied" });
+    expect(refetch).not.toHaveBeenCalled();
+  });
+
+  it("binds the real form, checkbox, and submit button to the verified update path", () => {
+    expect(componentSource).toContain("<form onSubmit={saveCourse}");
+    expect(componentSource).toContain("checked={courseForm.published}");
+    expect(componentSource).toContain("published: event.target.checked");
+    expect(componentSource).toContain("const submission = { ...courseForm, title, slug, price }");
+    expect(componentSource).toContain("updateAdminCourseAndVerify({");
+    expect(componentSource).toContain('supabase.rpc("admin_update_course", args)');
+    expect(componentSource).toContain('type="submit"');
   });
 });

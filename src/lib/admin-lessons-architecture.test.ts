@@ -29,8 +29,8 @@ describe("admin lesson learning areas", () => {
   });
 
   it("creates and updates courses only through checked RPCs with the selected classification", () => {
-    expect(lessonsSource).toContain('supabase.rpc("admin_create_course"');
-    expect(lessonsSource).toContain('supabase.rpc("admin_update_course"');
+    expect(lessonsSource).toContain('"admin_create_course"');
+    expect(lessonsSource).toContain('supabase.rpc("admin_update_course", args)');
     expect(lessonsSource).toContain("adminCourseMutationArgs");
     expect(courseMutationSource).toContain("p_access_type: accessType");
     expect(lessonsSource).not.toContain('.from("courses").insert');

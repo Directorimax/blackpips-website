@@ -49,7 +49,7 @@ import {
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
 import {
   adminCourseMutationArgs,
-  courseMutationPersisted,
+  updateAdminCourseAndVerify,
   type CourseAccessType,
 } from "@/lib/admin-course-mutation";
 
@@ -273,36 +273,44 @@ function AdminLessons() {
     const price = Number(courseForm.price);
     if (!title || !slug) return toast.error("Course title and slug are required.");
     if (!Number.isFinite(price) || price < 0) return toast.error("Enter a valid course price.");
+    const submission = { ...courseForm, title, slug, price };
+    const editingCourseId = courseForm.id;
     setCourseSaving(true);
-    const common = adminCourseMutationArgs({ ...courseForm, title, slug, price }, area);
-    const result = courseForm.id
-      ? await supabase.rpc("admin_update_course", { ...common, p_course_id: courseForm.id })
-      : await supabase.rpc("admin_create_course", common);
-    if (result.error) {
-      setCourseSaving(false);
-      return toast.error(result.error.message);
-    }
-    const updatedCourseId = courseForm.id ?? (typeof result.data === "string" ? result.data : null);
-    if (updatedCourseId) {
-      const { data: authoritativeCourse, error: verifyError } = await supabase
-        .from("courses")
-        .select("id,published,access_type")
-        .eq("id", updatedCourseId)
-        .single();
-      if (
-        verifyError ||
-        !courseMutationPersisted(authoritativeCourse, {
-          id: updatedCourseId,
-          published: courseForm.published,
-          accessType: area,
-        })
-      ) {
+    let updatedCourseId: string | null = null;
+    if (editingCourseId) {
+      const updateResult = await updateAdminCourseAndVerify({
+        courseId: editingCourseId,
+        values: submission,
+        accessType: area,
+        update: async (args) => {
+          const { error } = await supabase.rpc("admin_update_course", args);
+          return { error };
+        },
+        refetch: async (courseId) => {
+          const { data, error } = await supabase
+            .from("courses")
+            .select("id,published,access_type")
+            .eq("id", courseId)
+            .single();
+          return { data, error };
+        },
+      });
+      if (!updateResult.ok) {
         setCourseSaving(false);
-        console.error("Course RPC returned without the requested authoritative state", verifyError);
-        return toast.error(
-          "Course update was not confirmed. Your form is unchanged; please retry.",
-        );
+        console.error("Course update was not authoritatively confirmed");
+        return toast.error(updateResult.message);
       }
+      updatedCourseId = editingCourseId;
+    } else {
+      const result = await supabase.rpc(
+        "admin_create_course",
+        adminCourseMutationArgs(submission, area),
+      );
+      if (result.error) {
+        setCourseSaving(false);
+        return toast.error(result.error.message);
+      }
+      updatedCourseId = typeof result.data === "string" ? result.data : null;
     }
     const { data } = await supabase
       .from("courses")
@@ -317,14 +325,15 @@ function AdminLessons() {
     );
     setCourses(rows);
     toast.success(
-      courseForm.id
+      editingCourseId
         ? `${area === "free" ? "Free" : "Premium"} course updated.`
         : `${area === "free" ? "Free" : "Premium"} course created.`,
     );
     setCourseForm(blankCourse());
     const selected =
       rows.find(
-        (course) => course.access_type === area && (!courseForm.id || course.id === courseForm.id),
+        (course) =>
+          course.access_type === area && (!editingCourseId || course.id === updatedCourseId),
       ) ?? rows.find((course) => course.access_type === area);
     if (selected) selectCourse(selected.id);
   }
@@ -649,6 +658,7 @@ function AdminLessons() {
           </label>
         </div>
         <button
+          type="submit"
           disabled={courseSaving}
           className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
