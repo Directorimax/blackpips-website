@@ -5,8 +5,9 @@ import { COURSES, formatTZS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
 import { createSeoHead } from "@/lib/seo";
-import { FEATURE_ACCESS } from "@/lib/feature-access";
-import { ComingSoon } from "@/components/ComingSoon";
+import { isPremiumCatalogAvailable, isPremiumCourseAvailable } from "@/lib/feature-access";
+import { LearningFeatureGate } from "@/components/LearningFeatureGate";
+import { useAdmin } from "@/hooks/useAdmin";
 
 export const Route = createFileRoute("/courses/")({
   head: () =>
@@ -21,19 +22,21 @@ export const Route = createFileRoute("/courses/")({
 });
 
 function Courses() {
-  if (!FEATURE_ACCESS.premiumLessonsEnabled)
-    return (
-      <ComingSoon
-        title="Premium Lessons"
-        description="Premium BLACKPIPS lessons are currently being prepared. Access will be available soon."
-      />
-    );
-  return <CoursesCatalog />;
+  return (
+    <LearningFeatureGate
+      featureEnabled={isPremiumCatalogAvailable()}
+      title="Premium Lessons"
+      description="Premium BLACKPIPS lessons are currently being prepared. Access will be available soon."
+    >
+      <CoursesCatalog />
+    </LearningFeatureGate>
+  );
 }
 
 function CoursesCatalog() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const [purchasedSlugs, setPurchasedSlugs] = useState<Set<string>>(new Set());
   const [purchasesLoading, setPurchasesLoading] = useState(true);
 
@@ -89,6 +92,7 @@ function CoursesCatalog() {
       <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {COURSES.map((course) => {
           const purchased = purchasedSlugs.has(course.slug);
+          const available = isPremiumCourseAvailable(course.slug) || isAdmin;
           return (
             <article
               key={course.slug}
@@ -106,7 +110,7 @@ function CoursesCatalog() {
                   aria-label={purchased ? "Course unlocked" : "Course locked"}
                   role="img"
                 >
-                  {purchased ? (
+                  {available && purchased ? (
                     <Unlock className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
                   ) : (
                     <Lock className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
@@ -133,7 +137,14 @@ function CoursesCatalog() {
                 </div>
                 <div className="mt-6 flex items-center justify-between border-t border-border pt-5">
                   <div>
-                    {purchased ? (
+                    {!available ? (
+                      <>
+                        <div className="text-xs font-semibold text-muted-foreground">
+                          Coming Soon
+                        </div>
+                        <div className="text-sm text-muted-foreground">In preparation</div>
+                      </>
+                    ) : purchased ? (
                       <>
                         <div className="text-xs font-semibold text-gold">Purchased</div>
                         <div className="text-sm text-muted-foreground">Lifetime access</div>
@@ -147,7 +158,14 @@ function CoursesCatalog() {
                       </>
                     )}
                   </div>
-                  {purchased ? (
+                  {!available ? (
+                    <button
+                      disabled
+                      className="cursor-not-allowed rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-muted-foreground opacity-70"
+                    >
+                      Coming Soon
+                    </button>
+                  ) : purchased ? (
                     <button
                       onClick={() =>
                         navigate({ to: "/courses/$slug", params: { slug: course.slug } })

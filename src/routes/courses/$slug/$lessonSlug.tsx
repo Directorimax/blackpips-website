@@ -15,7 +15,10 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
-import { ProtectedLessonVideo } from "@/components/ProtectedLessonVideo";
+import {
+  ProtectedLessonVideo,
+  ProtectedSelfHostedLessonVideo,
+} from "@/components/ProtectedLessonVideo";
 import {
   LessonArticle,
   LessonNotes,
@@ -28,6 +31,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
 import { sendNotification } from "@/services/email/notification.functions";
 import { useLessonBookmark } from "@/hooks/useLessonBookmark";
+import {
+  COURSE_MEDIA_REFRESH_AFTER_MS,
+  COURSE_MEDIA_SIGNED_URL_TTL_SECONDS,
+  type LessonPlaybackDescriptor,
+  parseLessonPlaybackDescriptor,
+} from "@/lib/lesson-playback";
 
 export const Route = createFileRoute("/courses/$slug/$lessonSlug")({
   component: () => (
@@ -45,7 +54,12 @@ type Lesson = {
   video_url: string | null;
   position: number;
 };
-type Course = { id: string; slug: string; title: string };
+type Course = {
+  id: string;
+  slug: string;
+  title: string;
+  access_type: "free" | "premium";
+};
 type LessonProgress = { lesson_id: string; is_completed: boolean };
 type Profile = { full_name: string | null };
 
@@ -86,7 +100,12 @@ function PremiumLesson() {
       setCompletedLessonIds(new Set());
 
       const [{ data: courseData, error: courseError }, { data: profileData }] = await Promise.all([
-        supabase.from("courses").select("id,slug,title").eq("slug", slug).maybeSingle(),
+        supabase
+          .from("courses")
+          .select("id,slug,title,access_type")
+          .eq("slug", slug)
+          .eq("published", true)
+          .maybeSingle(),
         supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
       ]);
       if (courseError || !courseData) {
@@ -95,12 +114,15 @@ function PremiumLesson() {
       }
       if (active) setViewerName((profileData as Profile | null)?.full_name?.trim() ?? "");
 
-      const { data: purchase } = await supabase
-        .from("purchases")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("course_id", courseData.id)
-        .maybeSingle();
+      const { data: purchase } =
+        courseData.access_type === "premium"
+          ? await supabase
+              .from("purchases")
+              .select("id")
+              .eq("user_id", userId)
+              .eq("course_id", courseData.id)
+              .maybeSingle()
+          : { data: { id: "free-access" } };
       if (!active) return;
       if (!purchase) {
         setCourse(courseData);
@@ -139,13 +161,23 @@ function PremiumLesson() {
             .map((progress: LessonProgress) => progress.lesson_id),
         ),
       );
-      setAllowed(true);
       if (!currentLesson) {
         setLessonUnavailable(true);
         setLoading(false);
         return;
       }
 
+      const { data: canAccess, error: accessError } = await supabase.rpc(
+        "can_access_published_lesson",
+        { p_course_id: courseData.id, p_lesson_id: currentLesson.id },
+      );
+      if (!active) return;
+      if (accessError || canAccess !== true) {
+        setLoading(false);
+        return;
+      }
+
+      setAllowed(true);
       setLesson(currentLesson);
       setLoading(false);
       if (viewedLessonId.current === currentLesson.id) return;
@@ -181,26 +213,11 @@ function PremiumLesson() {
         if (active) setAllowed(false);
         return;
       }
-      const [
-        { data: purchase, error: purchaseError },
-        { data: accessibleLesson, error: lessonError },
-      ] = await Promise.all([
-        supabase
-          .from("purchases")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("course_id", courseId)
-          .maybeSingle(),
-        supabase
-          .from("lessons")
-          .select("id")
-          .eq("id", lessonId)
-          .eq("course_id", courseId)
-          .eq("is_published", true)
-          .maybeSingle(),
-      ]);
-      if (active && (purchaseError || lessonError || !purchase || !accessibleLesson))
-        setAllowed(false);
+      const { data: canAccess, error: accessError } = await supabase.rpc(
+        "can_access_published_lesson",
+        { p_course_id: courseId, p_lesson_id: lessonId },
+      );
+      if (active && (accessError || canAccess !== true)) setAllowed(false);
     };
 
     const onVisibilityChange = () => {
@@ -228,7 +245,13 @@ function PremiumLesson() {
   const progressPercent = curriculum.length
     ? Math.round((completedCount / curriculum.length) * 100)
     : 0;
-  const embeddableVideoUrl = getEmbeddableVideoUrl(lesson?.video_url);
+  const playback = useLessonPlayback({
+    enabled: allowed,
+    courseId: course?.id ?? null,
+    lessonId: lesson?.id ?? null,
+  });
+  const legacyVideoUrl = playback.descriptor?.legacyVideoUrl ?? lesson?.video_url;
+  const embeddableVideoUrl = getEmbeddableVideoUrl(legacyVideoUrl);
   const metadataName =
     typeof user?.user_metadata.full_name === "string" ? user.user_metadata.full_name.trim() : "";
   const videoViewer = user
@@ -238,7 +261,6 @@ function PremiumLesson() {
         id: user.id,
       }
     : null;
-
   async function markComplete() {
     if (!user || !course || !lesson || completed || saving) return;
     setSaving(true);
@@ -358,14 +380,46 @@ function PremiumLesson() {
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <main className="min-w-0">
           <div className="aspect-video rounded-3xl border border-border bg-secondary/50 p-3 sm:p-5">
-            {embeddableVideoUrl && videoViewer ? (
+            {playback.loading ? (
+              <div className="grid h-full place-items-center text-center text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Preparing secure lesson video…
+                </span>
+              </div>
+            ) : playback.error ? (
+              <div className="grid h-full place-items-center px-6 text-center">
+                <div>
+                  <p className="text-sm text-muted-foreground">{playback.error}</p>
+                  <button
+                    type="button"
+                    onClick={playback.retry}
+                    className="mt-4 rounded-xl border border-gold/40 px-4 py-2 text-sm font-semibold text-gold transition hover:bg-gold/10"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            ) : playback.descriptor?.mediaSource === "self_hosted" &&
+              playback.videoUrl &&
+              videoViewer ? (
+              <ProtectedSelfHostedLessonVideo
+                src={playback.videoUrl}
+                poster={playback.posterUrl}
+                title={lesson.title}
+                viewer={videoViewer}
+                startPositionSeconds={playback.descriptor.playbackPositionSeconds}
+                onPlaybackError={playback.reportPlaybackError}
+              />
+            ) : playback.descriptor?.mediaSource === "youtube_legacy" &&
+              embeddableVideoUrl &&
+              videoViewer ? (
               <ProtectedLessonVideo
                 src={embeddableVideoUrl}
                 title={lesson.title}
                 viewer={videoViewer}
               />
-            ) : lesson.video_url ? (
-              <VideoFallback url={lesson.video_url} />
+            ) : playback.descriptor?.mediaSource === "youtube_legacy" && legacyVideoUrl ? (
+              <VideoFallback url={legacyVideoUrl} />
             ) : (
               <div className="grid h-full place-items-center text-center text-sm text-muted-foreground">
                 Lesson video will be available here.
@@ -415,6 +469,103 @@ function PremiumLesson() {
       </div>
     </div>
   );
+}
+
+function useLessonPlayback({
+  enabled,
+  courseId,
+  lessonId,
+}: {
+  enabled: boolean;
+  courseId: string | null;
+  lessonId: string | null;
+}) {
+  const [descriptor, setDescriptor] = useState<LessonPlaybackDescriptor | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    if (!enabled || !courseId || !lessonId) return;
+    let active = true;
+    let refreshTimer: number | undefined;
+
+    const signMedia = async (nextDescriptor: LessonPlaybackDescriptor) => {
+      const path = nextDescriptor.videoStoragePath;
+      if (!path) throw new Error("Private lesson media is unavailable.");
+      const videoRequest = supabase.storage
+        .from("course-media")
+        .createSignedUrl(path, COURSE_MEDIA_SIGNED_URL_TTL_SECONDS);
+      const posterRequest = nextDescriptor.videoPosterPath
+        ? supabase.storage
+            .from("course-media")
+            .createSignedUrl(nextDescriptor.videoPosterPath, COURSE_MEDIA_SIGNED_URL_TTL_SECONDS)
+        : Promise.resolve({ data: null, error: null });
+      const [{ data: signedVideo, error: videoError }, { data: signedPoster }] = await Promise.all([
+        videoRequest,
+        posterRequest,
+      ]);
+      if (videoError || !signedVideo?.signedUrl) {
+        throw new Error("The secure lesson video could not be loaded.");
+      }
+      if (!active) return;
+      setVideoUrl(signedVideo.signedUrl);
+      setPosterUrl(signedPoster?.signedUrl ?? null);
+      setError(null);
+      refreshTimer = window.setTimeout(async () => {
+        try {
+          await signMedia(nextDescriptor);
+        } catch {
+          if (active) setError("The secure video session expired. Try again to continue.");
+        }
+      }, COURSE_MEDIA_REFRESH_AFTER_MS);
+    };
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      setDescriptor(null);
+      setVideoUrl(null);
+      setPosterUrl(null);
+      const { data, error: descriptorError } = await supabase.rpc(
+        "get_lesson_playback_descriptor",
+        { p_course_id: courseId, p_lesson_id: lessonId },
+      );
+      if (!active) return;
+      if (descriptorError) {
+        setError("The secure lesson video could not be prepared.");
+        setLoading(false);
+        return;
+      }
+      try {
+        const nextDescriptor = parseLessonPlaybackDescriptor(data);
+        setDescriptor(nextDescriptor);
+        if (nextDescriptor.mediaSource === "self_hosted") await signMedia(nextDescriptor);
+      } catch {
+        if (active) setError("The secure lesson video could not be prepared.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void load();
+    return () => {
+      active = false;
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+    };
+  }, [attempt, courseId, enabled, lessonId]);
+
+  return {
+    descriptor,
+    videoUrl,
+    posterUrl,
+    loading,
+    error,
+    retry: () => setAttempt((current) => current + 1),
+    reportPlaybackError: () => setError("This lesson video could not be played. Try again."),
+  };
 }
 
 function useReadingProgress() {

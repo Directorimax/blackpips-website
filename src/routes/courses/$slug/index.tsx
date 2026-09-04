@@ -9,7 +9,12 @@ export const Route = createFileRoute("/courses/$slug/")({
   component: CourseLessons,
 });
 
-type Course = { id: string; slug: string; title: string };
+type Course = {
+  id: string;
+  slug: string;
+  title: string;
+  access_type: "free" | "premium";
+};
 type Lesson = {
   id: string;
   slug: string;
@@ -34,20 +39,24 @@ function CourseLessons() {
       setLoading(true);
       const { data: courseData, error: courseError } = await supabase
         .from("courses")
-        .select("id,slug,title")
+        .select("id,slug,title,access_type")
         .eq("slug", slug)
+        .eq("published", true)
         .maybeSingle();
       if (courseError || !courseData) {
         if (active) toast.error("This course could not be loaded.");
         if (active) setLoading(false);
         return;
       }
-      const { data: purchase } = await supabase
-        .from("purchases")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("course_id", courseData.id)
-        .maybeSingle();
+      const { data: purchase } =
+        courseData.access_type === "premium"
+          ? await supabase
+              .from("purchases")
+              .select("id")
+              .eq("user_id", userId)
+              .eq("course_id", courseData.id)
+              .maybeSingle()
+          : { data: { id: "free-access" } };
       if (!active) return;
       setCourse(courseData);
       setEntitled(Boolean(purchase));
@@ -93,7 +102,8 @@ function CourseLessons() {
       </Link>
       <div className="mt-6">
         <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gold">
-          <BookOpen className="h-4 w-4" /> Premium course
+          <BookOpen className="h-4 w-4" />
+          {course.access_type === "free" ? "Free" : "Premium"} course
         </div>
         <h1 className="mt-3 break-words font-display text-3xl font-bold sm:text-4xl">
           {course.title}

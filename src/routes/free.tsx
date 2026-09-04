@@ -1,14 +1,12 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { PlayCircle, Search, Bookmark, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { FREE_LESSONS } from "@/lib/site-data";
-import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/hooks/useSession";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { AlertCircle, BookOpen, Loader2, PlayCircle, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
+import { LearningFeatureGate } from "@/components/LearningFeatureGate";
+import { supabase } from "@/integrations/supabase/client";
+import { isFreeLessonsAvailable } from "@/lib/feature-access";
+import { formatLessonDuration } from "@/lib/learning-preview";
 import { createSeoHead } from "@/lib/seo";
-import { FEATURE_ACCESS } from "@/lib/feature-access";
-import { ComingSoon } from "@/components/ComingSoon";
 
 export const Route = createFileRoute("/free")({
   head: () =>
@@ -21,103 +19,104 @@ export const Route = createFileRoute("/free")({
     }),
   component: () => (
     <AuthenticatedRouteGuard>
-      <Free />
+      <LearningFeatureGate
+        featureEnabled={isFreeLessonsAvailable()}
+        title="Free Lessons"
+        description="We’re preparing the BLACKPIPS learning experience. Free lessons will be available soon."
+      >
+        <FreeLessons />
+      </LearningFeatureGate>
     </AuthenticatedRouteGuard>
   ),
 });
 
-const LEVELS = ["All", "Beginner", "Advanced"] as const;
+type FreeCourse = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+};
 
-function logBookmarkError(
-  action: string,
-  error: { code?: string; message?: string; details?: string; hint?: string },
-) {
-  console.error(`[bookmarks] Free lesson ${action} failed`, {
-    code: error.code,
-    message: error.message,
-    details: error.details,
-    hint: error.hint,
-  });
-}
-
-function Free() {
-  if (!FEATURE_ACCESS.freeLessonsEnabled)
-    return (
-      <ComingSoon
-        title="Free Lessons"
-        description="We’re preparing the BLACKPIPS learning experience. Free lessons will be available soon."
-      />
-    );
-  return <FreeLessons />;
-}
+type FreeLesson = {
+  id: string;
+  course_id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  position: number;
+  video_duration_seconds: number | null;
+};
 
 function FreeLessons() {
-  const navigate = useNavigate();
-  const { user } = useSession();
-  const [q, setQ] = useState("");
-  const [level, setLevel] = useState<(typeof LEVELS)[number]>("All");
-  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
-  const [savingBookmarkId, setSavingBookmarkId] = useState<string | null>(null);
+  const [courses, setCourses] = useState<FreeCourse[]>([]);
+  const [lessons, setLessons] = useState<FreeLesson[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadCatalog = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const { data: courseRows, error: courseError } = await supabase
+      .from("courses")
+      .select("id,title,slug,description")
+      .eq("access_type", "free")
+      .eq("published", true)
+      .order("title", { ascending: true });
+
+    if (courseError) {
+      setCourses([]);
+      setLessons([]);
+      setError("The Free Lessons catalog could not be loaded. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    const publishedCourses = courseRows ?? [];
+    setCourses(publishedCourses);
+    if (publishedCourses.length === 0) {
+      setLessons([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data: lessonRows, error: lessonError } = await supabase
+      .from("lessons")
+      .select("id,course_id,title,slug,description,position,video_duration_seconds")
+      .in(
+        "course_id",
+        publishedCourses.map((course) => course.id),
+      )
+      .eq("is_published", true)
+      .order("position", { ascending: true });
+
+    if (lessonError) {
+      setLessons([]);
+      setError("The published Free Lessons could not be loaded. Please try again.");
+    } else {
+      setLessons(lessonRows ?? []);
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    if (!user) {
-      setBookmarks(new Set());
-      return;
-    }
-    supabase
-      .from("free_lesson_bookmarks")
-      .select("lesson_id")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
-        setBookmarks(new Set((data ?? []).map((r) => r.lesson_id)));
-      });
-  }, [user]);
+    void loadCatalog();
+  }, [loadCatalog]);
 
-  const filtered = useMemo(() => {
-    return FREE_LESSONS.filter(
-      (l) =>
-        (level === "All" || l.level === level) && l.title.toLowerCase().includes(q.toLowerCase()),
-    );
-  }, [q, level]);
-
-  async function toggleBookmark(id: string) {
-    if (!user) {
-      toast.info("Sign in to save lessons");
-      navigate({ to: "/auth" });
-      return;
-    }
-    if (savingBookmarkId) return;
-    const has = bookmarks.has(id);
-    const next = new Set(bookmarks);
-    if (has) next.delete(id);
-    else next.add(id);
-    setBookmarks(next);
-    setSavingBookmarkId(id);
-    if (has) {
-      const { error } = await supabase
-        .from("free_lesson_bookmarks")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("lesson_id", id);
-      if (error) {
-        logBookmarkError("removal", error);
-        setBookmarks(bookmarks);
-        toast.error("Could not remove saved lesson.");
-      }
-    } else {
-      const { error } = await supabase
-        .from("free_lesson_bookmarks")
-        .upsert({ user_id: user.id, lesson_id: id }, { onConflict: "user_id,lesson_id" });
-      if (error) {
-        logBookmarkError("save", error);
-        setBookmarks(bookmarks);
-        toast.error("Could not save lesson.");
-      } else {
-        toast.success("Lesson saved.");
-      }
-    }
-    setSavingBookmarkId(null);
-  }
+  const courseById = useMemo(
+    () => new Map(courses.map((course) => [course.id, course])),
+    [courses],
+  );
+  const filteredLessons = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return lessons;
+    return lessons.filter((lesson) => {
+      const course = courseById.get(lesson.course_id);
+      return [lesson.title, lesson.description, course?.title]
+        .filter((value): value is string => Boolean(value))
+        .some((value) => value.toLowerCase().includes(normalizedQuery));
+    });
+  }, [courseById, lessons, query]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16">
@@ -127,90 +126,96 @@ function FreeLessons() {
         </div>
         <h1 className="mt-4 font-display text-4xl font-bold sm:text-5xl">Learn for free</h1>
         <p className="mt-3 text-muted-foreground">
-          A growing library of professional lessons. Bookmark what matters, come back where you left
-          off.
+          Published BLACKPIPS courses available to every authenticated learner.
         </p>
       </header>
 
-      <div className="mt-10 flex flex-col gap-3 md:flex-row md:items-center">
-        <div className="glass flex flex-1 items-center gap-2 rounded-full px-4 py-2.5">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search lessons…"
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
+      {!loading && !error && lessons.length > 0 && (
+        <div className="mx-auto mt-10 max-w-2xl">
+          <div className="glass flex items-center gap-2 rounded-full px-4 py-2.5">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search published lessons…"
+              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </div>
         </div>
-        <div className="glass flex gap-1 rounded-full p-1">
-          {LEVELS.map((l) => (
-            <button
-              key={l}
-              onClick={() => setLevel(l)}
-              className={`min-h-10 rounded-full px-4 py-2 text-xs font-semibold transition ${level === l ? "bg-gradient-gold text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
-      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((l) => {
-          const saved = bookmarks.has(l.id);
-          return (
-            <article
-              key={l.id}
-              className="group overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-elegant"
-            >
-              <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-accent to-secondary">
-                <div className="absolute inset-0 bg-hero-glow opacity-70" />
-                <div className="absolute inset-0 grid place-items-center">
-                  <div className="glass grid h-14 w-14 place-items-center rounded-full transition-transform group-hover:scale-110">
-                    <PlayCircle className="h-7 w-7 text-gold" />
+      {loading ? (
+        <div className="mt-12 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading published Free Lessons…
+        </div>
+      ) : error ? (
+        <div className="glass mx-auto mt-12 max-w-xl rounded-3xl p-8 text-center">
+          <AlertCircle className="mx-auto h-7 w-7 text-gold" />
+          <p className="mt-3 text-sm text-muted-foreground">{error}</p>
+          <button
+            type="button"
+            onClick={() => void loadCatalog()}
+            className="mt-5 rounded-full border border-gold/40 px-5 py-2.5 text-sm font-semibold text-gold hover:bg-gold/10"
+          >
+            Try again
+          </button>
+        </div>
+      ) : courses.length === 0 || lessons.length === 0 ? (
+        <div className="glass mx-auto mt-12 max-w-xl rounded-3xl p-10 text-center">
+          <BookOpen className="mx-auto h-7 w-7 text-gold" />
+          <h2 className="mt-4 font-display text-xl font-semibold">No published Free Lessons yet</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Published lessons will appear here when their Free course is available.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredLessons.map((lesson) => {
+            const course = courseById.get(lesson.course_id);
+            if (!course) return null;
+            return (
+              <Link
+                key={lesson.id}
+                to="/courses/$slug/$lessonSlug"
+                params={{ slug: course.slug, lessonSlug: lesson.slug }}
+                className="group overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-elegant"
+              >
+                <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-accent to-secondary">
+                  <div className="absolute inset-0 bg-hero-glow opacity-70" />
+                  <div className="absolute inset-0 grid place-items-center">
+                    <div className="glass grid h-14 w-14 place-items-center rounded-full transition-transform group-hover:scale-110">
+                      <PlayCircle className="h-7 w-7 text-gold" />
+                    </div>
                   </div>
-                </div>
-                <span className="absolute right-3 top-3 glass rounded-full px-2 py-1 text-[10px] font-semibold">
-                  {l.duration}
-                </span>
-              </div>
-              <div className="p-5">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-gold">
-                    {l.level}
+                  <span className="absolute right-3 top-3 glass rounded-full px-2 py-1 text-[10px] font-semibold">
+                    {formatLessonDuration(lesson.video_duration_seconds)}
                   </span>
                 </div>
-                <h3 className="mt-2 font-display text-base font-semibold">{l.title}</h3>
-                <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                  <span className="text-xs text-muted-foreground">Free</span>
-                  <button
-                    type="button"
-                    onClick={() => void toggleBookmark(l.id)}
-                    disabled={savingBookmarkId === l.id}
-                    aria-pressed={saved}
-                    aria-label={saved ? "Remove saved lesson" : "Save lesson"}
-                    className={`glass grid h-10 w-10 place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-60 ${saved ? "text-gold" : "hover:text-gold"}`}
-                  >
-                    {savingBookmarkId === l.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Bookmark className={`h-3.5 w-3.5 ${saved ? "fill-gold" : ""}`} />
-                    )}
-                  </button>
+                <div className="p-5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-gold">
+                    {course.title}
+                  </span>
+                  <h2 className="mt-2 font-display text-base font-semibold">{lesson.title}</h2>
+                  {lesson.description && (
+                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                      {lesson.description}
+                    </p>
+                  )}
+                  <div className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+                    Free
+                  </div>
                 </div>
-              </div>
-            </article>
-          );
-        })}
-        {filtered.length === 0 && (
-          <div className="glass col-span-full rounded-3xl px-6 py-14 text-center">
-            <h2 className="font-display text-lg font-semibold">No matching lessons</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Try another search term or reset the level filter to see more lessons.
-            </p>
-          </div>
-        )}
-      </div>
+              </Link>
+            );
+          })}
+          {filteredLessons.length === 0 && (
+            <div className="glass col-span-full rounded-3xl px-6 py-14 text-center">
+              <h2 className="font-display text-lg font-semibold">No matching lessons</h2>
+              <p className="mt-2 text-sm text-muted-foreground">Try another search term.</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

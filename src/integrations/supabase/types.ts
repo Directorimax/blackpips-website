@@ -400,6 +400,7 @@ export type Database = {
           title: string;
           description: string | null;
           video_url: string | null;
+          video_duration_seconds: number | null;
           position: number;
           is_published: boolean;
           created_at: string;
@@ -412,6 +413,7 @@ export type Database = {
           title: string;
           description?: string | null;
           video_url?: string | null;
+          video_duration_seconds?: number | null;
           position?: number;
           is_published?: boolean;
           created_at?: string;
@@ -424,6 +426,7 @@ export type Database = {
           title?: string;
           description?: string | null;
           video_url?: string | null;
+          video_duration_seconds?: number | null;
           position?: number;
           is_published?: boolean;
           created_at?: string;
@@ -739,6 +742,14 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      can_access_published_lesson: {
+        Args: { p_course_id: string; p_lesson_id: string };
+        Returns: boolean;
+      };
+      get_lesson_playback_descriptor: {
+        Args: { p_course_id: string; p_lesson_id: string };
+        Returns: Json;
+      };
       admin_reorder_trading_tip_media: {
         Args: { p_tip_id: string; p_media_ids: string[] };
         Returns: undefined;

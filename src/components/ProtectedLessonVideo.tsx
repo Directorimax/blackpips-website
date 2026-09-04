@@ -24,10 +24,12 @@ export function ProtectedLessonVideo({
   src,
   title,
   viewer,
+  onPlaybackChange,
 }: {
   src: string;
   title: string;
   viewer: Viewer;
+  onPlaybackChange?: (playing: boolean) => void;
 }) {
   const playerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -49,14 +51,19 @@ export function ProtectedLessonVideo({
       )
         return;
       const state = parseYouTubePlaybackState(event.data);
-      if (state) setLessonVideoPlaying(state === "playing");
+      if (state) {
+        const playing = state === "playing";
+        setLessonVideoPlaying(playing);
+        onPlaybackChange?.(playing);
+      }
     };
     window.addEventListener("message", onMessage);
     return () => {
       window.removeEventListener("message", onMessage);
       setLessonVideoPlaying(false);
+      onPlaybackChange?.(false);
     };
-  }, [setLessonVideoPlaying]);
+  }, [onPlaybackChange, setLessonVideoPlaying]);
 
   const registerPlaybackEvents = () => {
     const target = iframeRef.current?.contentWindow;
@@ -105,6 +112,112 @@ export function ProtectedLessonVideo({
         type="button"
         onClick={() => void toggleFullscreen()}
         className="absolute bottom-3 right-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-black/70 text-white opacity-0 transition hover:bg-black/90 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold group-hover:opacity-100"
+        aria-label={fullscreen ? "Exit fullscreen video" : "View video fullscreen"}
+      >
+        {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+      </button>
+    </div>
+  );
+}
+
+export function ProtectedSelfHostedLessonVideo({
+  src,
+  poster,
+  title,
+  viewer,
+  startPositionSeconds = 0,
+  onPlaybackChange,
+  onPlaybackError,
+}: {
+  src: string;
+  poster?: string | null;
+  title: string;
+  viewer: Viewer;
+  startPositionSeconds?: number;
+  onPlaybackChange?: (playing: boolean) => void;
+  onPlaybackError?: () => void;
+}) {
+  const playerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const initializedRef = useRef(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const { setLessonVideoPlaying } = useSessionLifecycle();
+
+  useEffect(() => {
+    const onFullscreenChange = () =>
+      setFullscreen(document.fullscreenElement === playerRef.current);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const resumeAt = initializedRef.current ? video.currentTime : startPositionSeconds;
+    const resumePlaying = initializedRef.current && !video.paused;
+    video.src = src;
+    video.load();
+    const restorePlayback = () => {
+      if (Number.isFinite(resumeAt) && resumeAt > 0 && resumeAt < video.duration) {
+        video.currentTime = resumeAt;
+      }
+      initializedRef.current = true;
+      if (resumePlaying) void video.play().catch(() => undefined);
+    };
+    video.addEventListener("loadedmetadata", restorePlayback, { once: true });
+    return () => video.removeEventListener("loadedmetadata", restorePlayback);
+  }, [src, startPositionSeconds]);
+
+  useEffect(
+    () => () => {
+      setLessonVideoPlaying(false);
+      onPlaybackChange?.(false);
+    },
+    [onPlaybackChange, setLessonVideoPlaying],
+  );
+
+  const updatePlaying = (playing: boolean) => {
+    setLessonVideoPlaying(playing);
+    onPlaybackChange?.(playing);
+  };
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await playerRef.current?.requestFullscreen();
+    } catch {
+      // Playback remains available inline if fullscreen is denied.
+    }
+  }
+
+  return (
+    <div
+      ref={playerRef}
+      className="group relative h-full w-full overflow-hidden rounded-2xl bg-black"
+      onContextMenu={(event) => event.preventDefault()}
+      onDragStart={(event) => event.preventDefault()}
+      aria-label={`Protected video player: ${title}`}
+    >
+      <video
+        ref={videoRef}
+        title={title}
+        poster={poster ?? undefined}
+        className="h-full w-full bg-black object-contain"
+        controls
+        controlsList="nodownload noremoteplayback"
+        disablePictureInPicture
+        playsInline
+        preload="metadata"
+        onPlay={() => updatePlaying(true)}
+        onPause={() => updatePlaying(false)}
+        onEnded={() => updatePlaying(false)}
+        onError={onPlaybackError}
+      />
+      <VideoWatermark viewer={viewer} />
+      <button
+        type="button"
+        onClick={() => void toggleFullscreen()}
+        className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-black/70 text-white opacity-0 transition hover:bg-black/90 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold group-hover:opacity-100"
         aria-label={fullscreen ? "Exit fullscreen video" : "View video fullscreen"}
       >
         {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}

@@ -19,8 +19,8 @@ import {
   type AlcAccessForm,
 } from "@/lib/alc-access";
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
-import { FEATURE_ACCESS } from "@/lib/feature-access";
-import { ComingSoon } from "@/components/ComingSoon";
+import { isAlcAccessAvailable } from "@/lib/feature-access";
+import { LearningFeatureGate } from "@/components/LearningFeatureGate";
 
 export const Route = createFileRoute("/alc-access")({ component: AlcAccessRoute });
 
@@ -45,14 +45,15 @@ async function callRpc<T>(name: string, args?: Record<string, unknown>) {
 }
 
 function AlcAccessRoute() {
-  if (!FEATURE_ACCESS.alcAccessEnabled)
-    return (
-      <ComingSoon
-        title="ALC ACCESS"
-        description="We’re preparing the BLACKPIPS ALC experience. Access will be available soon."
-      />
-    );
-  return <AlcAccess />;
+  return (
+    <LearningFeatureGate
+      featureEnabled={isAlcAccessAvailable()}
+      title="ALC ACCESS"
+      description="We’re preparing the BLACKPIPS ALC experience. Access will be available soon."
+    >
+      <AlcAccess />
+    </LearningFeatureGate>
+  );
 }
 
 function AlcAccess() {

@@ -4,14 +4,15 @@ import { useAuth } from "@/contexts/useAuth";
 
 export function useAdmin() {
   const { user, loading: authLoading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [resolvedRole, setResolvedRole] = useState<{
+    userId: string | null;
+    isAdmin: boolean;
+  }>({ userId: null, isAdmin: false });
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      setIsAdmin(false);
-      setLoading(false);
+      setResolvedRole({ userId: null, isAdmin: false });
       return;
     }
     let active = true;
@@ -23,13 +24,16 @@ export function useAdmin() {
       .then(({ data, error }) => {
         if (error) console.error("Could not load administrator role:", error);
         if (!active) return;
-        setIsAdmin(data?.role === "admin");
-        setLoading(false);
+        setResolvedRole({ userId: user.id, isAdmin: data?.role === "admin" });
       });
     return () => {
       active = false;
     };
   }, [authLoading, user]);
 
-  return { isAdmin, loading: authLoading || loading };
+  const roleMatchesCurrentUser = Boolean(user && resolvedRole.userId === user.id);
+  return {
+    isAdmin: roleMatchesCurrentUser && resolvedRole.isAdmin,
+    loading: authLoading || Boolean(user && !roleMatchesCurrentUser),
+  };
 }
