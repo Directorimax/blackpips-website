@@ -159,7 +159,9 @@ describe("Admin course update payload", () => {
 
   it("moves edit-selected-course interaction to the distinct course editor", () => {
     expect(componentSource).toContain('aria-controls="admin-course-form"');
-    expect(componentSource).toContain("courseEditorRef.current?.scrollIntoView");
+    expect(componentSource).toContain("if (!courseForm.id) return");
+    expect(componentSource).toContain("onClick={editSelectedCourse}");
+    expect(componentSource).toContain("courseEditForm(course, area)");
     expect(componentSource).toContain("courseEditorRef.current?.querySelector<HTMLInputElement>");
   });
 });

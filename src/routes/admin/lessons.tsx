@@ -52,7 +52,7 @@ import {
   updateAdminCourseAndVerify,
   type CourseAccessType,
 } from "@/lib/admin-course-mutation";
-import { runCourseSave, runLessonSave } from "@/lib/admin-lessons-event-wiring";
+import { courseEditForm, runCourseSave, runLessonSave } from "@/lib/admin-lessons-event-wiring";
 
 export const Route = createFileRoute("/admin/lessons")({
   component: () => (
@@ -239,6 +239,14 @@ function AdminLessons() {
     if (selectedCourseId) void loadLessons(selectedCourseId);
   }, [loadLessons, selectedCourseId]);
 
+  useEffect(() => {
+    if (!courseForm.id) return;
+    courseEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    courseEditorRef.current?.querySelector<HTMLInputElement>("input")?.focus({
+      preventScroll: true,
+    });
+  }, [courseForm.id]);
+
   function selectCourse(courseId: string) {
     setSelectedCourseId(courseId);
     setForm(blankForm(courseId));
@@ -255,22 +263,19 @@ function AdminLessons() {
   }
 
   function editCourse(course: Course) {
-    if (course.access_type !== area) return;
-    setCourseForm({
-      id: course.id,
-      title: course.title,
-      slug: course.slug,
-      description: course.description ?? "",
-      price: String(course.price),
-      image: course.image ?? "",
-      published: course.published,
-    });
-    window.requestAnimationFrame(() => {
-      courseEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      courseEditorRef.current?.querySelector<HTMLInputElement>("input")?.focus({
-        preventScroll: true,
-      });
-    });
+    const editForm = courseEditForm(course, area);
+    if (editForm) setCourseForm(editForm);
+  }
+
+  function editSelectedCourse() {
+    const course = courses.find(
+      (item) => item.id === selectedCourseId && item.access_type === area,
+    );
+    if (!course) {
+      toast.error("The selected course could not be loaded for editing.");
+      return;
+    }
+    editCourse(course);
   }
 
   async function saveCourse() {
@@ -589,7 +594,7 @@ function AdminLessons() {
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-xl font-semibold">
-            {courseForm.id ? "Edit course" : `Create ${area} course`}
+            {courseForm.id ? `Edit ${area} course` : `Create ${area} course`}
           </h2>
           {courseForm.id && (
             <button
@@ -709,36 +714,35 @@ function AdminLessons() {
               )}
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <Field label="Course">
-                <select
-                  value={form.courseId}
-                  onChange={(event) => {
-                    setForm((current) => ({ ...current, courseId: event.target.value }));
-                    setSelectedCourseId(event.target.value);
-                  }}
-                  className="admin-input"
-                >
-                  <option value="">Select a {area} course</option>
-                  {areaCourses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </select>
+              <div>
+                <Field label="Course">
+                  <select
+                    value={form.courseId}
+                    onChange={(event) => {
+                      setForm((current) => ({ ...current, courseId: event.target.value }));
+                      setSelectedCourseId(event.target.value);
+                    }}
+                    className="admin-input"
+                  >
+                    <option value="">Select a {area} course</option>
+                    {areaCourses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
                 {selectedCourseId && (
                   <button
                     type="button"
                     aria-controls="admin-course-form"
                     className="mt-2 text-xs font-semibold text-gold"
-                    onClick={() => {
-                      const course = courses.find((item) => item.id === selectedCourseId);
-                      if (course) editCourse(course);
-                    }}
+                    onClick={editSelectedCourse}
                   >
                     Edit selected course
                   </button>
                 )}
-              </Field>
+              </div>
               <Field label="Position">
                 <input
                   value={form.position}
