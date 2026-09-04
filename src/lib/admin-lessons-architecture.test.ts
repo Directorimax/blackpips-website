@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 
 const lessonsSource = readFileSync(new URL("../routes/admin/lessons.tsx", import.meta.url), "utf8");
 const alcSource = readFileSync(new URL("../routes/admin/alc-library.tsx", import.meta.url), "utf8");
+const courseMutationSource = readFileSync(
+  new URL("./admin-course-mutation.ts", import.meta.url),
+  "utf8",
+);
 const tipsSource = readFileSync(
   new URL("../routes/admin/trading-tips.tsx", import.meta.url),
   "utf8",
@@ -27,7 +31,8 @@ describe("admin lesson learning areas", () => {
   it("creates and updates courses only through checked RPCs with the selected classification", () => {
     expect(lessonsSource).toContain('supabase.rpc("admin_create_course"');
     expect(lessonsSource).toContain('supabase.rpc("admin_update_course"');
-    expect(lessonsSource).toContain("p_access_type: area");
+    expect(lessonsSource).toContain("adminCourseMutationArgs");
+    expect(courseMutationSource).toContain("p_access_type: accessType");
     expect(lessonsSource).not.toContain('.from("courses").insert');
     expect(lessonsSource).not.toMatch(/randomUUID|crypto\.randomUUID/);
   });

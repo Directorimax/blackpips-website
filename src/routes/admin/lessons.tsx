@@ -47,6 +47,11 @@ import {
   validatePoster,
 } from "@/lib/admin-course-media";
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
+import {
+  adminCourseMutationArgs,
+  courseMutationPersisted,
+  type CourseAccessType,
+} from "@/lib/admin-course-mutation";
 
 export const Route = createFileRoute("/admin/lessons")({
   component: () => (
@@ -56,7 +61,6 @@ export const Route = createFileRoute("/admin/lessons")({
   ),
 });
 
-type CourseAccessType = "free" | "premium";
 type Course = {
   id: string;
   title: string;
@@ -270,35 +274,54 @@ function AdminLessons() {
     if (!title || !slug) return toast.error("Course title and slug are required.");
     if (!Number.isFinite(price) || price < 0) return toast.error("Enter a valid course price.");
     setCourseSaving(true);
-    const common = {
-      p_title: title,
-      p_slug: slug,
-      p_description: courseForm.description.trim() || null,
-      p_price: price,
-      p_image: courseForm.image.trim() || null,
-      p_published: courseForm.published,
-      p_access_type: area,
-    };
+    const common = adminCourseMutationArgs({ ...courseForm, title, slug, price }, area);
     const result = courseForm.id
       ? await supabase.rpc("admin_update_course", { ...common, p_course_id: courseForm.id })
       : await supabase.rpc("admin_create_course", common);
+    if (result.error) {
+      setCourseSaving(false);
+      return toast.error(result.error.message);
+    }
+    const updatedCourseId = courseForm.id ?? (typeof result.data === "string" ? result.data : null);
+    if (updatedCourseId) {
+      const { data: authoritativeCourse, error: verifyError } = await supabase
+        .from("courses")
+        .select("id,published,access_type")
+        .eq("id", updatedCourseId)
+        .single();
+      if (
+        verifyError ||
+        !courseMutationPersisted(authoritativeCourse, {
+          id: updatedCourseId,
+          published: courseForm.published,
+          accessType: area,
+        })
+      ) {
+        setCourseSaving(false);
+        console.error("Course RPC returned without the requested authoritative state", verifyError);
+        return toast.error(
+          "Course update was not confirmed. Your form is unchanged; please retry.",
+        );
+      }
+    }
+    const { data } = await supabase
+      .from("courses")
+      .select("id,title,slug,description,price,image,published,access_type")
+      .order("title");
     setCourseSaving(false);
-    if (result.error) return toast.error(result.error.message);
+    if (!data)
+      return toast.error("Course saved, but its authoritative state could not be reloaded.");
+    const rows = (data ?? []).filter(
+      (course): course is Course =>
+        course.access_type === "free" || course.access_type === "premium",
+    );
+    setCourses(rows);
     toast.success(
       courseForm.id
         ? `${area === "free" ? "Free" : "Premium"} course updated.`
         : `${area === "free" ? "Free" : "Premium"} course created.`,
     );
     setCourseForm(blankCourse());
-    const { data } = await supabase
-      .from("courses")
-      .select("id,title,slug,description,price,image,published,access_type")
-      .order("title");
-    const rows = (data ?? []).filter(
-      (course): course is Course =>
-        course.access_type === "free" || course.access_type === "premium",
-    );
-    setCourses(rows);
     const selected =
       rows.find(
         (course) => course.access_type === area && (!courseForm.id || course.id === courseForm.id),

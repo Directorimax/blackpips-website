@@ -5,10 +5,12 @@ const lessons = readFileSync(new URL("../routes/admin/lessons.tsx", import.meta.
 const alc = readFileSync(new URL("../routes/admin/alc-library.tsx", import.meta.url), "utf8");
 const courseMedia = readFileSync(new URL("./admin-course-media.ts", import.meta.url), "utf8");
 const alcMedia = readFileSync(new URL("./admin-alc-media.ts", import.meta.url), "utf8");
+const courseMutation = readFileSync(new URL("./admin-course-mutation.ts", import.meta.url), "utf8");
 
 describe("Free course and ALC Admin integration contracts", () => {
   it("keeps explicit Free/Premium course identity behind checked RPCs", () => {
-    expect(lessons).toContain("p_access_type: area");
+    expect(lessons).toContain("adminCourseMutationArgs");
+    expect(courseMutation).toContain("p_access_type: accessType");
     expect(lessons).toContain('supabase.rpc("admin_create_course"');
     expect(lessons).toContain('supabase.rpc("admin_update_course"');
     expect(lessons).not.toContain('.from("courses").insert');
