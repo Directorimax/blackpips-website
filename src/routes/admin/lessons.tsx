@@ -52,6 +52,7 @@ import {
   updateAdminCourseAndVerify,
   type CourseAccessType,
 } from "@/lib/admin-course-mutation";
+import { runCourseSave, runLessonSave } from "@/lib/admin-lessons-event-wiring";
 
 export const Route = createFileRoute("/admin/lessons")({
   component: () => (
@@ -139,6 +140,7 @@ type MediaStatusRow = Pick<
 >;
 
 function AdminLessons() {
+  const courseEditorRef = useRef<HTMLFormElement>(null);
   const { isAdmin, loading: adminLoading } = useAdmin();
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -263,10 +265,15 @@ function AdminLessons() {
       image: course.image ?? "",
       published: course.published,
     });
+    window.requestAnimationFrame(() => {
+      courseEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      courseEditorRef.current?.querySelector<HTMLInputElement>("input")?.focus({
+        preventScroll: true,
+      });
+    });
   }
 
-  async function saveCourse(event: React.FormEvent) {
-    event.preventDefault();
+  async function saveCourse() {
     if (courseSaving) return;
     const title = courseForm.title.trim();
     const slug = slugify(courseForm.slug || title);
@@ -361,8 +368,7 @@ function AdminLessons() {
     }));
   }
 
-  async function saveLesson(event: React.FormEvent) {
-    event.preventDefault();
+  async function saveLesson() {
     if (saving) return;
     const title = form.title.trim();
     if (!title) return toast.error("Lesson title is required.");
@@ -572,7 +578,15 @@ function AdminLessons() {
         ))}
       </div>
 
-      <form onSubmit={saveCourse} className="glass mt-8 rounded-3xl p-5 sm:p-6">
+      <form
+        id="admin-course-form"
+        ref={courseEditorRef}
+        aria-label={courseForm.id ? "Update course" : "Create course"}
+        onSubmit={(event) => {
+          void runCourseSave(saveCourse, event);
+        }}
+        className="glass mt-8 scroll-mt-6 rounded-3xl p-5 sm:p-6"
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-xl font-semibold">
             {courseForm.id ? "Edit course" : `Create ${area} course`}
@@ -658,12 +672,13 @@ function AdminLessons() {
           </label>
         </div>
         <button
-          type="submit"
+          type="button"
+          onClick={() => void runCourseSave(saveCourse)}
           disabled={courseSaving}
           className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
         >
           <Plus className="h-4 w-4" />
-          {courseSaving ? "Saving…" : courseForm.id ? "Save course" : "Create course"}
+          {courseSaving ? "Saving…" : courseForm.id ? "Update course" : "Create course"}
         </button>
         <p className="mt-3 text-xs text-muted-foreground">
           This checked Admin operation explicitly preserves <code>access_type='{area}'</code>.
@@ -671,7 +686,14 @@ function AdminLessons() {
       </form>
       {(area === "premium" || area === "free") && (
         <>
-          <form onSubmit={saveLesson} className="glass mt-8 rounded-3xl p-5 sm:p-6">
+          <form
+            id="admin-lesson-form"
+            aria-label={form.id ? "Save lesson" : "Create lesson"}
+            onSubmit={(event) => {
+              void runLessonSave(saveLesson, event);
+            }}
+            className="glass mt-8 rounded-3xl p-5 sm:p-6"
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-xl font-semibold">
                 {form.id ? "Edit lesson" : "Create lesson"}
@@ -706,6 +728,7 @@ function AdminLessons() {
                 {selectedCourseId && (
                   <button
                     type="button"
+                    aria-controls="admin-course-form"
                     className="mt-2 text-xs font-semibold text-gold"
                     onClick={() => {
                       const course = courses.find((item) => item.id === selectedCourseId);
@@ -809,6 +832,8 @@ function AdminLessons() {
               </div>
             </div>
             <button
+              type="button"
+              onClick={() => void runLessonSave(saveLesson)}
               disabled={saving || !form.courseId}
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
             >

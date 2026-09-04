@@ -127,13 +127,39 @@ describe("Admin course update payload", () => {
     expect(refetch).not.toHaveBeenCalled();
   });
 
-  it("binds the real form, checkbox, and submit button to the verified update path", () => {
-    expect(componentSource).toContain("<form onSubmit={saveCourse}");
+  it("binds the real course editor action directly to the verified course update path", () => {
+    expect(componentSource).toContain('id="admin-course-form"');
+    expect(componentSource).toContain("runCourseSave(saveCourse");
     expect(componentSource).toContain("checked={courseForm.published}");
     expect(componentSource).toContain("published: event.target.checked");
     expect(componentSource).toContain("const submission = { ...courseForm, title, slug, price }");
     expect(componentSource).toContain("updateAdminCourseAndVerify({");
     expect(componentSource).toContain('supabase.rpc("admin_update_course", args)');
-    expect(componentSource).toContain('type="submit"');
+    expect(componentSource).toContain('courseForm.id ? "Update course" : "Create course"');
+  });
+
+  it("keeps course and lesson actions in separate forms with explicit button handlers", () => {
+    const courseStart = componentSource.indexOf('id="admin-course-form"');
+    const courseEnd = componentSource.indexOf("</form>", courseStart);
+    const lessonStart = componentSource.indexOf('id="admin-lesson-form"');
+    const lessonEnd = componentSource.indexOf("</form>", lessonStart);
+    const courseMarkup = componentSource.slice(courseStart, courseEnd);
+    const lessonMarkup = componentSource.slice(lessonStart, lessonEnd);
+
+    expect(courseStart).toBeGreaterThan(-1);
+    expect(courseEnd).toBeLessThan(lessonStart);
+    expect(lessonEnd).toBeGreaterThan(lessonStart);
+    expect(courseMarkup).toContain("runCourseSave(saveCourse");
+    expect(courseMarkup).not.toContain("saveLesson");
+    expect(lessonMarkup).toContain("runLessonSave(saveLesson");
+    expect(lessonMarkup).not.toContain("saveCourse");
+    expect(courseMarkup).toContain('type="button"');
+    expect(lessonMarkup).toContain('type="button"');
+  });
+
+  it("moves edit-selected-course interaction to the distinct course editor", () => {
+    expect(componentSource).toContain('aria-controls="admin-course-form"');
+    expect(componentSource).toContain("courseEditorRef.current?.scrollIntoView");
+    expect(componentSource).toContain("courseEditorRef.current?.querySelector<HTMLInputElement>");
   });
 });
