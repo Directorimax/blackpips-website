@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertCircle, BookOpen, Loader2, PlayCircle, Search } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { LearningFeatureGate } from "@/components/LearningFeatureGate";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +55,10 @@ function FreeLessons() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"basic" | "advanced">("basic");
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
+  const [thumbnailState, setThumbnailState] = useState<
+    Record<string, "loading" | "ready" | "missing">
+  >({});
+  const thumbnailRetries = useRef<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -108,11 +112,20 @@ function FreeLessons() {
     setLoading(false);
   }, []);
 
-  const refreshThumbnails = useCallback(async (publishedLessons: FreeLesson[]) => {
-    const signedEntries = await Promise.all(
-      publishedLessons
-        .filter((lesson) => Boolean(lesson.video_poster_path))
-        .map(async (lesson) => {
+  const refreshThumbnails = useCallback(
+    async (publishedLessons: FreeLesson[], resetRetries = true) => {
+      if (resetRetries) {
+        publishedLessons.forEach((lesson) => {
+          thumbnailRetries.current[lesson.id] = 0;
+        });
+      }
+      setThumbnailState((current) =>
+        Object.fromEntries(
+          publishedLessons.map((lesson) => [lesson.id, current[lesson.id] ?? "loading"]),
+        ),
+      );
+      const signedEntries = await Promise.all(
+        publishedLessons.map(async (lesson) => {
           const { data: descriptor, error: descriptorError } = await (
             supabase.rpc as unknown as (
               name: "get_lesson_thumbnail_descriptor",
@@ -129,15 +142,26 @@ function FreeLessons() {
             p_lesson_id: lesson.id,
           });
           const posterPath = descriptor?.[0]?.video_poster_path;
-          if (descriptorError || !posterPath) return null;
+          if (descriptorError || !posterPath) return [lesson.id, null] as const;
           const { data: signed } = await supabase.storage
             .from("course-media")
             .createSignedUrl(posterPath, descriptor?.[0]?.signed_url_ttl_seconds ?? 300);
-          return signed?.signedUrl ? ([lesson.id, signed.signedUrl] as const) : null;
+          return [lesson.id, signed?.signedUrl ?? null] as const;
         }),
-    );
-    setThumbnails(Object.fromEntries(signedEntries.filter((entry) => entry !== null)));
-  }, []);
+      );
+      setThumbnails(
+        Object.fromEntries(
+          signedEntries.filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
+        ),
+      );
+      setThumbnailState(
+        Object.fromEntries(
+          signedEntries.map(([lessonId, signedUrl]) => [lessonId, signedUrl ? "ready" : "missing"]),
+        ),
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
     void loadCatalog();
@@ -146,6 +170,7 @@ function FreeLessons() {
   useEffect(() => {
     if (lessons.length === 0) {
       setThumbnails({});
+      setThumbnailState({});
       return;
     }
     void refreshThumbnails(lessons);
@@ -243,14 +268,34 @@ function FreeLessons() {
                 key={lesson.id}
                 to="/courses/$slug/$lessonSlug"
                 params={{ slug: course.slug, lessonSlug: lesson.slug }}
-                className="group flex min-h-[170px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-elegant sm:flex-row"
+                className="group flex min-h-[168px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-elegant sm:flex-row"
               >
-                <div className="relative aspect-video shrink-0 overflow-hidden bg-gradient-to-br from-accent to-secondary sm:aspect-auto sm:w-56">
+                <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-gradient-to-br from-accent to-secondary sm:w-60">
                   {thumbnails[lesson.id] ? (
                     <img
                       src={thumbnails[lesson.id]}
                       alt={`${lesson.title} thumbnail`}
-                      className="absolute inset-0 h-full w-full object-cover"
+                      className="absolute inset-0 h-full w-full object-cover object-center"
+                      onError={() => {
+                        setThumbnails((current) => {
+                          const next = { ...current };
+                          delete next[lesson.id];
+                          return next;
+                        });
+                        const retries = thumbnailRetries.current[lesson.id] ?? 0;
+                        if (retries >= 1) {
+                          setThumbnailState((current) => ({ ...current, [lesson.id]: "missing" }));
+                          return;
+                        }
+                        thumbnailRetries.current[lesson.id] = retries + 1;
+                        setThumbnailState((current) => ({ ...current, [lesson.id]: "loading" }));
+                        void refreshThumbnails([lesson], false);
+                      }}
+                    />
+                  ) : thumbnailState[lesson.id] === "loading" ? (
+                    <div
+                      className="absolute inset-0 animate-pulse bg-gold/10"
+                      aria-label="Loading thumbnail"
                     />
                   ) : (
                     <div className="absolute inset-0 grid place-items-center">

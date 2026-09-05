@@ -73,10 +73,15 @@ describe("live Free Lessons catalog", () => {
     expect(freeRoute).toContain('.from("course-media")');
     expect(freeRoute).toContain("createSignedUrl");
     expect(freeRoute).toContain("?? 300");
-    expect(freeRoute).toContain("min-h-[170px]");
+    expect(freeRoute).toContain("min-h-[168px]");
     expect(freeRoute).toContain("line-clamp-2");
     expect(freeRoute).toContain("BLACKPIPS lesson");
     expect(freeRoute).toContain("240_000");
     expect(freeRoute).toContain("refreshThumbnails");
+    expect(freeRoute).toContain("publishedLessons.map(async (lesson)");
+    expect(freeRoute).not.toContain("filter((lesson) => Boolean(lesson.video_poster_path))");
+    expect(freeRoute).toContain('thumbnailState[lesson.id] === "loading"');
+    expect(freeRoute).toContain("object-cover object-center");
+    expect(freeRoute).toContain("thumbnailRetries.current");
   });
 });

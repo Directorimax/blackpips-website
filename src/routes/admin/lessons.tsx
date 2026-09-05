@@ -1072,12 +1072,12 @@ function AdminLessons() {
                 <ImageIcon className="h-4 w-4 text-gold" /> Thumbnail
               </h3>
               <div className="mt-3 grid gap-4 sm:grid-cols-[12rem_1fr] sm:items-center">
-                <div className="aspect-video overflow-hidden rounded-xl border border-border bg-gradient-to-br from-gold/15 to-background">
+                <div className="aspect-video w-full max-w-48 overflow-hidden rounded-xl border border-border bg-gradient-to-br from-gold/15 to-background">
                   {thumbnailPreview || (form.id && lessonThumbnails[form.id]) ? (
                     <img
                       src={thumbnailPreview ?? lessonThumbnails[form.id!]}
                       alt="Lesson thumbnail preview"
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover object-center"
                     />
                   ) : (
                     <div className="grid h-full place-items-center text-center text-xs text-muted-foreground">
@@ -1264,18 +1264,18 @@ function AdminLessons() {
             ) : visibleLessons.length === 0 ? (
               <Empty message="No lessons have been created for this course." />
             ) : (
-              <div className="mt-5 grid gap-4 xl:grid-cols-2">
+              <div className="mt-5 grid w-full gap-4">
                 {visibleLessons.map((lesson, index) => (
                   <article
                     key={lesson.id}
-                    className="flex min-h-[190px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-elegant sm:flex-row"
+                    className="flex min-h-[168px] w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-elegant sm:flex-row"
                   >
-                    <div className="relative aspect-video shrink-0 overflow-hidden bg-gradient-to-br from-gold/20 via-card to-background sm:aspect-auto sm:w-52">
+                    <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-gradient-to-br from-gold/20 via-card to-background sm:w-60">
                       {lessonThumbnails[lesson.id] ? (
                         <img
                           src={lessonThumbnails[lesson.id]}
                           alt={`${lesson.title} thumbnail`}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover object-center"
                         />
                       ) : (
                         <div className="grid h-full place-items-center">

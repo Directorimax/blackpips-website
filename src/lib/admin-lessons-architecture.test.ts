@@ -36,10 +36,18 @@ describe("admin lesson learning areas", () => {
 
   it("renders compact thumbnail-first lesson cards with bounded descriptions", () => {
     expect(lessonsSource).toContain("lessonThumbnails[lesson.id]");
-    expect(lessonsSource).toContain("min-h-[190px]");
+    expect(lessonsSource).toContain("min-h-[168px]");
     expect(lessonsSource).toContain("line-clamp-2");
     expect(lessonsSource).toContain("BLACKPIPS lesson");
-    expect(lessonsSource).toContain("xl:grid-cols-2");
+    expect(lessonsSource).toContain("grid w-full gap-4");
+    expect(lessonsSource).toContain("aspect-video w-full");
+    expect(lessonsSource).toContain("object-cover object-center");
+  });
+
+  it("bounds the form thumbnail preview independently of source dimensions", () => {
+    expect(lessonsSource).toContain("aspect-video w-full max-w-48 overflow-hidden");
+    expect(lessonsSource).toContain('alt="Lesson thumbnail preview"');
+    expect(lessonsSource).toContain("object-cover object-center");
   });
 
   it("uses the checked V2 lesson contracts and authoritative category partitions", () => {
