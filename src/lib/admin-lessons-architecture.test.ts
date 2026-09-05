@@ -11,6 +11,7 @@ const tipsSource = readFileSync(
   new URL("../routes/admin/trading-tips.tsx", import.meta.url),
   "utf8",
 );
+const navSource = readFileSync(new URL("../components/Nav.tsx", import.meta.url), "utf8");
 
 describe("admin lesson learning areas", () => {
   it("keeps Lesson Management focused on Premium and Free courses", () => {
@@ -18,9 +19,26 @@ describe("admin lesson learning areas", () => {
     expect(lessonsSource).toContain('"Free Lessons"');
     expect(lessonsSource).not.toContain('"ALC Access"');
     expect(lessonsSource).not.toContain("<AdminAlcLibrary embedded />");
-    expect(lessonsSource).toContain('navigate({ to: "/admin/alc-library" })');
-    expect(lessonsSource).toContain(">ALC Library</span>");
+    expect(lessonsSource).not.toContain('navigate({ to: "/admin/alc-library" })');
+    expect(lessonsSource).not.toContain(">ALC Library</span>");
     expect(alcSource).toContain('createFileRoute("/admin/alc-library")');
+    expect(navSource).toContain('to: "/admin/alc-access"');
+    expect(navSource).toContain('to: "/admin/alc-library"');
+  });
+
+  it("starts Premium management with a selector and isolates course creation", () => {
+    expect(lessonsSource).toContain("Choose Premium Course");
+    expect(lessonsSource).toContain("Create Premium Course");
+    expect(lessonsSource).toContain("showCourseEditor");
+    expect(lessonsSource).toContain('area === "premium" && showCourseEditor');
+  });
+
+  it("renders consistent thumbnail-first lesson cards with bounded descriptions", () => {
+    expect(lessonsSource).toContain("lessonThumbnails[lesson.id]");
+    expect(lessonsSource).toContain("min-h-[410px]");
+    expect(lessonsSource).toContain("line-clamp-3");
+    expect(lessonsSource).toContain("BLACKPIPS lesson");
+    expect(lessonsSource).toContain("sm:grid-cols-2 xl:grid-cols-3");
   });
 
   it("uses the checked V2 lesson contracts and authoritative category partitions", () => {
@@ -49,6 +67,9 @@ describe("admin lesson learning areas", () => {
     expect(lessonsSource).toContain("courseVideoPath(lesson.course_id, lesson.id)");
     expect(lessonsSource).toContain("COURSE_MEDIA_BUCKET");
     expect(lessonsSource).not.toContain("getPublicUrl");
+    expect(lessonsSource).toContain("No thumbnail uploaded");
+    expect(lessonsSource).toContain("Replace thumbnail");
+    expect(lessonsSource).toContain("Clear thumbnail");
   });
 
   it("keeps course, lesson, and upload actions explicitly isolated", () => {

@@ -65,7 +65,8 @@ describe("Free course and ALC Admin integration contracts", () => {
   it("does not introduce privileged credentials or public/signed URL persistence", () => {
     const changedSources = `${lessons}\n${alc}\n${courseMedia}\n${alcMedia}`;
     expect(changedSources).not.toMatch(/service[_-]?role/i);
-    expect(changedSources).not.toContain("createSignedUrl");
+    expect(lessons).toContain("createSignedUrl(lesson.video_poster_path!, 300)");
+    expect(lessons).not.toMatch(/localStorage.*signed/i);
     expect(changedSources).not.toContain("getPublicUrl");
     expect(changedSources).not.toContain("alc_access_requests");
   });

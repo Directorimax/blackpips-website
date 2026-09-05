@@ -231,37 +231,40 @@ function FreeLessons() {
                 key={lesson.id}
                 to="/courses/$slug/$lessonSlug"
                 params={{ slug: course.slug, lessonSlug: lesson.slug }}
-                className="group overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-elegant"
+                className="group flex h-full min-h-[390px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-elegant"
               >
                 <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-accent to-secondary">
-                  {thumbnails[lesson.id] && (
+                  {thumbnails[lesson.id] ? (
                     <img
                       src={thumbnails[lesson.id]}
-                      alt=""
+                      alt={`${lesson.title} thumbnail`}
                       className="absolute inset-0 h-full w-full object-cover"
                     />
-                  )}
-                  <div className="absolute inset-0 bg-hero-glow opacity-70" />
-                  <div className="absolute inset-0 grid place-items-center">
-                    <div className="glass grid h-14 w-14 place-items-center rounded-full transition-transform group-hover:scale-110">
-                      <PlayCircle className="h-7 w-7 text-gold" />
+                  ) : (
+                    <div className="absolute inset-0 grid place-items-center">
+                      <div className="text-center">
+                        <PlayCircle className="mx-auto h-8 w-8 text-gold/80" />
+                        <span className="mt-2 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          BLACKPIPS lesson
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <span className="absolute right-3 top-3 glass rounded-full px-2 py-1 text-[10px] font-semibold">
                     {formatLessonDuration(lesson.video_duration_seconds)}
                   </span>
                 </div>
-                <div className="p-5">
+                <div className="flex flex-1 flex-col p-5">
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-gold">
                     {course.title}
                   </span>
-                  <h2 className="mt-2 font-display text-base font-semibold">{lesson.title}</h2>
-                  {lesson.description && (
-                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                      {lesson.description}
-                    </p>
-                  )}
-                  <div className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+                  <h2 className="mt-2 line-clamp-2 min-h-[2.75rem] font-display text-base font-semibold">
+                    {lesson.title}
+                  </h2>
+                  <p className="mt-2 line-clamp-3 min-h-[3.75rem] text-sm text-muted-foreground">
+                    {lesson.description || "No lesson description available."}
+                  </p>
+                  <div className="mt-auto border-t border-border pt-3 text-xs text-muted-foreground">
                     Free
                   </div>
                 </div>

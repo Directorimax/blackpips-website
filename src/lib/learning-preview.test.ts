@@ -73,5 +73,8 @@ describe("live Free Lessons catalog", () => {
     expect(freeRoute).toContain('.from("course-media")');
     expect(freeRoute).toContain("createSignedUrl");
     expect(freeRoute).toContain("?? 300");
+    expect(freeRoute).toContain("min-h-[390px]");
+    expect(freeRoute).toContain("line-clamp-3");
+    expect(freeRoute).toContain("BLACKPIPS lesson");
   });
 });
