@@ -64,4 +64,14 @@ describe("live Free Lessons catalog", () => {
     expect(courseRoute).toContain('.from("course-media")');
     expect(courseRoute).toContain("createSignedUrl");
   });
+
+  it("uses authoritative Basic/Advanced categories and private signed thumbnails", () => {
+    expect(freeRoute).toContain('useState<"basic" | "advanced">("basic")');
+    expect(freeRoute).toContain("lesson.learning_category === category");
+    expect(freeRoute).not.toContain('learning_category ?? "basic"');
+    expect(freeRoute).toContain('"get_lesson_thumbnail_descriptor"');
+    expect(freeRoute).toContain('.from("course-media")');
+    expect(freeRoute).toContain("createSignedUrl");
+    expect(freeRoute).toContain("?? 300");
+  });
 });

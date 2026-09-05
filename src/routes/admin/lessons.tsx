@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowDown,
   ArrowUp,
+  BookOpen,
   Eye,
   EyeOff,
   FileVideo,
@@ -87,7 +88,9 @@ type Lesson = {
   video_poster_path: string | null;
   video_mime_type: string | null;
   video_duration_seconds: number | null;
+  learning_category: "basic" | "advanced" | null;
 };
+type LessonV2Row = Omit<Lesson, "position"> & { lesson_position: number };
 type FormState = {
   id: string | null;
   courseId: string;
@@ -98,6 +101,7 @@ type FormState = {
   position: string;
   isPublished: boolean;
   mediaSource: MediaSource;
+  learningCategory: "basic" | "advanced";
 };
 type CourseForm = {
   id: string | null;
@@ -109,7 +113,7 @@ type CourseForm = {
   published: boolean;
 };
 
-const blankForm = (courseId = ""): FormState => ({
+const blankForm = (courseId = "", learningCategory: "basic" | "advanced" = "basic"): FormState => ({
   id: null,
   courseId,
   title: "",
@@ -119,6 +123,7 @@ const blankForm = (courseId = ""): FormState => ({
   position: "",
   isPublished: false,
   mediaSource: "self_hosted",
+  learningCategory,
 });
 const blankCourse = (): CourseForm => ({
   id: null,
@@ -129,15 +134,6 @@ const blankCourse = (): CourseForm => ({
   image: "",
   published: false,
 });
-
-type MediaStatusRow = Pick<
-  Lesson,
-  | "media_source"
-  | "video_storage_path"
-  | "video_poster_path"
-  | "video_mime_type"
-  | "video_duration_seconds"
->;
 
 function AdminLessons() {
   const courseEditorRef = useRef<HTMLFormElement>(null);
@@ -152,51 +148,34 @@ function AdminLessons() {
   const [deleting, setDeleting] = useState<Lesson | null>(null);
   const [form, setForm] = useState<FormState>(blankForm());
   const [area, setArea] = useState<LearningArea>("premium");
+  const [freeCategory, setFreeCategory] = useState<"basic" | "advanced">("basic");
   const [courseForm, setCourseForm] = useState<CourseForm>(blankCourse());
   const [courseSaving, setCourseSaving] = useState(false);
   const areaCourses = courses.filter((course) => course.access_type === area);
+  const visibleLessons = lessons.filter(
+    (lesson) => area === "premium" || lesson.learning_category === freeCategory,
+  );
+  const unclassifiedFreeLessons =
+    area === "free" ? lessons.filter((lesson) => lesson.learning_category === null) : [];
 
   const loadLessons = useCallback(async (courseId: string) => {
     if (!courseId) return;
     setLoading(true);
-    const { data, error } = await supabase.rpc("admin_list_lessons", { p_course_id: courseId });
+    const { data, error } = await (
+      supabase.rpc as unknown as (
+        name: "admin_list_lessons_v2",
+        args: { p_course_id: string },
+      ) => Promise<{ data: LessonV2Row[] | null; error: unknown }>
+    )("admin_list_lessons_v2", { p_course_id: courseId });
     if (error) {
       console.error("Could not load admin lessons", error);
       toast.error("Could not load lessons.");
     } else {
-      const baseLessons = (data ?? []).map(({ lesson_position, ...lesson }) => ({
-        ...lesson,
-        position: lesson_position,
-      }));
-      try {
-        const withMedia = await Promise.all(
-          baseLessons.map(async (lesson) => {
-            const { data: mediaData, error: mediaError } = await (
-              supabase.rpc as unknown as (
-                name: string,
-                args: Record<string, unknown>,
-              ) => Promise<{
-                data: Array<MediaStatusRow & { lesson_id: string }> | null;
-                error: unknown;
-              }>
-            )("admin_get_lesson_media", { p_lesson_id: lesson.id });
-            if (mediaError) throw mediaError;
-            const media = mediaData?.[0];
-            return {
-              ...lesson,
-              media_source: media?.media_source ?? "none",
-              video_storage_path: media?.video_storage_path ?? null,
-              video_poster_path: media?.video_poster_path ?? null,
-              video_mime_type: media?.video_mime_type ?? null,
-              video_duration_seconds: media?.video_duration_seconds ?? null,
-            } as Lesson;
-          }),
-        );
-        setLessons(withMedia);
-      } catch (mediaError) {
-        console.error("Could not load lesson media status", mediaError);
-        toast.error("Lessons loaded, but private media status is unavailable.");
-      }
+      setLessons(
+        (data ?? [])
+          .map(({ lesson_position, ...lesson }) => ({ ...lesson, position: lesson_position }))
+          .sort((a, b) => a.position - b.position),
+      );
     }
     setLoading(false);
   }, []);
@@ -249,15 +228,16 @@ function AdminLessons() {
 
   function selectCourse(courseId: string) {
     setSelectedCourseId(courseId);
-    setForm(blankForm(courseId));
+    setForm(blankForm(courseId, freeCategory));
   }
 
   function selectArea(nextArea: LearningArea) {
     const firstCourseId = courses.find((course) => course.access_type === nextArea)?.id ?? "";
     setArea(nextArea);
+    if (nextArea === "free") setFreeCategory("basic");
     setSelectedCourseId(firstCourseId);
     setLessons([]);
-    setForm(blankForm(firstCourseId));
+    setForm(blankForm(firstCourseId, "basic"));
     setCourseForm(blankCourse());
     if (!firstCourseId) setLoading(false);
   }
@@ -361,6 +341,7 @@ function AdminLessons() {
       position: String(lesson.position),
       isPublished: lesson.is_published,
       mediaSource: lesson.media_source,
+      learningCategory: lesson.learning_category ?? freeCategory,
     });
     if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -371,6 +352,47 @@ function AdminLessons() {
       title,
       slug: current.id || !current.slug ? slugify(title) : current.slug,
     }));
+  }
+
+  async function ensureFreeCoursePublished(courseId: string) {
+    const parent = courses.find(
+      (course) => course.id === courseId && course.access_type === "free",
+    );
+    if (!parent) return { ok: false, message: "The Free course could not be verified." };
+    if (parent.published) return { ok: true, message: "" };
+
+    const publication = await updateAdminCourseAndVerify({
+      courseId: parent.id,
+      values: {
+        title: parent.title,
+        slug: parent.slug,
+        description: parent.description ?? "",
+        price: parent.price,
+        image: parent.image ?? "",
+        published: true,
+      },
+      accessType: "free",
+      update: async (args) => {
+        const { error } = await supabase.rpc("admin_update_course", args);
+        return { error };
+      },
+      refetch: async (id) => {
+        const { data, error } = await supabase
+          .from("courses")
+          .select("id,published,access_type")
+          .eq("id", id)
+          .single();
+        return { data, error };
+      },
+    });
+    if (publication.ok) {
+      setCourses((current) =>
+        current.map((course) =>
+          course.id === parent.id ? { ...course, published: true } : course,
+        ),
+      );
+    }
+    return publication;
   }
 
   async function saveLesson() {
@@ -405,22 +427,58 @@ function AdminLessons() {
         : form.mediaSource === "self_hosted" && existingLesson?.media_source === "youtube_legacy"
           ? existingLesson.video_url
           : null;
+    if (area === "free" && form.isPublished) {
+      const publication = await ensureFreeCoursePublished(form.courseId);
+      if (!publication.ok) return toast.error(publication.message);
+    }
     setSaving(true);
-    const { data, error } = await supabase.rpc("admin_save_lesson", {
+    const { data, error } = await (
+      supabase.rpc as unknown as (
+        name: "admin_save_lesson_v2",
+        args: Record<string, unknown>,
+      ) => Promise<{
+        data: Array<{
+          id: string;
+          course_id: string;
+          slug: string;
+          lesson_position: number;
+        }> | null;
+        error: { message: string } | null;
+      }>
+    )("admin_save_lesson_v2", {
       p_lesson_id: form.id,
       p_course_id: form.courseId,
       p_title: title,
-      p_slug: form.slug.trim() || null,
+      p_slug: form.id ? form.slug : slugify(title),
       p_description: form.description.trim() || null,
       p_video_url: videoUrlForSave,
       p_position: position,
       p_is_published: form.isPublished,
+      p_learning_category: area === "free" ? form.learningCategory : null,
     });
     if (error) {
       console.error("Could not save lesson", error);
       toast.error("Could not save lesson. Please review the fields and try again.");
     } else {
       const saved = data?.[0];
+      if (saved && position !== null) {
+        const { error: reorderError } = await (
+          supabase.rpc as unknown as (
+            name: "admin_reorder_lesson_v2",
+            args: Record<string, unknown>,
+          ) => Promise<{ error: { message: string } | null }>
+        )("admin_reorder_lesson_v2", {
+          p_lesson_id: saved.id,
+          p_learning_category: area === "free" ? form.learningCategory : null,
+          p_position: position,
+        });
+        if (reorderError) {
+          setSaving(false);
+          toast.error(reorderError.message);
+          await loadLessons(form.courseId);
+          return;
+        }
+      }
       if (saved && form.mediaSource !== "self_hosted") {
         const { error: mediaError } = await supabase.rpc(
           "admin_set_lesson_media" as never,
@@ -452,46 +510,43 @@ function AdminLessons() {
               : created,
             false,
           );
-        } else setForm(blankForm(form.courseId));
+        } else setForm(blankForm(form.courseId, freeCategory));
       } else {
-        setForm(blankForm(form.courseId));
+        setForm(blankForm(form.courseId, freeCategory));
       }
     }
     setSaving(false);
   }
 
   async function loadLessonForEditing(courseId: string, lessonId: string) {
-    const { data, error } = await supabase.rpc("admin_list_lessons", { p_course_id: courseId });
+    const { data, error } = await (
+      supabase.rpc as unknown as (
+        name: "admin_list_lessons_v2",
+        args: { p_course_id: string },
+      ) => Promise<{ data: LessonV2Row[] | null; error: unknown }>
+    )("admin_list_lessons_v2", { p_course_id: courseId });
     if (error) return null;
     const row = data?.find((item) => item.id === lessonId);
     if (!row) return null;
-    const { data: media, error: mediaError } = await (
-      supabase.rpc as unknown as (
-        name: string,
-        args: Record<string, unknown>,
-      ) => Promise<{ data: Array<MediaStatusRow> | null; error: unknown }>
-    )("admin_get_lesson_media", {
-      p_lesson_id: lessonId,
-    });
-    if (mediaError) return null;
-    const status = media?.[0];
+    const { lesson_position, ...lesson } = row;
     return {
-      ...row,
-      position: row.lesson_position,
-      media_source: status?.media_source ?? "none",
-      video_storage_path: status?.video_storage_path ?? null,
-      video_poster_path: status?.video_poster_path ?? null,
-      video_mime_type: status?.video_mime_type ?? null,
-      video_duration_seconds: status?.video_duration_seconds ?? null,
+      ...lesson,
+      position: lesson_position,
     } as Lesson;
   }
 
   async function moveLesson(lesson: Lesson, direction: "up" | "down") {
     if (moving || saving) return;
     setMoving(lesson.id);
-    const { error } = await supabase.rpc("admin_move_lesson", {
+    const { error } = await (
+      supabase.rpc as unknown as (
+        name: "admin_reorder_lesson_v2",
+        args: Record<string, unknown>,
+      ) => Promise<{ error: unknown }>
+    )("admin_reorder_lesson_v2", {
       p_lesson_id: lesson.id,
-      p_direction: direction,
+      p_learning_category: area === "free" ? lesson.learning_category : null,
+      p_position: lesson.position + (direction === "up" ? -1 : 1),
     });
     if (error) {
       console.error("Could not reorder lesson", error);
@@ -513,7 +568,20 @@ function AdminLessons() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.rpc("admin_save_lesson", {
+    if (area === "free" && !lesson.is_published) {
+      const publication = await ensureFreeCoursePublished(lesson.course_id);
+      if (!publication.ok) {
+        setSaving(false);
+        toast.error(publication.message);
+        return;
+      }
+    }
+    const { error } = await (
+      supabase.rpc as unknown as (
+        name: "admin_save_lesson_v2",
+        args: Record<string, unknown>,
+      ) => Promise<{ error: unknown }>
+    )("admin_save_lesson_v2", {
       p_lesson_id: lesson.id,
       p_course_id: lesson.course_id,
       p_title: lesson.title,
@@ -522,6 +590,7 @@ function AdminLessons() {
       p_video_url: lesson.video_url,
       p_position: lesson.position,
       p_is_published: !lesson.is_published,
+      p_learning_category: area === "free" ? lesson.learning_category : null,
     });
     if (error) {
       console.error("Could not update lesson visibility", error);
@@ -556,12 +625,12 @@ function AdminLessons() {
       <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gold">
         <ShieldCheck className="h-4 w-4" /> Administration
       </div>
-      <h1 className="mt-2 font-display text-3xl font-bold">Lesson management</h1>
+      <h1 className="mt-2 font-display text-3xl font-bold">Lesson Management V2</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Choose a learning area, then manage its existing course or library structure.
       </p>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2" aria-label="Learning area">
+      <div className="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Learning area">
         {(
           [
             ["premium", "Premium Lessons", GraduationCap],
@@ -581,114 +650,161 @@ function AdminLessons() {
             <span className="text-sm font-semibold">{label}</span>
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/admin/alc-library" })}
+          className="flex items-center gap-3 rounded-2xl border border-border bg-card/50 p-4 text-left text-muted-foreground transition-colors hover:border-gold/30 hover:text-foreground"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold/10 text-gold">
+            <BookOpen className="h-5 w-5" />
+          </span>
+          <span className="text-sm font-semibold">ALC Library</span>
+        </button>
       </div>
 
-      <form
-        id="admin-course-form"
-        ref={courseEditorRef}
-        aria-label={courseForm.id ? "Update course" : "Create course"}
-        onSubmit={(event) => {
-          void runCourseSave(saveCourse, event);
-        }}
-        className="glass mt-8 scroll-mt-6 rounded-3xl p-5 sm:p-6"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-xl font-semibold">
-            {courseForm.id ? `Edit ${area} course` : `Create ${area} course`}
-          </h2>
-          {courseForm.id && (
-            <button
-              type="button"
-              className="text-xs font-semibold text-muted-foreground"
-              onClick={() => setCourseForm(blankCourse())}
-            >
-              Cancel editing
-            </button>
-          )}
-        </div>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <Field label="Course title">
-            <input
-              className="admin-input"
-              required
-              maxLength={160}
-              value={courseForm.title}
-              onChange={(event) =>
-                setCourseForm((current) => ({
-                  ...current,
-                  title: event.target.value,
-                  slug: current.id || current.slug ? current.slug : slugify(event.target.value),
-                }))
-              }
-            />
-          </Field>
-          <Field label="Slug">
-            <input
-              className="admin-input"
-              required
-              value={courseForm.slug}
-              onChange={(event) =>
-                setCourseForm((current) => ({ ...current, slug: slugify(event.target.value) }))
-              }
-            />
-          </Field>
-          <Field label="Price (TZS)">
-            <input
-              className="admin-input"
-              inputMode="decimal"
-              value={courseForm.price}
-              onChange={(event) =>
-                setCourseForm((current) => ({ ...current, price: event.target.value }))
-              }
-            />
-          </Field>
-          <Field label="Image URL">
-            <input
-              className="admin-input"
-              type="url"
-              placeholder="Optional HTTPS image"
-              value={courseForm.image}
-              onChange={(event) =>
-                setCourseForm((current) => ({ ...current, image: event.target.value }))
-              }
-            />
-          </Field>
-          <div className="sm:col-span-2">
-            <Field label="Description">
-              <textarea
-                className="admin-input min-h-24"
-                value={courseForm.description}
+      {area === "premium" && (
+        <form
+          id="admin-course-form"
+          ref={courseEditorRef}
+          aria-label={courseForm.id ? "Update course" : "Create course"}
+          onSubmit={(event) => {
+            void runCourseSave(saveCourse, event);
+          }}
+          className="glass mt-8 scroll-mt-6 rounded-3xl p-5 sm:p-6"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-display text-xl font-semibold">
+              {courseForm.id ? `Edit ${area} course` : `Create ${area} course`}
+            </h2>
+            {courseForm.id && (
+              <button
+                type="button"
+                className="text-xs font-semibold text-muted-foreground"
+                onClick={() => setCourseForm(blankCourse())}
+              >
+                Cancel editing
+              </button>
+            )}
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <Field label="Course title">
+              <input
+                className="admin-input"
+                required
+                maxLength={160}
+                value={courseForm.title}
                 onChange={(event) =>
-                  setCourseForm((current) => ({ ...current, description: event.target.value }))
+                  setCourseForm((current) => ({
+                    ...current,
+                    title: event.target.value,
+                    slug: current.id || current.slug ? current.slug : slugify(event.target.value),
+                  }))
                 }
               />
             </Field>
+            <Field label="Slug">
+              <input
+                className="admin-input"
+                required
+                value={courseForm.slug}
+                onChange={(event) =>
+                  setCourseForm((current) => ({ ...current, slug: slugify(event.target.value) }))
+                }
+              />
+            </Field>
+            <Field label="Price (TZS)">
+              <input
+                className="admin-input"
+                inputMode="decimal"
+                value={courseForm.price}
+                onChange={(event) =>
+                  setCourseForm((current) => ({ ...current, price: event.target.value }))
+                }
+              />
+            </Field>
+            <Field label="Image URL">
+              <input
+                className="admin-input"
+                type="url"
+                placeholder="Optional HTTPS image"
+                value={courseForm.image}
+                onChange={(event) =>
+                  setCourseForm((current) => ({ ...current, image: event.target.value }))
+                }
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Description">
+                <textarea
+                  className="admin-input min-h-24"
+                  value={courseForm.description}
+                  onChange={(event) =>
+                    setCourseForm((current) => ({ ...current, description: event.target.value }))
+                  }
+                />
+              </Field>
+            </div>
+            <label className="flex items-center gap-3 text-sm font-semibold">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-amber-500"
+                checked={courseForm.published}
+                onChange={(event) =>
+                  setCourseForm((current) => ({ ...current, published: event.target.checked }))
+                }
+              />
+              Published course
+            </label>
           </div>
-          <label className="flex items-center gap-3 text-sm font-semibold">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-amber-500"
-              checked={courseForm.published}
-              onChange={(event) =>
-                setCourseForm((current) => ({ ...current, published: event.target.checked }))
-              }
-            />
-            Published course
-          </label>
-        </div>
-        <button
-          type="button"
-          onClick={() => void runCourseSave(saveCourse)}
-          disabled={courseSaving}
-          className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-        >
-          <Plus className="h-4 w-4" />
-          {courseSaving ? "Saving…" : courseForm.id ? "Update course" : "Create course"}
-        </button>
-        <p className="mt-3 text-xs text-muted-foreground">
-          This checked Admin operation explicitly preserves <code>access_type='{area}'</code>.
-        </p>
-      </form>
+          <button
+            type="button"
+            onClick={() => void runCourseSave(saveCourse)}
+            disabled={courseSaving}
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          >
+            <Plus className="h-4 w-4" />
+            {courseSaving ? "Saving…" : courseForm.id ? "Update course" : "Create course"}
+          </button>
+          <p className="mt-3 text-xs text-muted-foreground">
+            This checked Admin operation explicitly preserves <code>access_type='{area}'</code>.
+          </p>
+        </form>
+      )}
+      {area === "free" && (
+        <section className="glass mt-8 rounded-3xl p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-xl font-semibold">Free Lessons</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Manage published learner content by its authoritative category.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm(blankForm(selectedCourseId, freeCategory))}
+              className="rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              <Plus className="mr-1 inline h-4 w-4" /> Add Free Lesson
+            </button>
+          </div>
+          <div className="mt-5 inline-flex rounded-xl border border-border bg-background/50 p-1">
+            {(["basic", "advanced"] as const).map((category) => (
+              <button
+                key={category}
+                type="button"
+                aria-pressed={freeCategory === category}
+                onClick={() => {
+                  setFreeCategory(category);
+                  setForm(blankForm(selectedCourseId, category));
+                }}
+                className={`rounded-lg px-5 py-2 text-sm font-semibold capitalize ${freeCategory === category ? "bg-gold text-black" : "text-muted-foreground"}`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       {(area === "premium" || area === "free") && (
         <>
           <form
@@ -714,35 +830,54 @@ function AdminLessons() {
               )}
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div>
-                <Field label="Course">
+              {area === "premium" && (
+                <div>
+                  <Field label="Course">
+                    <select
+                      value={form.courseId}
+                      onChange={(event) => {
+                        setForm((current) => ({ ...current, courseId: event.target.value }));
+                        setSelectedCourseId(event.target.value);
+                      }}
+                      className="admin-input"
+                    >
+                      <option value="">Select a {area} course</option>
+                      {areaCourses.map((course) => (
+                        <option key={course.id} value={course.id}>
+                          {course.title}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  {selectedCourseId && (
+                    <button
+                      type="button"
+                      aria-controls="admin-course-form"
+                      className="mt-2 text-xs font-semibold text-gold"
+                      onClick={editSelectedCourse}
+                    >
+                      Edit selected course
+                    </button>
+                  )}
+                </div>
+              )}
+              {area === "free" && (
+                <Field label="Category">
                   <select
-                    value={form.courseId}
-                    onChange={(event) => {
-                      setForm((current) => ({ ...current, courseId: event.target.value }));
-                      setSelectedCourseId(event.target.value);
-                    }}
-                    className="admin-input"
+                    value={form.learningCategory}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        learningCategory: event.target.value as "basic" | "advanced",
+                      }))
+                    }
+                    className="admin-input capitalize"
                   >
-                    <option value="">Select a {area} course</option>
-                    {areaCourses.map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {course.title}
-                      </option>
-                    ))}
+                    <option value="basic">Basic</option>
+                    <option value="advanced">Advanced</option>
                   </select>
                 </Field>
-                {selectedCourseId && (
-                  <button
-                    type="button"
-                    aria-controls="admin-course-form"
-                    className="mt-2 text-xs font-semibold text-gold"
-                    onClick={editSelectedCourse}
-                  >
-                    Edit selected course
-                  </button>
-                )}
-              </div>
+              )}
               <Field label="Position">
                 <input
                   value={form.position}
@@ -763,17 +898,6 @@ function AdminLessons() {
                   required
                 />
               </Field>
-              <Field label="Slug">
-                <input
-                  value={form.slug}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, slug: slugify(event.target.value) }))
-                  }
-                  maxLength={180}
-                  className="admin-input"
-                  placeholder="Generated from title"
-                />
-              </Field>
               <Field label="Video source">
                 <select
                   value={form.mediaSource}
@@ -785,12 +909,13 @@ function AdminLessons() {
                   }
                   className="admin-input"
                 >
-                  <option value="none">No video</option>
                   <option value="self_hosted">Upload lesson video from device</option>
-                  <option value="youtube_legacy">YouTube legacy</option>
+                  {area === "free" && <option value="youtube_legacy">YouTube Link</option>}
                 </select>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Uploading from a device is the recommended workflow for recorded lessons.
+                  {area === "premium"
+                    ? "Premium lessons use private uploaded video only."
+                    : "Choose private upload or a supported YouTube link."}
                 </p>
               </Field>
               {form.mediaSource === "youtube_legacy" && (
@@ -905,15 +1030,35 @@ function AdminLessons() {
                 ))}
               </select>
             </div>
+            {unclassifiedFreeLessons.length > 0 && (
+              <div className="mt-5 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
+                <h3 className="text-sm font-semibold">Lessons needing a category</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Assign Basic or Advanced before these lessons can appear in the learner library.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {unclassifiedFreeLessons.map((lesson) => (
+                    <button
+                      key={lesson.id}
+                      type="button"
+                      onClick={() => editLesson(lesson)}
+                      className="rounded-full border border-gold/40 px-3 py-2 text-xs font-semibold text-gold"
+                    >
+                      Classify {lesson.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {loading ? (
               <AdminLoading />
             ) : !selectedCourseId ? (
               <Empty message="Select a course to manage its lessons." />
-            ) : lessons.length === 0 ? (
+            ) : visibleLessons.length === 0 ? (
               <Empty message="No lessons have been created for this course." />
             ) : (
               <div className="glass mt-5 divide-y divide-border overflow-hidden rounded-3xl">
-                {lessons.map((lesson, index) => (
+                {visibleLessons.map((lesson, index) => (
                   <article
                     key={lesson.id}
                     className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
@@ -967,7 +1112,7 @@ function AdminLessons() {
                         </button>
                         <button
                           onClick={() => void moveLesson(lesson, "down")}
-                          disabled={Boolean(moving) || index === lessons.length - 1}
+                          disabled={Boolean(moving) || index === visibleLessons.length - 1}
                           className="admin-icon"
                           aria-label={`Move ${lesson.title} down`}
                           title="Move down"
@@ -1112,20 +1257,36 @@ function LessonMediaManager({
         hasPoster = true;
       }
 
-      const { error: mediaError } = await supabase.rpc(
-        "admin_set_lesson_media" as never,
-        {
-          p_lesson_id: lesson.id,
-          p_media_source: "self_hosted",
-          p_video_mime_type: "video/mp4",
-          p_video_duration_seconds: duration,
-          p_has_poster: hasPoster,
-        } as never,
-      );
-      if (mediaError) throw mediaError;
+      if (video) {
+        const { error: mediaError } = await supabase.rpc(
+          "admin_set_lesson_media" as never,
+          {
+            p_lesson_id: lesson.id,
+            p_media_source: "self_hosted",
+            p_video_mime_type: "video/mp4",
+            p_video_duration_seconds: duration,
+            p_has_poster: hasPoster,
+          } as never,
+        );
+        if (mediaError) throw mediaError;
+      }
+      if (poster) {
+        const { error: thumbnailError } = await (
+          supabase.rpc as unknown as (
+            name: "admin_set_lesson_thumbnail",
+            args: { p_lesson_id: string; p_attached: boolean },
+          ) => Promise<{ error: unknown }>
+        )("admin_set_lesson_thumbnail", { p_lesson_id: lesson.id, p_attached: true });
+        if (thumbnailError) throw thumbnailError;
+      }
 
       if (lesson.video_url) {
-        const { error: clearLegacyError } = await supabase.rpc("admin_save_lesson", {
+        const { error: clearLegacyError } = await (
+          supabase.rpc as unknown as (
+            name: "admin_save_lesson_v2",
+            args: Record<string, unknown>,
+          ) => Promise<{ error: unknown }>
+        )("admin_save_lesson_v2", {
           p_lesson_id: lesson.id,
           p_course_id: lesson.course_id,
           p_title: lesson.title,
@@ -1134,6 +1295,7 @@ function LessonMediaManager({
           p_video_url: null,
           p_position: lesson.position,
           p_is_published: lesson.is_published,
+          p_learning_category: lesson.learning_category,
         });
         if (clearLegacyError) {
           console.error(
@@ -1198,6 +1360,31 @@ function LessonMediaManager({
     } catch (removeError) {
       console.error("Could not remove course media", removeError);
       toast.error("The private video could not be removed.");
+    } finally {
+      setRemoving(false);
+    }
+  }
+
+  async function clearThumbnail() {
+    if (!lesson.video_poster_path || busy) return;
+    setRemoving(true);
+    try {
+      const { error: deleteError } = await supabase.storage
+        .from(COURSE_MEDIA_BUCKET)
+        .remove([coursePosterPath(lesson.course_id, lesson.id)]);
+      if (deleteError) throw deleteError;
+      const { error: metadataError } = await (
+        supabase.rpc as unknown as (
+          name: "admin_set_lesson_thumbnail",
+          args: { p_lesson_id: string; p_attached: boolean },
+        ) => Promise<{ error: unknown }>
+      )("admin_set_lesson_thumbnail", { p_lesson_id: lesson.id, p_attached: false });
+      if (metadataError) throw metadataError;
+      toast.success("Lesson thumbnail cleared.");
+      await onChanged();
+    } catch (thumbnailError) {
+      console.error("Could not clear lesson thumbnail", thumbnailError);
+      toast.error("The lesson thumbnail could not be cleared.");
     } finally {
       setRemoving(false);
     }
@@ -1292,6 +1479,18 @@ function LessonMediaManager({
             <ImageIcon className="h-3 w-3" /> JPEG is converted explicitly to private WebP.
           </p>
         </Field>
+        {lesson.video_poster_path && (
+          <div className="flex items-end">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void clearThumbnail()}
+              className="rounded-full border border-border px-4 py-2 text-sm font-semibold disabled:opacity-50"
+            >
+              Clear thumbnail
+            </button>
+          </div>
+        )}
       </div>
 
       {(state === "uploading" || progress.total > 0) && (

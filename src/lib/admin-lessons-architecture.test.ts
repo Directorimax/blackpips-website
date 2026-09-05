@@ -18,7 +18,44 @@ describe("admin lesson learning areas", () => {
     expect(lessonsSource).toContain('"Free Lessons"');
     expect(lessonsSource).not.toContain('"ALC Access"');
     expect(lessonsSource).not.toContain("<AdminAlcLibrary embedded />");
+    expect(lessonsSource).toContain('navigate({ to: "/admin/alc-library" })');
+    expect(lessonsSource).toContain(">ALC Library</span>");
     expect(alcSource).toContain('createFileRoute("/admin/alc-library")');
+  });
+
+  it("uses the checked V2 lesson contracts and authoritative category partitions", () => {
+    expect(lessonsSource).toContain('"admin_list_lessons_v2"');
+    expect(lessonsSource).toContain('"admin_save_lesson_v2"');
+    expect(lessonsSource).toContain('"admin_reorder_lesson_v2"');
+    expect(lessonsSource).toContain("lesson.learning_category === freeCategory");
+    expect(lessonsSource).toContain('p_learning_category: area === "free"');
+    expect(lessonsSource).not.toContain('learning_category ?? "basic"');
+  });
+
+  it("keeps Free upload and YouTube mutually exclusive while Premium remains upload-only", () => {
+    expect(lessonsSource).toContain(
+      '<option value="self_hosted">Upload lesson video from device</option>',
+    );
+    expect(lessonsSource).toContain(
+      '{area === "free" && <option value="youtube_legacy">YouTube Link</option>}',
+    );
+    expect(lessonsSource).toContain('form.mediaSource === "youtube_legacy"');
+    expect(lessonsSource).toContain("getEmbeddableVideoUrl(form.videoUrl)");
+  });
+
+  it("uses checked thumbnail attachment and private canonical course-media paths", () => {
+    expect(lessonsSource).toContain('"admin_set_lesson_thumbnail"');
+    expect(lessonsSource).toContain("coursePosterPath(lesson.course_id, lesson.id)");
+    expect(lessonsSource).toContain("courseVideoPath(lesson.course_id, lesson.id)");
+    expect(lessonsSource).toContain("COURSE_MEDIA_BUCKET");
+    expect(lessonsSource).not.toContain("getPublicUrl");
+  });
+
+  it("keeps course, lesson, and upload actions explicitly isolated", () => {
+    expect(lessonsSource).toContain('type="button"');
+    expect(lessonsSource).toContain("runCourseSave(saveCourse)");
+    expect(lessonsSource).toContain("runLessonSave(saveLesson)");
+    expect(lessonsSource).toContain("startResumableCourseVideoUpload");
   });
 
   it("filters authoritative courses by access_type without using price", () => {

@@ -45,12 +45,16 @@ type FreeLesson = {
   description: string | null;
   position: number;
   video_duration_seconds: number | null;
+  video_poster_path: string | null;
+  learning_category: "basic" | "advanced" | null;
 };
 
 function FreeLessons() {
   const [courses, setCourses] = useState<FreeCourse[]>([]);
   const [lessons, setLessons] = useState<FreeLesson[]>([]);
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<"basic" | "advanced">("basic");
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,21 +84,55 @@ function FreeLessons() {
       return;
     }
 
-    const { data: lessonRows, error: lessonError } = await supabase
+    const { data: lessonRows, error: lessonError } = (await supabase
       .from("lessons")
-      .select("id,course_id,title,slug,description,position,video_duration_seconds")
+      .select(
+        "id,course_id,title,slug,description,position,video_duration_seconds,video_poster_path,learning_category",
+      )
       .in(
         "course_id",
         publishedCourses.map((course) => course.id),
       )
       .eq("is_published", true)
-      .order("position", { ascending: true });
+      .order("position", { ascending: true })) as unknown as {
+      data: FreeLesson[] | null;
+      error: { message: string } | null;
+    };
 
     if (lessonError) {
       setLessons([]);
       setError("The published Free Lessons could not be loaded. Please try again.");
     } else {
-      setLessons(lessonRows ?? []);
+      const publishedLessons = lessonRows ?? [];
+      setLessons(publishedLessons);
+      const signedEntries = await Promise.all(
+        publishedLessons
+          .filter((lesson) => Boolean(lesson.video_poster_path))
+          .map(async (lesson) => {
+            const { data: descriptor, error: descriptorError } = await (
+              supabase.rpc as unknown as (
+                name: "get_lesson_thumbnail_descriptor",
+                args: { p_course_id: string; p_lesson_id: string },
+              ) => Promise<{
+                data: Array<{
+                  video_poster_path: string | null;
+                  signed_url_ttl_seconds: number;
+                }> | null;
+                error: unknown;
+              }>
+            )("get_lesson_thumbnail_descriptor", {
+              p_course_id: lesson.course_id,
+              p_lesson_id: lesson.id,
+            });
+            const posterPath = descriptor?.[0]?.video_poster_path;
+            if (descriptorError || !posterPath) return null;
+            const { data: signed } = await supabase.storage
+              .from("course-media")
+              .createSignedUrl(posterPath, descriptor?.[0]?.signed_url_ttl_seconds ?? 300);
+            return signed?.signedUrl ? ([lesson.id, signed.signedUrl] as const) : null;
+          }),
+      );
+      setThumbnails(Object.fromEntries(signedEntries.filter((entry) => entry !== null)));
     }
     setLoading(false);
   }, []);
@@ -109,14 +147,15 @@ function FreeLessons() {
   );
   const filteredLessons = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return lessons;
-    return lessons.filter((lesson) => {
+    const categorized = lessons.filter((lesson) => lesson.learning_category === category);
+    if (!normalizedQuery) return categorized;
+    return categorized.filter((lesson) => {
       const course = courseById.get(lesson.course_id);
       return [lesson.title, lesson.description, course?.title]
         .filter((value): value is string => Boolean(value))
         .some((value) => value.toLowerCase().includes(normalizedQuery));
     });
-  }, [courseById, lessons, query]);
+  }, [category, courseById, lessons, query]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16">
@@ -129,6 +168,20 @@ function FreeLessons() {
           Published BLACKPIPS courses available to every authenticated learner.
         </p>
       </header>
+
+      <div className="mx-auto mt-7 flex w-fit rounded-xl border border-border bg-card/60 p-1">
+        {(["basic", "advanced"] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={category === value}
+            onClick={() => setCategory(value)}
+            className={`rounded-lg px-6 py-2 text-sm font-semibold capitalize ${category === value ? "bg-gold text-black" : "text-muted-foreground"}`}
+          >
+            {value}
+          </button>
+        ))}
+      </div>
 
       {!loading && !error && lessons.length > 0 && (
         <div className="mx-auto mt-10 max-w-2xl">
@@ -181,6 +234,13 @@ function FreeLessons() {
                 className="group overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-elegant"
               >
                 <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-accent to-secondary">
+                  {thumbnails[lesson.id] && (
+                    <img
+                      src={thumbnails[lesson.id]}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-hero-glow opacity-70" />
                   <div className="absolute inset-0 grid place-items-center">
                     <div className="glass grid h-14 w-14 place-items-center rounded-full transition-transform group-hover:scale-110">
