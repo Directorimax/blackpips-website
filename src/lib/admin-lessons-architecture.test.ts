@@ -28,17 +28,18 @@ describe("admin lesson learning areas", () => {
 
   it("starts Premium management with a selector and isolates course creation", () => {
     expect(lessonsSource).toContain("Choose Premium Course");
-    expect(lessonsSource).toContain("Create Premium Course");
+    expect(lessonsSource).toContain("+ Create New Premium Course");
+    expect(lessonsSource).toContain('value === "__create__"');
     expect(lessonsSource).toContain("showCourseEditor");
     expect(lessonsSource).toContain('area === "premium" && showCourseEditor');
   });
 
-  it("renders consistent thumbnail-first lesson cards with bounded descriptions", () => {
+  it("renders compact thumbnail-first lesson cards with bounded descriptions", () => {
     expect(lessonsSource).toContain("lessonThumbnails[lesson.id]");
-    expect(lessonsSource).toContain("min-h-[410px]");
-    expect(lessonsSource).toContain("line-clamp-3");
+    expect(lessonsSource).toContain("min-h-[190px]");
+    expect(lessonsSource).toContain("line-clamp-2");
     expect(lessonsSource).toContain("BLACKPIPS lesson");
-    expect(lessonsSource).toContain("sm:grid-cols-2 xl:grid-cols-3");
+    expect(lessonsSource).toContain("xl:grid-cols-2");
   });
 
   it("uses the checked V2 lesson contracts and authoritative category partitions", () => {
@@ -67,9 +68,9 @@ describe("admin lesson learning areas", () => {
     expect(lessonsSource).toContain("courseVideoPath(lesson.course_id, lesson.id)");
     expect(lessonsSource).toContain("COURSE_MEDIA_BUCKET");
     expect(lessonsSource).not.toContain("getPublicUrl");
-    expect(lessonsSource).toContain("No thumbnail uploaded");
-    expect(lessonsSource).toContain("Replace thumbnail");
-    expect(lessonsSource).toContain("Clear thumbnail");
+    expect(lessonsSource).toContain("No thumbnail");
+    expect(lessonsSource).toContain("Remove thumbnail");
+    expect(lessonsSource).toContain("Lesson thumbnail preview");
   });
 
   it("keeps course, lesson, and upload actions explicitly isolated", () => {
@@ -95,11 +96,20 @@ describe("admin lesson learning areas", () => {
     expect(lessonsSource).not.toMatch(/randomUUID|crypto\.randomUUID/);
   });
 
-  it("makes device upload the default premium lesson workflow and exposes save-first guidance", () => {
+  it("makes device upload the default premium lesson workflow in one form", () => {
     expect(lessonsSource).toContain('mediaSource: "self_hosted"');
     expect(lessonsSource).toContain("Upload lesson video from device");
-    expect(lessonsSource).toContain("Save the lesson details to activate MP4 upload");
     expect(lessonsSource).toContain("Drag and drop or select media");
+    expect(lessonsSource).toContain('? "Publish Lesson"');
+    expect(lessonsSource).toContain(': "Save Draft"');
+    expect(lessonsSource).toContain("Creating lesson…");
+    expect(lessonsSource).toContain("Finalizing video…");
+  });
+
+  it("uses the selected Free tab as the authoritative category", () => {
+    expect(lessonsSource).toContain('p_learning_category: area === "free" ? freeCategory : null');
+    expect(lessonsSource).not.toContain('<Field label="Category">');
+    expect(lessonsSource).toContain("Move to");
   });
 
   it("reuses the shared dropzone without adding lesson expiry to either admin library", () => {
@@ -110,7 +120,7 @@ describe("admin lesson learning areas", () => {
   });
 
   it("does not publish an incomplete self-hosted lesson", () => {
-    expect(lessonsSource).toContain("finish its MP4 upload before publishing");
+    expect(lessonsSource).toContain("Choose an MP4 before publishing this lesson");
     expect(lessonsSource).toContain("Finish the MP4 upload before publishing this lesson");
   });
 

@@ -157,11 +157,11 @@ describe("Admin course update payload", () => {
     expect(lessonMarkup).toContain('type="button"');
   });
 
-  it("moves edit-selected-course interaction to the distinct course editor", () => {
-    expect(componentSource).toContain('aria-controls="admin-course-form"');
-    expect(componentSource).toContain("if (!courseForm.id) return");
-    expect(componentSource).toContain("onClick={editSelectedCourse}");
-    expect(componentSource).toContain("courseEditForm(course, area)");
-    expect(componentSource).toContain("courseEditorRef.current?.querySelector<HTMLInputElement>");
+  it("opens exceptional Premium course creation from the destination selector", () => {
+    expect(componentSource).toContain('<option value="__create__">');
+    expect(componentSource).toContain('value === "__create__"');
+    expect(componentSource).toContain("setShowCourseEditor(true)");
+    expect(componentSource).toContain('id="admin-course-form"');
+    expect(componentSource).not.toContain("onClick={editSelectedCourse}");
   });
 });

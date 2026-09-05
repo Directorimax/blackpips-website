@@ -103,43 +103,55 @@ function FreeLessons() {
       setLessons([]);
       setError("The published Free Lessons could not be loaded. Please try again.");
     } else {
-      const publishedLessons = lessonRows ?? [];
-      setLessons(publishedLessons);
-      const signedEntries = await Promise.all(
-        publishedLessons
-          .filter((lesson) => Boolean(lesson.video_poster_path))
-          .map(async (lesson) => {
-            const { data: descriptor, error: descriptorError } = await (
-              supabase.rpc as unknown as (
-                name: "get_lesson_thumbnail_descriptor",
-                args: { p_course_id: string; p_lesson_id: string },
-              ) => Promise<{
-                data: Array<{
-                  video_poster_path: string | null;
-                  signed_url_ttl_seconds: number;
-                }> | null;
-                error: unknown;
-              }>
-            )("get_lesson_thumbnail_descriptor", {
-              p_course_id: lesson.course_id,
-              p_lesson_id: lesson.id,
-            });
-            const posterPath = descriptor?.[0]?.video_poster_path;
-            if (descriptorError || !posterPath) return null;
-            const { data: signed } = await supabase.storage
-              .from("course-media")
-              .createSignedUrl(posterPath, descriptor?.[0]?.signed_url_ttl_seconds ?? 300);
-            return signed?.signedUrl ? ([lesson.id, signed.signedUrl] as const) : null;
-          }),
-      );
-      setThumbnails(Object.fromEntries(signedEntries.filter((entry) => entry !== null)));
+      setLessons(lessonRows ?? []);
     }
     setLoading(false);
+  }, []);
+
+  const refreshThumbnails = useCallback(async (publishedLessons: FreeLesson[]) => {
+    const signedEntries = await Promise.all(
+      publishedLessons
+        .filter((lesson) => Boolean(lesson.video_poster_path))
+        .map(async (lesson) => {
+          const { data: descriptor, error: descriptorError } = await (
+            supabase.rpc as unknown as (
+              name: "get_lesson_thumbnail_descriptor",
+              args: { p_course_id: string; p_lesson_id: string },
+            ) => Promise<{
+              data: Array<{
+                video_poster_path: string | null;
+                signed_url_ttl_seconds: number;
+              }> | null;
+              error: unknown;
+            }>
+          )("get_lesson_thumbnail_descriptor", {
+            p_course_id: lesson.course_id,
+            p_lesson_id: lesson.id,
+          });
+          const posterPath = descriptor?.[0]?.video_poster_path;
+          if (descriptorError || !posterPath) return null;
+          const { data: signed } = await supabase.storage
+            .from("course-media")
+            .createSignedUrl(posterPath, descriptor?.[0]?.signed_url_ttl_seconds ?? 300);
+          return signed?.signedUrl ? ([lesson.id, signed.signedUrl] as const) : null;
+        }),
+    );
+    setThumbnails(Object.fromEntries(signedEntries.filter((entry) => entry !== null)));
   }, []);
 
   useEffect(() => {
     void loadCatalog();
   }, [loadCatalog]);
+
+  useEffect(() => {
+    if (lessons.length === 0) {
+      setThumbnails({});
+      return;
+    }
+    void refreshThumbnails(lessons);
+    const refreshTimer = window.setInterval(() => void refreshThumbnails(lessons), 240_000);
+    return () => window.clearInterval(refreshTimer);
+  }, [lessons, refreshThumbnails]);
 
   const courseById = useMemo(
     () => new Map(courses.map((course) => [course.id, course])),
@@ -222,7 +234,7 @@ function FreeLessons() {
           </p>
         </div>
       ) : (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto mt-8 grid max-w-5xl gap-4 lg:grid-cols-2">
           {filteredLessons.map((lesson) => {
             const course = courseById.get(lesson.course_id);
             if (!course) return null;
@@ -231,9 +243,9 @@ function FreeLessons() {
                 key={lesson.id}
                 to="/courses/$slug/$lessonSlug"
                 params={{ slug: course.slug, lessonSlug: lesson.slug }}
-                className="group flex h-full min-h-[390px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-elegant"
+                className="group flex min-h-[170px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-elegant sm:flex-row"
               >
-                <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-accent to-secondary">
+                <div className="relative aspect-video shrink-0 overflow-hidden bg-gradient-to-br from-accent to-secondary sm:aspect-auto sm:w-56">
                   {thumbnails[lesson.id] ? (
                     <img
                       src={thumbnails[lesson.id]}
@@ -254,14 +266,14 @@ function FreeLessons() {
                     {formatLessonDuration(lesson.video_duration_seconds)}
                   </span>
                 </div>
-                <div className="flex flex-1 flex-col p-5">
+                <div className="flex min-w-0 flex-1 flex-col p-4">
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-gold">
                     {course.title}
                   </span>
-                  <h2 className="mt-2 line-clamp-2 min-h-[2.75rem] font-display text-base font-semibold">
+                  <h2 className="mt-1 line-clamp-2 font-display text-base font-semibold">
                     {lesson.title}
                   </h2>
-                  <p className="mt-2 line-clamp-3 min-h-[3.75rem] text-sm text-muted-foreground">
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                     {lesson.description || "No lesson description available."}
                   </p>
                   <div className="mt-auto border-t border-border pt-3 text-xs text-muted-foreground">

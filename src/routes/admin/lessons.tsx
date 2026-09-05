@@ -52,7 +52,7 @@ import {
   updateAdminCourseAndVerify,
   type CourseAccessType,
 } from "@/lib/admin-course-mutation";
-import { courseEditForm, runCourseSave, runLessonSave } from "@/lib/admin-lessons-event-wiring";
+import { runCourseSave, runLessonSave } from "@/lib/admin-lessons-event-wiring";
 
 export const Route = createFileRoute("/admin/lessons")({
   component: () => (
@@ -152,6 +152,18 @@ function AdminLessons() {
   const [courseSaving, setCourseSaving] = useState(false);
   const [showCourseEditor, setShowCourseEditor] = useState(false);
   const [lessonThumbnails, setLessonThumbnails] = useState<Record<string, string>>({});
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const [selectedThumbnail, setSelectedThumbnail] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [removeThumbnailRequested, setRemoveThumbnailRequested] = useState(false);
+  const [workflowStage, setWorkflowStage] = useState("");
+  const [workflowError, setWorkflowError] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
+    uploaded: 0,
+    total: 0,
+    percentage: 0,
+  });
+  const uploadCancelRef = useRef<null | (() => Promise<void>)>(null);
   const areaCourses = courses.filter((course) => course.access_type === area);
   const visibleLessons = lessons.filter(
     (lesson) => area === "premium" || lesson.learning_category === freeCategory,
@@ -234,6 +246,16 @@ function AdminLessons() {
   }, [loadLessons, selectedCourseId]);
 
   useEffect(() => {
+    if (!selectedThumbnail) {
+      setThumbnailPreview(null);
+      return;
+    }
+    const preview = URL.createObjectURL(selectedThumbnail);
+    setThumbnailPreview(preview);
+    return () => URL.revokeObjectURL(preview);
+  }, [selectedThumbnail]);
+
+  useEffect(() => {
     if (!courseForm.id) return;
     courseEditorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     courseEditorRef.current?.querySelector<HTMLInputElement>("input")?.focus({
@@ -244,6 +266,17 @@ function AdminLessons() {
   function selectCourse(courseId: string) {
     setSelectedCourseId(courseId);
     setForm(blankForm(courseId, freeCategory));
+    resetSelectedMedia();
+  }
+
+  function selectPremiumDestination(value: string) {
+    if (value === "__create__") {
+      setCourseForm(blankCourse());
+      setShowCourseEditor(true);
+      return;
+    }
+    setShowCourseEditor(false);
+    selectCourse(value);
   }
 
   function selectArea(nextArea: LearningArea) {
@@ -256,25 +289,6 @@ function AdminLessons() {
     setCourseForm(blankCourse());
     setShowCourseEditor(false);
     if (!firstCourseId) setLoading(false);
-  }
-
-  function editCourse(course: Course) {
-    const editForm = courseEditForm(course, area);
-    if (editForm) {
-      setCourseForm(editForm);
-      setShowCourseEditor(true);
-    }
-  }
-
-  function editSelectedCourse() {
-    const course = courses.find(
-      (item) => item.id === selectedCourseId && item.access_type === area,
-    );
-    if (!course) {
-      toast.error("The selected course could not be loaded for editing.");
-      return;
-    }
-    editCourse(course);
   }
 
   async function saveCourse() {
@@ -351,6 +365,7 @@ function AdminLessons() {
   }
 
   function editLesson(lesson: Lesson, scroll = true) {
+    resetSelectedMedia();
     setForm({
       id: lesson.id,
       courseId: lesson.course_id,
@@ -364,6 +379,15 @@ function AdminLessons() {
       learningCategory: lesson.learning_category ?? freeCategory,
     });
     if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetSelectedMedia() {
+    setSelectedVideo(null);
+    setSelectedThumbnail(null);
+    setRemoveThumbnailRequested(false);
+    setWorkflowStage("");
+    setWorkflowError("");
+    setUploadProgress({ uploaded: 0, total: 0, percentage: 0 });
   }
 
   function updateTitle(title: string) {
@@ -434,125 +458,190 @@ function AdminLessons() {
     if (
       form.isPublished &&
       form.mediaSource === "self_hosted" &&
+      !selectedVideo &&
       !existingLesson?.video_storage_path
-    ) {
-      return toast.error("Save the lesson as a draft and finish its MP4 upload before publishing.");
-    }
+    )
+      return toast.error("Choose an MP4 before publishing this lesson.");
     if (existingLesson?.media_source === "self_hosted" && form.mediaSource !== "self_hosted") {
       return toast.error("Use Remove video before changing an attached private video's source.");
     }
-    const videoUrlForSave =
-      form.mediaSource === "youtube_legacy"
-        ? form.videoUrl.trim()
-        : form.mediaSource === "self_hosted" && existingLesson?.media_source === "youtube_legacy"
-          ? existingLesson.video_url
-          : null;
+    if (selectedVideo) {
+      const validation = validateCourseVideo(selectedVideo);
+      if (validation) return toast.error(validation);
+    }
+    if (selectedThumbnail) {
+      const validation = validatePoster(selectedThumbnail);
+      if (validation) return toast.error(validation);
+    }
+    const videoUrlForSave = form.mediaSource === "youtube_legacy" ? form.videoUrl.trim() : null;
+    const hasPosterAfterSave = Boolean(
+      selectedThumbnail || (existingLesson?.video_poster_path && !removeThumbnailRequested),
+    );
     if (area === "free" && form.isPublished) {
       const publication = await ensureFreeCoursePublished(form.courseId);
       if (!publication.ok) return toast.error(publication.message);
     }
     setSaving(true);
-    const { data, error } = await (
-      supabase.rpc as unknown as (
-        name: "admin_save_lesson_v2",
-        args: Record<string, unknown>,
-      ) => Promise<{
-        data: Array<{
-          id: string;
-          course_id: string;
-          slug: string;
-          lesson_position: number;
-        }> | null;
-        error: { message: string } | null;
-      }>
-    )("admin_save_lesson_v2", {
-      p_lesson_id: form.id,
-      p_course_id: form.courseId,
-      p_title: title,
-      p_slug: form.id ? form.slug : slugify(title),
-      p_description: form.description.trim() || null,
-      p_video_url: videoUrlForSave,
-      p_position: position,
-      p_is_published: form.isPublished,
-      p_learning_category: area === "free" ? form.learningCategory : null,
-    });
-    if (error) {
-      console.error("Could not save lesson", error);
-      toast.error("Could not save lesson. Please review the fields and try again.");
-    } else {
-      const saved = data?.[0];
-      if (saved && position !== null) {
+    setWorkflowError("");
+    let lessonId = form.id;
+    const saveMetadata = async (id: string | null, published: boolean) =>
+      (
+        supabase.rpc as unknown as (
+          name: "admin_save_lesson_v2",
+          args: Record<string, unknown>,
+        ) => Promise<{
+          data: Array<{
+            id: string;
+            course_id: string;
+            slug: string;
+            lesson_position: number;
+          }> | null;
+          error: { message: string } | null;
+        }>
+      )("admin_save_lesson_v2", {
+        p_lesson_id: id,
+        p_course_id: form.courseId,
+        p_title: title,
+        p_slug: id ? form.slug : slugify(title),
+        p_description: form.description.trim() || null,
+        p_video_url: videoUrlForSave,
+        p_position: position,
+        p_is_published: published,
+        p_learning_category: area === "free" ? freeCategory : null,
+      });
+
+    try {
+      setWorkflowStage(lessonId ? "Saving changes…" : "Creating lesson…");
+      const preparation = await saveMetadata(
+        lessonId,
+        form.mediaSource === "self_hosted" && selectedVideo ? false : form.isPublished,
+      );
+      if (preparation.error) throw new Error(preparation.error.message);
+      lessonId = preparation.data?.[0]?.id ?? lessonId;
+      if (!lessonId) throw new Error("The lesson UUID was not returned by the backend.");
+      if (!form.id) setForm((current) => ({ ...current, id: lessonId }));
+
+      if (removeThumbnailRequested && existingLesson?.video_poster_path) {
+        setWorkflowStage("Removing thumbnail…");
+        const { error: deleteError } = await supabase.storage
+          .from(COURSE_MEDIA_BUCKET)
+          .remove([coursePosterPath(form.courseId, lessonId)]);
+        if (deleteError) throw deleteError;
+        const { error: clearError } = await (
+          supabase.rpc as unknown as (
+            name: "admin_set_lesson_thumbnail",
+            args: { p_lesson_id: string; p_attached: boolean },
+          ) => Promise<{ error: { message: string } | null }>
+        )("admin_set_lesson_thumbnail", { p_lesson_id: lessonId, p_attached: false });
+        if (clearError) throw new Error(clearError.message);
+      }
+
+      if (selectedThumbnail) {
+        setWorkflowStage("Uploading thumbnail…");
+        const posterBlob = await posterAsWebp(selectedThumbnail);
+        const { error: posterError } = await supabase.storage
+          .from(COURSE_MEDIA_BUCKET)
+          .upload(coursePosterPath(form.courseId, lessonId), posterBlob, {
+            contentType: "image/webp",
+            cacheControl: "0",
+            upsert: Boolean(existingLesson?.video_poster_path),
+          });
+        if (posterError) throw posterError;
+        const { error: attachError } = await (
+          supabase.rpc as unknown as (
+            name: "admin_set_lesson_thumbnail",
+            args: { p_lesson_id: string; p_attached: boolean },
+          ) => Promise<{ error: { message: string } | null }>
+        )("admin_set_lesson_thumbnail", { p_lesson_id: lessonId, p_attached: true });
+        if (attachError) throw new Error(attachError.message);
+      }
+
+      if (selectedVideo) {
+        setWorkflowStage("Uploading video…");
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData.session;
+        if (!session) throw new Error("Your administrator session expired. Sign in again.");
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
+        const publishableKey =
+          import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+          process.env.SUPABASE_PUBLISHABLE_KEY ||
+          "";
+        if (!supabaseUrl || !publishableKey)
+          throw new Error("Storage configuration is unavailable.");
+        const duration = await readVideoDuration(selectedVideo);
+        const task = startResumableCourseVideoUpload({
+          file: selectedVideo,
+          endpoint: resumableEndpoint(supabaseUrl),
+          accessToken: session.access_token,
+          publishableKey,
+          objectPath: courseVideoPath(form.courseId, lessonId),
+          upsert: Boolean(existingLesson?.video_storage_path),
+          onProgress: setUploadProgress,
+        });
+        uploadCancelRef.current = task.cancel;
+        await task.completion;
+        uploadCancelRef.current = null;
+        setWorkflowStage("Finalizing video…");
+        const { error: mediaError } = await supabase.rpc(
+          "admin_set_lesson_media" as never,
+          {
+            p_lesson_id: lessonId,
+            p_media_source: "self_hosted",
+            p_video_mime_type: "video/mp4",
+            p_video_duration_seconds: duration,
+            p_has_poster: hasPosterAfterSave,
+          } as never,
+        );
+        if (mediaError) throw mediaError;
+      } else if (form.mediaSource === "youtube_legacy") {
+        const { error: mediaError } = await supabase.rpc(
+          "admin_set_lesson_media" as never,
+          {
+            p_lesson_id: lessonId,
+            p_media_source: "youtube_legacy",
+            p_video_mime_type: null,
+            p_video_duration_seconds: null,
+            p_has_poster: hasPosterAfterSave,
+          } as never,
+        );
+        if (mediaError) throw mediaError;
+      }
+
+      if (position !== null) {
+        setWorkflowStage("Applying position…");
         const { error: reorderError } = await (
           supabase.rpc as unknown as (
             name: "admin_reorder_lesson_v2",
             args: Record<string, unknown>,
           ) => Promise<{ error: { message: string } | null }>
         )("admin_reorder_lesson_v2", {
-          p_lesson_id: saved.id,
-          p_learning_category: area === "free" ? form.learningCategory : null,
+          p_lesson_id: lessonId,
+          p_learning_category: area === "free" ? freeCategory : null,
           p_position: position,
         });
-        if (reorderError) {
-          setSaving(false);
-          toast.error(reorderError.message);
-          await loadLessons(form.courseId);
-          return;
-        }
+        if (reorderError) throw new Error(reorderError.message);
       }
-      if (saved && form.mediaSource !== "self_hosted") {
-        const { error: mediaError } = await supabase.rpc(
-          "admin_set_lesson_media" as never,
-          {
-            p_lesson_id: saved.id,
-            p_media_source: form.mediaSource,
-            p_video_mime_type: null,
-            p_video_duration_seconds: null,
-            p_has_poster: false,
-          } as never,
-        );
-        if (mediaError) {
-          console.error("Could not save lesson media source", mediaError);
-          toast.error("Lesson saved, but its media source could not be updated.");
-          setSaving(false);
-          await loadLessons(form.courseId);
-          return;
-        }
-      }
-      toast.success(form.id ? "Lesson updated." : "Lesson created. You can now attach media.");
-      setSelectedCourseId(form.courseId);
-      await loadLessons(form.courseId);
-      if (saved) {
-        const created = (await loadLessonForEditing(form.courseId, saved.id)) ?? null;
-        if (created) {
-          editLesson(
-            form.mediaSource === "self_hosted"
-              ? { ...created, media_source: "self_hosted" }
-              : created,
-            false,
-          );
-        } else setForm(blankForm(form.courseId, freeCategory));
-      } else {
-        setForm(blankForm(form.courseId, freeCategory));
-      }
-    }
-    setSaving(false);
-  }
 
-  async function loadLessonForEditing(courseId: string, lessonId: string) {
-    const { data, error } = await (
-      supabase.rpc as unknown as (
-        name: "admin_list_lessons_v2",
-        args: { p_course_id: string },
-      ) => Promise<{ data: LessonV2Row[] | null; error: unknown }>
-    )("admin_list_lessons_v2", { p_course_id: courseId });
-    if (error) return null;
-    const row = data?.find((item) => item.id === lessonId);
-    if (!row) return null;
-    const { lesson_position, ...lesson } = row;
-    return {
-      ...lesson,
-      position: lesson_position,
-    } as Lesson;
+      setWorkflowStage(form.isPublished ? "Publishing…" : "Saving draft…");
+      const finalSave = await saveMetadata(lessonId, form.isPublished);
+      if (finalSave.error) throw new Error(finalSave.error.message);
+      await loadLessons(form.courseId);
+      setForm(blankForm(form.courseId, freeCategory));
+      resetSelectedMedia();
+      toast.success(
+        form.id ? "Lesson saved." : form.isPublished ? "Lesson published." : "Draft saved.",
+      );
+    } catch (saveError) {
+      uploadCancelRef.current = null;
+      const message =
+        saveError instanceof Error ? saveError.message : "The lesson could not be saved.";
+      setWorkflowError(message);
+      setWorkflowStage("Failed — correct the issue and retry.");
+      toast.error(message);
+      if (lessonId) await loadLessons(form.courseId);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function moveLesson(lesson: Lesson, direction: "up" | "down") {
@@ -684,7 +773,7 @@ function AdminLessons() {
                 <Field label="Choose Premium Course">
                   <select
                     value={selectedCourseId}
-                    onChange={(event) => selectCourse(event.target.value)}
+                    onChange={(event) => selectPremiumDestination(event.target.value)}
                     className="admin-input"
                   >
                     <option value="">Select a Premium course</option>
@@ -693,40 +782,10 @@ function AdminLessons() {
                         {course.title}
                       </option>
                     ))}
+                    <option value="__create__">+ Create New Premium Course</option>
                   </select>
                 </Field>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {selectedCourseId && (
-                <button
-                  type="button"
-                  onClick={() => setForm(blankForm(selectedCourseId))}
-                  className="rounded-full border border-gold/40 px-4 py-2.5 text-sm font-semibold text-gold"
-                >
-                  <Plus className="mr-1 inline h-4 w-4" /> Add Lesson
-                </button>
-              )}
-              {selectedCourseId && (
-                <button
-                  type="button"
-                  aria-controls="admin-course-form"
-                  onClick={editSelectedCourse}
-                  className="rounded-full border border-border px-4 py-2.5 text-sm font-semibold hover:border-gold/40"
-                >
-                  Edit selected course
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setCourseForm(blankCourse());
-                  setShowCourseEditor(true);
-                }}
-                className="rounded-full bg-gradient-gold px-4 py-2.5 text-sm font-semibold text-primary-foreground"
-              >
-                <Plus className="mr-1 inline h-4 w-4" /> Create Premium Course
-              </button>
             </div>
           </div>
         </section>
@@ -746,18 +805,16 @@ function AdminLessons() {
             <h2 className="font-display text-xl font-semibold">
               {courseForm.id ? `Edit ${area} course` : `Create ${area} course`}
             </h2>
-            {courseForm.id && (
-              <button
-                type="button"
-                className="text-xs font-semibold text-muted-foreground"
-                onClick={() => {
-                  setCourseForm(blankCourse());
-                  setShowCourseEditor(false);
-                }}
-              >
-                Cancel editing
-              </button>
-            )}
+            <button
+              type="button"
+              className="text-xs font-semibold text-muted-foreground"
+              onClick={() => {
+                setCourseForm(blankCourse());
+                setShowCourseEditor(false);
+              }}
+            >
+              Cancel
+            </button>
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field label="Course title">
@@ -845,20 +902,13 @@ function AdminLessons() {
       )}
       {area === "free" && (
         <section className="glass mt-8 rounded-3xl p-5 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
             <div>
               <h2 className="font-display text-xl font-semibold">Free Lessons</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Manage published learner content by its authoritative category.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setForm(blankForm(selectedCourseId, freeCategory))}
-              className="rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary-foreground"
-            >
-              <Plus className="mr-1 inline h-4 w-4" /> Add Free Lesson
-            </button>
           </div>
           <div className="mt-5 inline-flex rounded-xl border border-border bg-background/50 p-1">
             {(["basic", "advanced"] as const).map((category) => (
@@ -869,6 +919,7 @@ function AdminLessons() {
                 onClick={() => {
                   setFreeCategory(category);
                   setForm(blankForm(selectedCourseId, category));
+                  resetSelectedMedia();
                 }}
                 className={`rounded-lg px-5 py-2 text-sm font-semibold capitalize ${freeCategory === category ? "bg-gold text-black" : "text-muted-foreground"}`}
               >
@@ -890,16 +941,37 @@ function AdminLessons() {
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-xl font-semibold">
-                {form.id ? "Edit lesson" : "Create lesson"}
+                {form.id
+                  ? `Edit ${area === "free" ? freeCategory : "Premium"} lesson`
+                  : `Add ${area === "free" ? freeCategory : "Premium"} lesson`}
               </h2>
               {form.id && (
-                <button
-                  type="button"
-                  onClick={() => setForm(blankForm(selectedCourseId))}
-                  className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-                >
-                  Cancel editing
-                </button>
+                <div className="flex items-center gap-3">
+                  {area === "free" && (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => {
+                        const destination = freeCategory === "basic" ? "advanced" : "basic";
+                        setFreeCategory(destination);
+                        setForm((current) => ({ ...current, learningCategory: destination }));
+                      }}
+                      className="text-xs font-semibold text-gold"
+                    >
+                      Move to {freeCategory === "basic" ? "Advanced" : "Basic"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(blankForm(selectedCourseId, freeCategory));
+                      resetSelectedMedia();
+                    }}
+                    className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel editing
+                  </button>
+                </div>
               )}
             </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -911,23 +983,6 @@ function AdminLessons() {
                       "Choose a Premium course above"}
                   </span>
                 </div>
-              )}
-              {area === "free" && (
-                <Field label="Category">
-                  <select
-                    value={form.learningCategory}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        learningCategory: event.target.value as "basic" | "advanced",
-                      }))
-                    }
-                    className="admin-input capitalize"
-                  >
-                    <option value="basic">Basic</option>
-                    <option value="advanced">Advanced</option>
-                  </select>
-                </Field>
               )}
               <Field label="Position">
                 <input
@@ -952,12 +1007,13 @@ function AdminLessons() {
               <Field label="Video source">
                 <select
                   value={form.mediaSource}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    setSelectedVideo(null);
                     setForm((current) => ({
                       ...current,
                       mediaSource: event.target.value as MediaSource,
-                    }))
-                  }
+                    }));
+                  }}
                   className="admin-input"
                 >
                   <option value="self_hosted">Upload lesson video from device</option>
@@ -1011,6 +1067,136 @@ function AdminLessons() {
                 </Field>
               </div>
             </div>
+            <section className="mt-5 rounded-2xl border border-border bg-background/40 p-4">
+              <h3 className="flex items-center gap-2 font-semibold">
+                <ImageIcon className="h-4 w-4 text-gold" /> Thumbnail
+              </h3>
+              <div className="mt-3 grid gap-4 sm:grid-cols-[12rem_1fr] sm:items-center">
+                <div className="aspect-video overflow-hidden rounded-xl border border-border bg-gradient-to-br from-gold/15 to-background">
+                  {thumbnailPreview || (form.id && lessonThumbnails[form.id]) ? (
+                    <img
+                      src={thumbnailPreview ?? lessonThumbnails[form.id!]}
+                      alt="Lesson thumbnail preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="grid h-full place-items-center text-center text-xs text-muted-foreground">
+                      <ImageIcon className="mx-auto mb-1 h-6 w-6 text-gold/70" /> No thumbnail
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    accept="image/webp,image/jpeg,.webp,.jpg,.jpeg"
+                    disabled={saving}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      if (file) {
+                        const validation = validatePoster(file);
+                        if (validation) return toast.error(validation);
+                      }
+                      setSelectedThumbnail(file);
+                      setRemoveThumbnailRequested(false);
+                    }}
+                    className="admin-input file:mr-3 file:rounded-full file:border-0 file:bg-gold/10 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-gold"
+                  />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    JPEG or WebP · stored privately as poster.webp
+                  </p>
+                  {(selectedThumbnail || (form.id && lessonThumbnails[form.id])) && (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => {
+                        setSelectedThumbnail(null);
+                        setRemoveThumbnailRequested(Boolean(form.id && lessonThumbnails[form.id]));
+                      }}
+                      className="mt-2 text-xs font-semibold text-destructive"
+                    >
+                      Remove thumbnail
+                    </button>
+                  )}
+                </div>
+              </div>
+            </section>
+            {form.mediaSource === "self_hosted" && (
+              <section className="mt-5">
+                <h3 className="mb-3 flex items-center gap-2 font-semibold">
+                  <FileVideo className="h-4 w-4 text-gold" /> Lesson video
+                </h3>
+                <MediaDropzone
+                  accept="video/mp4,.mp4"
+                  disabled={saving}
+                  onFiles={(files) => {
+                    const file = files[0] ?? null;
+                    if (!file) return;
+                    const validation = validateCourseVideo(file);
+                    if (validation) return toast.error(validation);
+                    setSelectedVideo(file);
+                    setWorkflowError("");
+                  }}
+                >
+                  <span>
+                    <FileVideo className="mx-auto h-7 w-7 text-gold" />
+                    <span className="mt-2 block text-sm font-semibold">
+                      Drag and drop or select media
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      MP4 · Up to 3 GiB
+                    </span>
+                  </span>
+                </MediaDropzone>
+                {selectedVideo && (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+                    <span className="truncate">
+                      {selectedVideo.name} · {formatBytes(selectedVideo.size)}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => setSelectedVideo(null)}
+                      className="text-xs font-semibold text-destructive"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+                {form.id &&
+                  lessons.find((lesson) => lesson.id === form.id)?.video_storage_path &&
+                  !selectedVideo && (
+                    <p className="mt-2 text-xs text-emerald-600">
+                      Existing private video remains attached. Choose a file only to replace it.
+                    </p>
+                  )}
+              </section>
+            )}
+            {(saving || uploadProgress.total > 0 || workflowError) && (
+              <div className="mt-5 rounded-xl border border-border p-3" aria-live="polite">
+                <div className="flex justify-between gap-3 text-xs font-semibold">
+                  <span>{workflowStage || "Preparing…"}</span>
+                  {uploadProgress.total > 0 && <span>{uploadProgress.percentage}%</span>}
+                </div>
+                {uploadProgress.total > 0 && (
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full bg-gradient-gold"
+                      style={{ width: `${uploadProgress.percentage}%` }}
+                    />
+                  </div>
+                )}
+                {workflowError && <p className="mt-2 text-sm text-destructive">{workflowError}</p>}
+                {saving && uploadCancelRef.current && (
+                  <button
+                    type="button"
+                    onClick={() => void uploadCancelRef.current?.()}
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-destructive"
+                  >
+                    <X className="h-3 w-3" /> Cancel upload
+                  </button>
+                )}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => void runLessonSave(saveLesson)}
@@ -1018,57 +1204,14 @@ function AdminLessons() {
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{" "}
-              {saving ? "Saving…" : form.id ? "Save lesson" : "Create lesson"}
+              {saving
+                ? workflowStage || "Saving…"
+                : form.id
+                  ? "Save Lesson"
+                  : form.isPublished
+                    ? "Publish Lesson"
+                    : "Save Draft"}
             </button>
-            {!form.id && (
-              <section className="mt-5 rounded-2xl border border-border bg-background/40 p-4">
-                <h3 className="flex items-center gap-2 font-semibold">
-                  <ImageIcon className="h-4 w-4 text-gold" /> Thumbnail
-                </h3>
-                <div className="mt-3 rounded-xl border border-dashed border-gold/35 bg-gold/5 px-4 py-6 text-center text-sm text-muted-foreground">
-                  Save the lesson first to activate private thumbnail upload.
-                </div>
-              </section>
-            )}
-            {form.mediaSource === "self_hosted" && !form.id && (
-              <div className="mt-5">
-                <MediaDropzone accept="video/mp4,.mp4" disabled onFiles={() => undefined}>
-                  <span>
-                    <FileVideo className="mx-auto h-7 w-7 text-gold" />
-                    <span className="mt-2 block text-sm font-semibold">
-                      Drag and drop or select media
-                    </span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      Save the lesson details to activate MP4 upload · Up to 3 GiB
-                    </span>
-                  </span>
-                </MediaDropzone>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Step 1: create the lesson to obtain its secure UUID. Step 2: this upload area
-                  becomes active immediately for the lesson video.
-                </p>
-              </div>
-            )}
-            {form.id &&
-              (() => {
-                const mediaLesson = lessons.find((lesson) => lesson.id === form.id);
-                return mediaLesson ? (
-                  <LessonMediaManager
-                    lesson={mediaLesson}
-                    videoEnabled={form.mediaSource === "self_hosted"}
-                    thumbnailUrl={lessonThumbnails[mediaLesson.id]}
-                    onChanged={async () => {
-                      await loadLessons(form.courseId);
-                      const refreshed = await loadLessonForEditing(form.courseId, form.id!);
-                      if (refreshed) editLesson(refreshed, false);
-                    }}
-                  />
-                ) : (
-                  <p className="mt-4 rounded-xl border border-border p-3 text-sm text-muted-foreground">
-                    Reloading private media status…
-                  </p>
-                );
-              })()}
           </form>
 
           <section className="mt-8">
@@ -1121,13 +1264,13 @@ function AdminLessons() {
             ) : visibleLessons.length === 0 ? (
               <Empty message="No lessons have been created for this course." />
             ) : (
-              <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-5 grid gap-4 xl:grid-cols-2">
                 {visibleLessons.map((lesson, index) => (
                   <article
                     key={lesson.id}
-                    className="flex h-full min-h-[410px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-elegant"
+                    className="flex min-h-[190px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-elegant sm:flex-row"
                   >
-                    <div className="relative aspect-video shrink-0 overflow-hidden bg-gradient-to-br from-gold/20 via-card to-background">
+                    <div className="relative aspect-video shrink-0 overflow-hidden bg-gradient-to-br from-gold/20 via-card to-background sm:aspect-auto sm:w-52">
                       {lessonThumbnails[lesson.id] ? (
                         <img
                           src={lessonThumbnails[lesson.id]}
@@ -1153,9 +1296,9 @@ function AdminLessons() {
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-1 flex-col p-5">
+                    <div className="flex min-w-0 flex-1 flex-col p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <h3 className="line-clamp-2 min-h-[3rem] font-display text-lg font-semibold leading-6">
+                        <h3 className="line-clamp-2 font-display text-base font-semibold leading-5">
                           {lesson.title}
                         </h3>
                         <span
@@ -1164,7 +1307,7 @@ function AdminLessons() {
                           {lesson.is_published ? "Published" : "Draft"}
                         </span>
                       </div>
-                      <p className="mt-3 line-clamp-3 min-h-[3.75rem] text-sm leading-5 text-muted-foreground">
+                      <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
                         {lesson.description || "No lesson description yet."}
                       </p>
                       <p className="mt-3 truncate text-xs text-muted-foreground">
@@ -1174,12 +1317,12 @@ function AdminLessons() {
                             ? "YouTube video"
                             : "No video"}
                       </p>
-                      <div className="mt-auto border-t border-border pt-4">
+                      <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3">
                         <button
                           type="button"
                           onClick={() => void togglePublished(lesson)}
                           disabled={saving || Boolean(moving)}
-                          className="admin-publish-action w-full justify-center"
+                          className="admin-publish-action justify-center"
                           aria-label={`${lesson.is_published ? "Unpublish" : "Publish"} ${lesson.title}`}
                         >
                           {lesson.is_published ? (
@@ -1189,7 +1332,7 @@ function AdminLessons() {
                           )}
                           {lesson.is_published ? "Unpublish" : "Publish"}
                         </button>
-                        <div className="mt-2 grid grid-cols-4 gap-2">
+                        <div className="ml-auto flex gap-2">
                           <button
                             type="button"
                             onClick={() => void moveLesson(lesson, "up")}
