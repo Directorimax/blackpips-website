@@ -1,6 +1,6 @@
 export type CoursePhaseConfigurationRow = {
   course_id: string;
-  phase_count: number;
+  max_phase: number;
 };
 
 export type CoursePhaseConfiguration = Record<string, number>;
@@ -12,11 +12,9 @@ export function phaseConfigurationByCourse(
     rows
       .filter(
         (row) =>
-          typeof row.course_id === "string" &&
-          Number.isInteger(row.phase_count) &&
-          row.phase_count > 0,
+          typeof row.course_id === "string" && Number.isInteger(row.max_phase) && row.max_phase > 0,
       )
-      .map((row) => [row.course_id, row.phase_count]),
+      .map((row) => [row.course_id, row.max_phase]),
   );
 }
 

@@ -13,9 +13,9 @@ describe("Premium lesson phase configuration", () => {
   const eightEntriesId = "abd2be17-957e-4f4f-ba31-9dc304a48819";
 
   const configuration = phaseConfigurationByCourse([
-    { course_id: regularId, phase_count: 2 },
-    { course_id: advancedId, phase_count: 2 },
-    { course_id: masterclassId, phase_count: 3 },
+    { course_id: regularId, max_phase: 2 },
+    { course_id: advancedId, max_phase: 2 },
+    { course_id: masterclassId, max_phase: 3 },
   ]);
 
   it("keys authoritative phase rules by course UUID", () => {

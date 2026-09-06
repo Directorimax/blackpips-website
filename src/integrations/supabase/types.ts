@@ -830,7 +830,7 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: {
           course_id: string;
-          phase_count: number;
+          max_phase: number;
         }[];
       };
       admin_list_lessons_v3: {
