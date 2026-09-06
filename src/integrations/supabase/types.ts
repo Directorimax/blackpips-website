@@ -401,6 +401,7 @@ export type Database = {
           description: string | null;
           video_url: string | null;
           video_duration_seconds: number | null;
+          phase_number: number | null;
           position: number;
           is_published: boolean;
           created_at: string;
@@ -414,6 +415,7 @@ export type Database = {
           description?: string | null;
           video_url?: string | null;
           video_duration_seconds?: number | null;
+          phase_number?: number | null;
           position?: number;
           is_published?: boolean;
           created_at?: string;
@@ -427,6 +429,7 @@ export type Database = {
           description?: string | null;
           video_url?: string | null;
           video_duration_seconds?: number | null;
+          phase_number?: number | null;
           position?: number;
           is_published?: boolean;
           created_at?: string;
@@ -822,6 +825,57 @@ export type Database = {
           created_at: string;
           updated_at: string;
         }[];
+      };
+      admin_list_course_phase_configuration: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          course_id: string;
+          phase_count: number;
+        }[];
+      };
+      admin_list_lessons_v3: {
+        Args: { p_course_id: string };
+        Returns: {
+          id: string;
+          course_id: string;
+          title: string;
+          slug: string;
+          description: string | null;
+          video_url: string | null;
+          lesson_position: number;
+          is_published: boolean;
+          media_source: "none" | "self_hosted" | "youtube_legacy";
+          video_storage_path: string | null;
+          video_poster_path: string | null;
+          video_mime_type: string | null;
+          video_duration_seconds: number | null;
+          learning_category: "basic" | "advanced" | null;
+          phase_number: number | null;
+        }[];
+      };
+      admin_save_lesson_v3: {
+        Args: {
+          p_lesson_id?: string | null;
+          p_course_id: string;
+          p_title: string;
+          p_slug: string;
+          p_description?: string | null;
+          p_video_url?: string | null;
+          p_position?: number | null;
+          p_is_published?: boolean;
+          p_learning_category?: "basic" | "advanced" | null;
+          p_phase_number?: number | null;
+        };
+        Returns: { id: string; course_id: string; slug: string; lesson_position: number }[];
+      };
+      admin_reorder_lesson_v3: {
+        Args: {
+          p_lesson_id: string;
+          p_learning_category?: "basic" | "advanced" | null;
+          p_phase_number?: number | null;
+          p_position: number;
+        };
+        Returns: { id: string; lesson_position: number }[];
       };
       admin_list_alc_modules: {
         Args: Record<PropertyKey, never>;

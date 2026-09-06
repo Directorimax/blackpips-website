@@ -50,13 +50,26 @@ describe("admin lesson learning areas", () => {
     expect(lessonsSource).toContain("object-cover object-center");
   });
 
-  it("uses the checked V2 lesson contracts and authoritative category partitions", () => {
-    expect(lessonsSource).toContain('"admin_list_lessons_v2"');
-    expect(lessonsSource).toContain('"admin_save_lesson_v2"');
-    expect(lessonsSource).toContain('"admin_reorder_lesson_v2"');
+  it("uses the checked V3 lesson contracts and authoritative category partitions", () => {
+    expect(lessonsSource).toContain('"admin_list_lessons_v3"');
+    expect(lessonsSource).toContain('"admin_save_lesson_v3"');
+    expect(lessonsSource).toContain('"admin_reorder_lesson_v3"');
+    expect(lessonsSource).toContain('"admin_list_course_phase_configuration"');
+    expect(lessonsSource).not.toContain('"admin_save_lesson_v2"');
     expect(lessonsSource).toContain("lesson.learning_category === freeCategory");
     expect(lessonsSource).toContain('p_learning_category: area === "free"');
     expect(lessonsSource).not.toContain('learning_category ?? "basic"');
+  });
+
+  it("shows UUID-configured phases only for phased Premium courses", () => {
+    expect(lessonsSource).toContain('area === "premium" && selectedPhaseCount');
+    expect(lessonsSource).toContain('<Field label="Phase">');
+    expect(lessonsSource).toContain("phaseOptions(selectedPhaseCount)");
+    expect(lessonsSource).toContain("Unassigned — choose a phase");
+    expect(lessonsSource).toContain("p_phase_number: phaseNumber");
+    expect(lessonsSource).toContain(
+      'p_phase_number: area === "premium" ? lesson.phase_number : null',
+    );
   });
 
   it("keeps Free upload and YouTube mutually exclusive while Premium remains upload-only", () => {

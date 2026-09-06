@@ -53,6 +53,13 @@ import {
   type CourseAccessType,
 } from "@/lib/admin-course-mutation";
 import { runCourseSave, runLessonSave } from "@/lib/admin-lessons-event-wiring";
+import {
+  initialPhaseNumber,
+  phaseConfigurationByCourse,
+  phaseOptions,
+  phasePositionLabel,
+  type CoursePhaseConfiguration,
+} from "@/lib/admin-premium-phases";
 
 export const Route = createFileRoute("/admin/lessons")({
   component: () => (
@@ -88,8 +95,8 @@ type Lesson = {
   video_mime_type: string | null;
   video_duration_seconds: number | null;
   learning_category: "basic" | "advanced" | null;
+  phase_number: number | null;
 };
-type LessonV2Row = Omit<Lesson, "position"> & { lesson_position: number };
 type FormState = {
   id: string | null;
   courseId: string;
@@ -101,6 +108,7 @@ type FormState = {
   isPublished: boolean;
   mediaSource: MediaSource;
   learningCategory: "basic" | "advanced";
+  phaseNumber: number | null;
 };
 type CourseForm = {
   id: string | null;
@@ -112,7 +120,11 @@ type CourseForm = {
   published: boolean;
 };
 
-const blankForm = (courseId = "", learningCategory: "basic" | "advanced" = "basic"): FormState => ({
+const blankForm = (
+  courseId = "",
+  learningCategory: "basic" | "advanced" = "basic",
+  phaseNumber: number | null = null,
+): FormState => ({
   id: null,
   courseId,
   title: "",
@@ -123,6 +135,7 @@ const blankForm = (courseId = "", learningCategory: "basic" | "advanced" = "basi
   isPublished: false,
   mediaSource: "self_hosted",
   learningCategory,
+  phaseNumber,
 });
 const blankCourse = (): CourseForm => ({
   id: null,
@@ -139,6 +152,8 @@ function AdminLessons() {
   const { isAdmin, loading: adminLoading } = useAdmin();
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [phaseConfiguration, setPhaseConfiguration] = useState<CoursePhaseConfiguration>({});
+  const [phaseConfigurationLoaded, setPhaseConfigurationLoaded] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,16 +185,15 @@ function AdminLessons() {
   );
   const unclassifiedFreeLessons =
     area === "free" ? lessons.filter((lesson) => lesson.learning_category === null) : [];
+  const selectedPhaseCount =
+    area === "premium" ? phaseConfiguration[form.courseId || selectedCourseId] : undefined;
 
   const loadLessons = useCallback(async (courseId: string) => {
     if (!courseId) return;
     setLoading(true);
-    const { data, error } = await (
-      supabase.rpc as unknown as (
-        name: "admin_list_lessons_v2",
-        args: { p_course_id: string },
-      ) => Promise<{ data: LessonV2Row[] | null; error: unknown }>
-    )("admin_list_lessons_v2", { p_course_id: courseId });
+    const { data, error } = await supabase.rpc("admin_list_lessons_v3", {
+      p_course_id: courseId,
+    });
     if (error) {
       console.error("Could not load admin lessons", error);
       toast.error("Could not load lessons.");
@@ -214,6 +228,16 @@ function AdminLessons() {
   useEffect(() => {
     if (!isAdmin) return;
     let active = true;
+    void supabase.rpc("admin_list_course_phase_configuration").then(({ data, error }) => {
+      if (!active) return;
+      if (error) {
+        console.error("Could not load Premium phase configuration", error);
+        toast.error("Could not load Premium phase configuration.");
+        return;
+      }
+      setPhaseConfiguration(phaseConfigurationByCourse(data ?? []));
+      setPhaseConfigurationLoaded(true);
+    });
     supabase
       .from("courses")
       .select("id,title,slug,description,price,image,published,access_type")
@@ -246,6 +270,18 @@ function AdminLessons() {
   }, [loadLessons, selectedCourseId]);
 
   useEffect(() => {
+    if (
+      area === "premium" &&
+      !form.id &&
+      form.courseId &&
+      form.phaseNumber === null &&
+      phaseConfiguration[form.courseId]
+    ) {
+      setForm((current) => ({ ...current, phaseNumber: 1 }));
+    }
+  }, [area, form.courseId, form.id, form.phaseNumber, phaseConfiguration]);
+
+  useEffect(() => {
     if (!selectedThumbnail) {
       setThumbnailPreview(null);
       return;
@@ -265,7 +301,9 @@ function AdminLessons() {
 
   function selectCourse(courseId: string) {
     setSelectedCourseId(courseId);
-    setForm(blankForm(courseId, freeCategory));
+    const phaseNumber =
+      area === "premium" ? initialPhaseNumber(phaseConfiguration[courseId], null, false) : null;
+    setForm(blankForm(courseId, freeCategory, phaseNumber));
     resetSelectedMedia();
   }
 
@@ -377,6 +415,7 @@ function AdminLessons() {
       isPublished: lesson.is_published,
       mediaSource: lesson.media_source,
       learningCategory: lesson.learning_category ?? freeCategory,
+      phaseNumber: lesson.phase_number,
     });
     if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -441,6 +480,9 @@ function AdminLessons() {
 
   async function saveLesson() {
     if (saving) return;
+    if (area === "premium" && !phaseConfigurationLoaded) {
+      return toast.error("Premium phase configuration is unavailable. Reload before saving.");
+    }
     const title = form.title.trim();
     if (!title) return toast.error("Lesson title is required.");
     if (!form.courseId) return toast.error("Select a course first.");
@@ -453,6 +495,10 @@ function AdminLessons() {
     const position = form.position.trim() ? Number(form.position) : null;
     if (position !== null && (!Number.isInteger(position) || position < 1)) {
       return toast.error("Position must be a whole number greater than zero.");
+    }
+    const phaseNumber = area === "premium" ? form.phaseNumber : null;
+    if (area === "premium" && selectedPhaseCount && phaseNumber === null) {
+      return toast.error("Choose the lesson phase before saving this existing lesson.");
     }
     const existingLesson = form.id ? lessons.find((lesson) => lesson.id === form.id) : null;
     if (
@@ -485,20 +531,7 @@ function AdminLessons() {
     setWorkflowError("");
     let lessonId = form.id;
     const saveMetadata = async (id: string | null, published: boolean) =>
-      (
-        supabase.rpc as unknown as (
-          name: "admin_save_lesson_v2",
-          args: Record<string, unknown>,
-        ) => Promise<{
-          data: Array<{
-            id: string;
-            course_id: string;
-            slug: string;
-            lesson_position: number;
-          }> | null;
-          error: { message: string } | null;
-        }>
-      )("admin_save_lesson_v2", {
+      supabase.rpc("admin_save_lesson_v3", {
         p_lesson_id: id,
         p_course_id: form.courseId,
         p_title: title,
@@ -508,6 +541,7 @@ function AdminLessons() {
         p_position: position,
         p_is_published: published,
         p_learning_category: area === "free" ? freeCategory : null,
+        p_phase_number: phaseNumber,
       });
 
     try {
@@ -609,14 +643,10 @@ function AdminLessons() {
 
       if (position !== null) {
         setWorkflowStage("Applying position…");
-        const { error: reorderError } = await (
-          supabase.rpc as unknown as (
-            name: "admin_reorder_lesson_v2",
-            args: Record<string, unknown>,
-          ) => Promise<{ error: { message: string } | null }>
-        )("admin_reorder_lesson_v2", {
+        const { error: reorderError } = await supabase.rpc("admin_reorder_lesson_v3", {
           p_lesson_id: lessonId,
           p_learning_category: area === "free" ? freeCategory : null,
+          p_phase_number: phaseNumber,
           p_position: position,
         });
         if (reorderError) throw new Error(reorderError.message);
@@ -647,14 +677,10 @@ function AdminLessons() {
   async function moveLesson(lesson: Lesson, direction: "up" | "down") {
     if (moving || saving) return;
     setMoving(lesson.id);
-    const { error } = await (
-      supabase.rpc as unknown as (
-        name: "admin_reorder_lesson_v2",
-        args: Record<string, unknown>,
-      ) => Promise<{ error: unknown }>
-    )("admin_reorder_lesson_v2", {
+    const { error } = await supabase.rpc("admin_reorder_lesson_v3", {
       p_lesson_id: lesson.id,
       p_learning_category: area === "free" ? lesson.learning_category : null,
+      p_phase_number: area === "premium" ? lesson.phase_number : null,
       p_position: lesson.position + (direction === "up" ? -1 : 1),
     });
     if (error) {
@@ -685,12 +711,7 @@ function AdminLessons() {
         return;
       }
     }
-    const { error } = await (
-      supabase.rpc as unknown as (
-        name: "admin_save_lesson_v2",
-        args: Record<string, unknown>,
-      ) => Promise<{ error: unknown }>
-    )("admin_save_lesson_v2", {
+    const { error } = await supabase.rpc("admin_save_lesson_v3", {
       p_lesson_id: lesson.id,
       p_course_id: lesson.course_id,
       p_title: lesson.title,
@@ -700,6 +721,7 @@ function AdminLessons() {
       p_position: lesson.position,
       p_is_published: !lesson.is_published,
       p_learning_category: area === "free" ? lesson.learning_category : null,
+      p_phase_number: area === "premium" ? lesson.phase_number : null,
     });
     if (error) {
       console.error("Could not update lesson visibility", error);
@@ -734,7 +756,7 @@ function AdminLessons() {
       <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gold">
         <ShieldCheck className="h-4 w-4" /> Administration
       </div>
-      <h1 className="mt-2 font-display text-3xl font-bold">Lesson Management V2</h1>
+      <h1 className="mt-2 font-display text-3xl font-bold">Lesson Management</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Choose a learning area, then manage its existing course or library structure.
       </p>
@@ -984,6 +1006,35 @@ function AdminLessons() {
                   </span>
                 </div>
               )}
+              {area === "premium" && selectedPhaseCount && (
+                <Field label="Phase">
+                  <select
+                    value={form.phaseNumber ?? ""}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        phaseNumber: event.target.value ? Number(event.target.value) : null,
+                      }))
+                    }
+                    className="admin-input"
+                    required
+                  >
+                    {form.id && form.phaseNumber === null && (
+                      <option value="">Unassigned — choose a phase</option>
+                    )}
+                    {phaseOptions(selectedPhaseCount).map((phase) => (
+                      <option key={phase} value={phase}>
+                        Phase {phase}
+                      </option>
+                    ))}
+                  </select>
+                  {form.id && form.phaseNumber === null && (
+                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                      This existing lesson has no phase. Choose its curriculum phase before saving.
+                    </p>
+                  )}
+                </Field>
+              )}
               <Field label="Position">
                 <input
                   value={form.position}
@@ -1200,7 +1251,9 @@ function AdminLessons() {
             <button
               type="button"
               onClick={() => void runLessonSave(saveLesson)}
-              disabled={saving || !form.courseId}
+              disabled={
+                saving || !form.courseId || (area === "premium" && !phaseConfigurationLoaded)
+              }
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{" "}
@@ -1265,7 +1318,7 @@ function AdminLessons() {
               <Empty message="No lessons have been created for this course." />
             ) : (
               <div className="mt-5 grid w-full gap-4">
-                {visibleLessons.map((lesson, index) => (
+                {visibleLessons.map((lesson) => (
                   <article
                     key={lesson.id}
                     className="flex min-h-[168px] w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-elegant sm:flex-row"
@@ -1288,7 +1341,13 @@ function AdminLessons() {
                         </div>
                       )}
                       <span className="absolute left-3 top-3 rounded-full border border-white/15 bg-black/70 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
-                        Position {lesson.position}
+                        {area === "premium"
+                          ? phasePositionLabel(
+                              phaseConfiguration[lesson.course_id],
+                              lesson.phase_number,
+                              lesson.position,
+                            )
+                          : `Position ${lesson.position}`}
                       </span>
                       {lesson.video_duration_seconds && (
                         <span className="absolute bottom-3 right-3 rounded-md bg-black/75 px-2 py-1 text-xs font-semibold text-white">
@@ -1336,7 +1395,16 @@ function AdminLessons() {
                           <button
                             type="button"
                             onClick={() => void moveLesson(lesson, "up")}
-                            disabled={Boolean(moving) || index === 0}
+                            disabled={
+                              Boolean(moving) ||
+                              visibleLessons
+                                .filter((candidate) =>
+                                  area === "premium"
+                                    ? candidate.phase_number === lesson.phase_number
+                                    : candidate.learning_category === lesson.learning_category,
+                                )
+                                .findIndex((candidate) => candidate.id === lesson.id) === 0
+                            }
                             className="admin-icon"
                             aria-label={`Move ${lesson.title} up`}
                             title="Move up"
@@ -1346,7 +1414,22 @@ function AdminLessons() {
                           <button
                             type="button"
                             onClick={() => void moveLesson(lesson, "down")}
-                            disabled={Boolean(moving) || index === visibleLessons.length - 1}
+                            disabled={
+                              Boolean(moving) ||
+                              visibleLessons
+                                .filter((candidate) =>
+                                  area === "premium"
+                                    ? candidate.phase_number === lesson.phase_number
+                                    : candidate.learning_category === lesson.learning_category,
+                                )
+                                .findIndex((candidate) => candidate.id === lesson.id) ===
+                                visibleLessons.filter((candidate) =>
+                                  area === "premium"
+                                    ? candidate.phase_number === lesson.phase_number
+                                    : candidate.learning_category === lesson.learning_category,
+                                ).length -
+                                  1
+                            }
                             className="admin-icon"
                             aria-label={`Move ${lesson.title} down`}
                             title="Move down"
@@ -1531,12 +1614,7 @@ function LessonMediaManager({
       }
 
       if (lesson.video_url) {
-        const { error: clearLegacyError } = await (
-          supabase.rpc as unknown as (
-            name: "admin_save_lesson_v2",
-            args: Record<string, unknown>,
-          ) => Promise<{ error: unknown }>
-        )("admin_save_lesson_v2", {
+        const { error: clearLegacyError } = await supabase.rpc("admin_save_lesson_v3", {
           p_lesson_id: lesson.id,
           p_course_id: lesson.course_id,
           p_title: lesson.title,
@@ -1546,6 +1624,7 @@ function LessonMediaManager({
           p_position: lesson.position,
           p_is_published: lesson.is_published,
           p_learning_category: lesson.learning_category,
+          p_phase_number: lesson.phase_number,
         });
         if (clearLegacyError) {
           console.error(
