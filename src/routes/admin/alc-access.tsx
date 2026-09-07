@@ -2,6 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ALC_PROGRAMS } from "@/lib/alc-access";
+import {
+  ALC_TRACKS,
+  alcTrackLabel,
+  buildAlcReviewArgs,
+  isAlcTrack,
+  type AlcTrack,
+} from "@/lib/alc-tracks";
 import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
@@ -28,6 +35,9 @@ type Row = {
   status: "pending" | "approved" | "rejected";
   admin_notes: string | null;
   public_review_message?: string | null;
+  reviewed_at: string | null;
+  assigned_track: AlcTrack | null;
+  legacy_unsegmented_access: boolean;
   created_at: string;
 };
 
@@ -45,11 +55,13 @@ function AdminAlcAccess() {
   const [busy, setBusy] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [publicMessages, setPublicMessages] = useState<Record<string, string>>({});
+  const [assignedTracks, setAssignedTracks] = useState<Record<string, AlcTrack | "">>({});
   const [year, setYear] = useState("");
   const [program, setProgram] = useState("");
 
   const load = useCallback(async () => {
-    const { data, error } = await callRpc<Row[]>("admin_list_alc_access_requests", {
+    const { data, error } = await callRpc<Row[]>("admin_list_alc_access_requests_v2", {
       p_status: filter,
       p_search: search.trim(),
       p_year: year ? Number(year) : null,
@@ -72,22 +84,32 @@ function AdminAlcAccess() {
   }, [isAdmin, load]);
 
   const review = async (row: Row, status: "approved" | "rejected") => {
+    const assignedTrack = status === "approved" ? assignedTracks[row.id] || null : null;
+    if (status === "approved" && !isAlcTrack(assignedTrack)) {
+      toast.error("Choose the ALC track that this learner is authorized to access.");
+      return;
+    }
     if (!window.confirm(`${status === "approved" ? "Approve" : "Reject"} this ALC Access request?`))
       return;
 
     setBusy(row.id);
-    const { error } = await callRpc("admin_review_alc_access_request", {
-      p_request_id: row.id,
-      p_status: status,
-      p_admin_notes: (notes[row.id] ?? row.admin_notes) || null,
-    });
+    const { error } = await callRpc(
+      "admin_review_alc_access_request_v2",
+      buildAlcReviewArgs({
+        requestId: row.id,
+        status,
+        assignedTrack,
+        adminNotes: (notes[row.id] ?? row.admin_notes) || null,
+        publicReviewMessage: (publicMessages[row.id] ?? row.public_review_message)?.trim() || null,
+      }),
+    );
     setBusy(null);
 
     if (error) toast.error(error.message);
     else {
+      await load();
       toast.success(`Request ${status}.`);
       window.dispatchEvent(new Event("alc-access-reviewed"));
-      void load();
       void sendNotification({
         data: { type: `alc_access_${status}`, resourceId: row.id },
       }).catch((notificationError) => {
@@ -163,18 +185,36 @@ function AdminAlcAccess() {
         {rows.map((row) => (
           <article key={row.id} className="glass rounded-2xl p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0 flex-1">
                 <h2 className="font-display text-xl font-bold">{row.full_name}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {row.email} · {row.phone} · {row.study_year}
-                </p>
-                <p className="mt-2 text-sm">
-                  {row.program}
-                  {row.other_program ? `: ${row.other_program}` : ""}
-                </p>
-                {row.additional_details && (
-                  <p className="mt-2 text-sm text-muted-foreground">{row.additional_details}</p>
-                )}
+                <div className="mt-3 rounded-xl border border-border/70 bg-background/40 p-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Applicant said
+                  </p>
+                  <dl className="mt-2 grid gap-x-5 gap-y-2 text-sm sm:grid-cols-2">
+                    <Detail label="Email" value={row.email} />
+                    <Detail label="Phone / WhatsApp" value={row.phone} />
+                    <Detail label="Year studied" value={String(row.study_year)} />
+                    <Detail
+                      label="Program"
+                      value={`${row.program}${row.other_program ? `: ${row.other_program}` : ""}`}
+                    />
+                    <Detail
+                      label="Additional verification"
+                      value={row.additional_details || "Not provided"}
+                    />
+                  </dl>
+                </div>
+                <div className="mt-3 rounded-xl border border-gold/25 bg-gold/5 p-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-gold">
+                    Access assigned by Admin
+                  </p>
+                  <p className="mt-1 text-sm font-semibold">
+                    {row.legacy_unsegmented_access && !row.assigned_track
+                      ? "Legacy unsegmented access"
+                      : alcTrackLabel(row.assigned_track)}
+                  </p>
+                </div>
                 <p className="mt-2 text-xs text-muted-foreground">
                   Account: {row.user_id} · {new Date(row.created_at).toLocaleDateString()}
                 </p>
@@ -182,41 +222,91 @@ function AdminAlcAccess() {
               <span className="rounded-full border border-gold/30 px-3 py-1 text-xs font-bold uppercase text-gold">
                 {row.status}
               </span>
+              {row.legacy_unsegmented_access && !row.assigned_track && (
+                <span className="rounded-full border border-amber-500/40 px-3 py-1 text-xs font-bold uppercase text-amber-600 dark:text-amber-300">
+                  Legacy access
+                </span>
+              )}
             </div>
 
-            {row.status === "pending" && (
-              <label className="mt-4 block text-sm font-semibold">
-                Internal admin notes
-                <textarea
-                  maxLength={1000}
-                  value={notes[row.id] ?? row.admin_notes ?? ""}
-                  onChange={(e) => setNotes({ ...notes, [row.id]: e.target.value })}
-                  className="mt-1 min-h-20 w-full rounded-xl border border-border bg-background p-2 font-normal"
-                />
-              </label>
-            )}
-
-            {row.status === "pending" && (
-              <div className="mt-4 flex gap-2">
-                <button
-                  disabled={busy === row.id}
-                  onClick={() => void review(row, "approved")}
-                  className="rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary-foreground"
-                >
-                  Approve
-                </button>
-                <button
-                  disabled={busy === row.id}
-                  onClick={() => void review(row, "rejected")}
-                  className="rounded-full border border-border px-4 py-2 text-sm font-semibold"
-                >
-                  Reject
-                </button>
+            {(row.status === "pending" ||
+              (row.status === "approved" && row.legacy_unsegmented_access)) && (
+              <div className="mt-4 grid gap-4">
+                <label className="block text-sm font-semibold">
+                  ALC track assigned by Admin
+                  <select
+                    value={assignedTracks[row.id] ?? row.assigned_track ?? ""}
+                    onChange={(e) =>
+                      setAssignedTracks({
+                        ...assignedTracks,
+                        [row.id]: isAlcTrack(e.target.value) ? e.target.value : "",
+                      })
+                    }
+                    className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2"
+                  >
+                    <option value="">Select authorized track</option>
+                    {ALC_TRACKS.map((track) => (
+                      <option key={track} value={track}>
+                        {alcTrackLabel(track)}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                    Applicant program is evidence only. This selection controls authorization.
+                  </span>
+                </label>
+                <label className="block text-sm font-semibold">
+                  Internal admin notes
+                  <textarea
+                    maxLength={1000}
+                    value={notes[row.id] ?? row.admin_notes ?? ""}
+                    onChange={(e) => setNotes({ ...notes, [row.id]: e.target.value })}
+                    className="mt-1 min-h-20 w-full rounded-xl border border-border bg-background p-2 font-normal"
+                  />
+                </label>
+                <label className="block text-sm font-semibold">
+                  Message visible to applicant
+                  <textarea
+                    maxLength={1000}
+                    value={publicMessages[row.id] ?? row.public_review_message ?? ""}
+                    onChange={(e) =>
+                      setPublicMessages({ ...publicMessages, [row.id]: e.target.value })
+                    }
+                    className="mt-1 min-h-20 w-full rounded-xl border border-border bg-background p-2 font-normal"
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    disabled={busy === row.id || !isAlcTrack(assignedTracks[row.id])}
+                    onClick={() => void review(row, "approved")}
+                    className="rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {row.status === "approved" ? "Assign strict track" : "Approve"}
+                  </button>
+                  {row.status === "pending" && (
+                    <button
+                      disabled={busy === row.id}
+                      onClick={() => void review(row, "rejected")}
+                      className="rounded-full border border-border px-4 py-2 text-sm font-semibold"
+                    >
+                      Reject
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </article>
         ))}
       </div>
     </main>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-semibold text-muted-foreground">{label}</dt>
+      <dd className="break-words">{value}</dd>
+    </div>
   );
 }

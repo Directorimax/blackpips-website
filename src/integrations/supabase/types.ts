@@ -115,6 +115,8 @@ export type Database = {
           status: string;
           admin_notes: string | null;
           public_review_message: string | null;
+          assigned_track: "regular" | "advanced" | "masterclass" | null;
+          legacy_unsegmented_access: boolean;
           reviewed_by: string | null;
           reviewed_at: string | null;
           created_at: string;
@@ -133,6 +135,8 @@ export type Database = {
           status?: string;
           admin_notes?: string | null;
           public_review_message?: string | null;
+          assigned_track?: "regular" | "advanced" | "masterclass" | null;
+          legacy_unsegmented_access?: boolean;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           created_at?: string;
@@ -151,6 +155,8 @@ export type Database = {
           status?: string;
           admin_notes?: string | null;
           public_review_message?: string | null;
+          assigned_track?: "regular" | "advanced" | "masterclass" | null;
+          legacy_unsegmented_access?: boolean;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           created_at?: string;
@@ -165,6 +171,7 @@ export type Database = {
           description: string | null;
           sort_order: number;
           is_published: boolean;
+          alc_track: "regular" | "advanced" | "masterclass";
           created_at: string;
           updated_at: string;
         };
@@ -174,6 +181,7 @@ export type Database = {
           description?: string | null;
           sort_order?: number;
           is_published?: boolean;
+          alc_track?: "regular" | "advanced" | "masterclass";
           created_at?: string;
           updated_at?: string;
         };
@@ -183,6 +191,7 @@ export type Database = {
           description?: string | null;
           sort_order?: number;
           is_published?: boolean;
+          alc_track?: "regular" | "advanced" | "masterclass";
           created_at?: string;
           updated_at?: string;
         };
@@ -887,6 +896,58 @@ export type Database = {
           is_published: boolean;
         }[];
       };
+      admin_list_alc_modules_v2: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          title: string;
+          description: string | null;
+          sort_order: number;
+          is_published: boolean;
+          alc_track: "regular" | "advanced" | "masterclass";
+        }[];
+      };
+      admin_list_alc_access_requests_v2: {
+        Args: {
+          p_status?: string | null;
+          p_search?: string | null;
+          p_year?: number | null;
+          p_program?: string | null;
+        };
+        Returns: {
+          id: string;
+          user_id: string;
+          full_name: string;
+          study_year: number;
+          email: string;
+          phone: string;
+          program: string;
+          other_program: string | null;
+          additional_details: string | null;
+          status: string;
+          admin_notes: string | null;
+          public_review_message: string | null;
+          created_at: string;
+          reviewed_at: string | null;
+          assigned_track: "regular" | "advanced" | "masterclass" | null;
+          legacy_unsegmented_access: boolean;
+        }[];
+      };
+      admin_review_alc_access_request_v2: {
+        Args: {
+          p_request_id: string;
+          p_status: string;
+          p_assigned_track?: "regular" | "advanced" | "masterclass" | null;
+          p_admin_notes?: string | null;
+          p_public_review_message?: string | null;
+        };
+        Returns: {
+          id: string;
+          status: string;
+          assigned_track: "regular" | "advanced" | "masterclass" | null;
+          reviewed_at: string;
+        }[];
+      };
       admin_list_alc_videos: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -906,6 +967,17 @@ export type Database = {
           p_description?: string | null;
           p_sort_order?: number | null;
           p_is_published?: boolean;
+        };
+        Returns: string;
+      };
+      admin_save_alc_module_v2: {
+        Args: {
+          p_module_id?: string | null;
+          p_title?: string | null;
+          p_description?: string | null;
+          p_sort_order?: number | null;
+          p_is_published?: boolean;
+          p_alc_track?: "regular" | "advanced" | "masterclass" | null;
         };
         Returns: string;
       };

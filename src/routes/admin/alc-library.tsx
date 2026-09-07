@@ -28,6 +28,7 @@ import {
   startResumableAlcVideoUpload,
   validateAlcVideo,
 } from "@/lib/admin-alc-media";
+import { ALC_TRACKS, alcTrackLabel, isAlcTrack, type AlcTrack } from "@/lib/alc-tracks";
 
 export const Route = createFileRoute("/admin/alc-library")({
   component: () => (
@@ -43,6 +44,7 @@ type Module = {
   description: string | null;
   sort_order: number;
   is_published: boolean;
+  alc_track: AlcTrack;
 };
 type Video = {
   id: string;
@@ -65,6 +67,7 @@ type ModuleForm = {
   description: string;
   order: string;
   published: boolean;
+  track: AlcTrack | "";
 };
 type VideoForm = {
   id: string | null;
@@ -83,6 +86,7 @@ const blankModule = (): ModuleForm => ({
   description: "",
   order: "",
   published: false,
+  track: "",
 });
 const blankVideo = (moduleId = ""): VideoForm => ({
   id: null,
@@ -121,7 +125,7 @@ export function AdminAlcLibrary({ embedded = false }: { embedded?: boolean }) {
   const load = useCallback(async () => {
     setLoading(true);
     const [moduleResult, videoResult, mediaResult] = await Promise.all([
-      supabase.rpc("admin_list_alc_modules"),
+      supabase.rpc("admin_list_alc_modules_v2"),
       supabase.rpc("admin_list_alc_videos"),
       supabase.rpc("admin_list_alc_video_media"),
     ]);
@@ -177,15 +181,17 @@ export function AdminAlcLibrary({ embedded = false }: { embedded?: boolean }) {
     const title = moduleForm.title.trim();
     const order = moduleForm.order ? Number(moduleForm.order) : null;
     if (!title) return toast.error("Module title is required.");
+    if (!isAlcTrack(moduleForm.track)) return toast.error("Select the module's ALC track.");
     if (order !== null && (!Number.isInteger(order) || order < 1))
       return toast.error("Module order must be a positive whole number.");
     setBusy(true);
-    const { error } = await supabase.rpc("admin_save_alc_module", {
+    const { error } = await supabase.rpc("admin_save_alc_module_v2", {
       p_module_id: moduleForm.id,
       p_title: title,
       p_description: moduleForm.description.trim() || null,
       p_sort_order: order,
       p_is_published: moduleForm.published,
+      p_alc_track: moduleForm.track,
     });
     setBusy(false);
     if (error) return toast.error(error.message);
@@ -473,6 +479,26 @@ export function AdminAlcLibrary({ embedded = false }: { embedded?: boolean }) {
               onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })}
             />
           </Field>
+          <Field label="ALC track">
+            <select
+              className="admin-input"
+              required
+              value={moduleForm.track}
+              onChange={(e) =>
+                setModuleForm({
+                  ...moduleForm,
+                  track: isAlcTrack(e.target.value) ? e.target.value : "",
+                })
+              }
+            >
+              <option value="">Select a track</option>
+              {ALC_TRACKS.map((track) => (
+                <option key={track} value={track}>
+                  {alcTrackLabel(track)}
+                </option>
+              ))}
+            </select>
+          </Field>
           <Field label="Module order">
             <input
               className="admin-input"
@@ -538,7 +564,7 @@ export function AdminAlcLibrary({ embedded = false }: { embedded?: boolean }) {
               <option value="">Select a module</option>
               {modules.map((module) => (
                 <option key={module.id} value={module.id}>
-                  {module.title}
+                  {module.title} — {alcTrackLabel(module.alc_track)}
                 </option>
               ))}
             </select>
@@ -698,6 +724,9 @@ export function AdminAlcLibrary({ embedded = false }: { embedded?: boolean }) {
                     <h3 className="font-display text-lg font-semibold">
                       {module.sort_order}. {module.title}
                     </h3>
+                    <span className="mt-2 inline-flex rounded-full border border-gold/30 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gold">
+                      {alcTrackLabel(module.alc_track)}
+                    </span>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {module.description || "No description"}
                     </p>
@@ -714,6 +743,7 @@ export function AdminAlcLibrary({ embedded = false }: { embedded?: boolean }) {
                           description: module.description ?? "",
                           order: String(module.sort_order),
                           published: module.is_published,
+                          track: module.alc_track,
                         })
                       }
                     >
