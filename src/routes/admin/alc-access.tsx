@@ -12,6 +12,7 @@ import {
 import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
+import { AlcVerificationProofs } from "@/components/admin/AlcVerificationProofs";
 import { sendNotification } from "@/services/email/notification.functions";
 
 export const Route = createFileRoute("/admin/alc-access")({
@@ -215,6 +216,7 @@ function AdminAlcAccess() {
                       : alcTrackLabel(row.assigned_track)}
                   </p>
                 </div>
+                <AlcVerificationProofs requestId={row.id} />
                 <p className="mt-2 text-xs text-muted-foreground">
                   Account: {row.user_id} · {new Date(row.created_at).toLocaleDateString()}
                 </p>

@@ -948,6 +948,26 @@ export type Database = {
           reviewed_at: string;
         }[];
       };
+      admin_list_alc_access_request_proofs: {
+        Args: { p_request_id: string };
+        Returns: {
+          proof_id: string;
+          request_id: string;
+          user_id: string;
+          storage_path: string;
+          mime_type: string;
+          file_size_bytes: number;
+          created_at: string;
+        }[];
+      };
+      admin_get_alc_request_proof_signed_url_descriptor: {
+        Args: { p_proof_id: string };
+        Returns: {
+          bucket_id: string;
+          storage_path: string;
+          signed_url_ttl_seconds: number;
+        }[];
+      };
       admin_list_alc_videos: {
         Args: Record<PropertyKey, never>;
         Returns: {
