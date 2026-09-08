@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ADMIN_VIDEO_TUS_CHUNK_BYTES,
   COURSE_MEDIA_MAX_BYTES,
   coursePosterPath,
   courseVideoPath,
@@ -14,6 +15,10 @@ function file(details: Partial<File> & Pick<File, "name" | "type" | "size">) {
 }
 
 describe("admin course media contract", () => {
+  it("uses the production-benchmarked 20 MiB TUS chunk size", () => {
+    expect(ADMIN_VIDEO_TUS_CHUNK_BYTES).toBe(20_971_520);
+  });
+
   it("builds canonical private object paths", () => {
     expect(courseVideoPath("course-id", "lesson-id")).toBe("course-id/lesson-id/video.mp4");
     expect(coursePosterPath("course-id", "lesson-id")).toBe("course-id/lesson-id/poster.webp");

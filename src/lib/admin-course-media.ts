@@ -2,7 +2,7 @@ import { Upload } from "tus-js-client";
 
 export const COURSE_MEDIA_BUCKET = "course-media";
 export const COURSE_MEDIA_MAX_BYTES = 3 * 1024 * 1024 * 1024;
-export const COURSE_MEDIA_CHUNK_BYTES = 6 * 1024 * 1024;
+export const ADMIN_VIDEO_TUS_CHUNK_BYTES = 20 * 1024 * 1024;
 
 export type MediaSource = "none" | "youtube_legacy" | "self_hosted";
 export type UploadProgress = { uploaded: number; total: number; percentage: number };
@@ -112,7 +112,7 @@ export function startResumableMediaUpload(options: ResumableUploadOptions) {
   const bucketName = options.bucketName ?? COURSE_MEDIA_BUCKET;
   const upload = new Upload(options.file, {
     endpoint: options.endpoint,
-    chunkSize: COURSE_MEDIA_CHUNK_BYTES,
+    chunkSize: ADMIN_VIDEO_TUS_CHUNK_BYTES,
     retryDelays: [0, 3_000, 5_000, 10_000, 20_000],
     uploadDataDuringCreation: true,
     removeFingerprintOnSuccess: true,
