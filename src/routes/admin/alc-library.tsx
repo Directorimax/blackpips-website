@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { MediaDropzone } from "@/components/admin/MediaDropzone";
+import { MediaFaststartStatus } from "@/components/admin/MediaFaststartStatus";
 import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
@@ -352,7 +353,9 @@ export function AdminAlcLibrary({ embedded = false }: { embedded?: boolean }) {
       }
       setUploadState("complete");
       toast.success(
-        selectedFile ? "Uploaded video finalized successfully." : "Uploaded video updated.",
+        selectedFile
+          ? "Upload complete. Preparing video for fast playback."
+          : "Uploaded video updated.",
       );
       resetVideoForm(videoForm.moduleId);
       await load();
@@ -783,6 +786,16 @@ export function AdminAlcLibrary({ embedded = false }: { embedded?: boolean }) {
                               : ""}
                             {video.video_mime_type ? ` · ${video.video_mime_type}` : ""}
                           </p>
+                          {video.media_source === "self_hosted" &&
+                            video.video_mime_type === "video/mp4" &&
+                            video.video_storage_path && (
+                              <MediaFaststartStatus
+                                targetKind="alc_video"
+                                targetId={video.id}
+                                enabled
+                                onReady={load}
+                              />
+                            )}
                         </div>
                         <div className="flex gap-2">
                           <Icon

@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { MediaDropzone } from "@/components/admin/MediaDropzone";
+import { MediaFaststartStatus } from "@/components/admin/MediaFaststartStatus";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,7 @@ import {
   validateCourseVideo,
   validatePoster,
 } from "@/lib/admin-course-media";
+import { waitForMediaFaststart } from "@/lib/admin-media-faststart";
 import { getEmbeddableVideoUrl } from "@/lib/video-url";
 import {
   adminCourseMutationArgs,
@@ -179,6 +181,7 @@ function AdminLessons() {
     percentage: 0,
   });
   const uploadCancelRef = useRef<null | (() => Promise<void>)>(null);
+  const processingAbortRef = useRef<AbortController | null>(null);
   const areaCourses = courses.filter((course) => course.access_type === area);
   const visibleLessons = lessons.filter(
     (lesson) => area === "premium" || lesson.learning_category === freeCategory,
@@ -224,6 +227,13 @@ function AdminLessons() {
   useEffect(() => {
     if (!adminLoading && !isAdmin) navigate({ to: "/dashboard", replace: true });
   }, [adminLoading, isAdmin, navigate]);
+
+  useEffect(
+    () => () => {
+      processingAbortRef.current?.abort();
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -627,6 +637,24 @@ function AdminLessons() {
           } as never,
         );
         if (mediaError) throw mediaError;
+        setWorkflowStage("Upload complete. Preparing video for fast playback…");
+        processingAbortRef.current?.abort();
+        processingAbortRef.current = new AbortController();
+        const processing = await waitForMediaFaststart({
+          targetKind: "lesson",
+          targetId: lessonId,
+          signal: processingAbortRef.current.signal,
+          onStatus: (status) => {
+            if (status?.state === "processing") setWorkflowStage("Optimizing video playback…");
+          },
+        });
+        processingAbortRef.current = null;
+        if (processing?.state === "failed") {
+          throw new Error(
+            processing.lastError ||
+              "Video processing failed. Use Retry processing on the lesson card; do not re-upload.",
+          );
+        }
       } else if (form.mediaSource === "youtube_legacy") {
         const { error: mediaError } = await supabase.rpc(
           "admin_set_lesson_media" as never,
@@ -1376,6 +1404,14 @@ function AdminLessons() {
                             ? "YouTube video"
                             : "No video"}
                       </p>
+                      {lesson.media_source === "self_hosted" && lesson.video_storage_path && (
+                        <MediaFaststartStatus
+                          targetKind="lesson"
+                          targetId={lesson.id}
+                          enabled
+                          onReady={() => loadLessons(lesson.course_id)}
+                        />
+                      )}
                       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3">
                         <button
                           type="button"
@@ -1602,6 +1638,16 @@ function LessonMediaManager({
           } as never,
         );
         if (mediaError) throw mediaError;
+        const processing = await waitForMediaFaststart({
+          targetKind: "lesson",
+          targetId: lesson.id,
+        });
+        if (processing?.state === "failed") {
+          throw new Error(
+            processing.lastError ||
+              "Video processing failed. Use Retry processing; the original upload is safe.",
+          );
+        }
       }
       if (poster) {
         const { error: thumbnailError } = await (

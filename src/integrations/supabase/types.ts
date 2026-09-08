@@ -1059,6 +1059,20 @@ export type Database = {
         };
         Returns: undefined;
       };
+      admin_get_media_faststart_status: {
+        Args: { p_target_kind: string; p_target_id: string };
+        Returns: {
+          job_id: string;
+          target_kind: string;
+          target_id: string;
+          status: "queued" | "processing" | "ready" | "failed";
+          last_error: string | null;
+        }[];
+      };
+      admin_retry_media_faststart_job: {
+        Args: { p_job_id: string };
+        Returns: undefined;
+      };
       admin_clear_alc_self_hosted_media: {
         Args: { p_video_id: string };
         Returns: undefined;

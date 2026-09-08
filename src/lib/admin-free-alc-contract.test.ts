@@ -41,7 +41,7 @@ describe("Free course and ALC Admin integration contracts", () => {
     expect(alc).toContain('supabase.rpc("admin_list_alc_video_media"');
     expect(alc).toContain('media_source === "self_hosted"');
     expect(alc).toContain('setUploadState("finalizing")');
-    expect(alc).toContain("Uploaded video finalized successfully.");
+    expect(alc).toContain("Upload complete. Preparing video for fast playback.");
   });
 
   it("keeps replacement and removal bounded to canonical ALC objects", () => {
