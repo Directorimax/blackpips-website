@@ -62,6 +62,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      featured_videos: {
+        Row: {
+          id: string;
+          youtube_video_id: string;
+          title: string;
+          display_order: number;
+          is_active: boolean;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          youtube_video_id: string;
+          title: string;
+          display_order: number;
+          is_active?: boolean;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          youtube_video_id?: string;
+          title?: string;
+          display_order?: number;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       trading_tip_media: {
         Row: {
           id: string;
@@ -754,6 +784,37 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      list_featured_videos: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          youtube_video_id: string;
+          title: string;
+          display_order: number;
+        }[];
+      };
+      admin_list_featured_videos: {
+        Args: Record<PropertyKey, never>;
+        Returns: Database["public"]["Tables"]["featured_videos"]["Row"][];
+      };
+      admin_save_featured_video: {
+        Args: {
+          p_video_id?: string | null;
+          p_youtube_video_id: string;
+          p_title: string;
+          p_display_order?: number | null;
+          p_is_active?: boolean;
+        };
+        Returns: string;
+      };
+      admin_move_featured_video: {
+        Args: { p_video_id: string; p_direction: string };
+        Returns: undefined;
+      };
+      admin_delete_featured_video: {
+        Args: { p_video_id: string };
+        Returns: undefined;
+      };
       can_access_published_lesson: {
         Args: { p_course_id: string; p_lesson_id: string };
         Returns: boolean;

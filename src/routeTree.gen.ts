@@ -43,6 +43,7 @@ import { Route as AdminStudentsRouteImport } from './routes/admin/students'
 import { Route as AdminPaymentsRouteImport } from './routes/admin/payments'
 import { Route as AdminMentorshipApplicationsRouteImport } from './routes/admin/mentorship-applications'
 import { Route as AdminLessonsRouteImport } from './routes/admin/lessons'
+import { Route as AdminFeaturedVideosRouteImport } from './routes/admin/featured-videos'
 import { Route as AdminCertificatesRouteImport } from './routes/admin/certificates'
 import { Route as AdminAlcLibraryRouteImport } from './routes/admin/alc-library'
 import { Route as AdminAlcAccessRouteImport } from './routes/admin/alc-access'
@@ -227,6 +228,11 @@ const AdminLessonsRoute = AdminLessonsRouteImport.update({
   path: '/admin/lessons',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminFeaturedVideosRoute = AdminFeaturedVideosRouteImport.update({
+  id: '/admin/featured-videos',
+  path: '/admin/featured-videos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
   id: '/admin/certificates',
   path: '/admin/certificates',
@@ -314,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/admin/alc-access': typeof AdminAlcAccessRoute
   '/admin/alc-library': typeof AdminAlcLibraryRoute
   '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/featured-videos': typeof AdminFeaturedVideosRoute
   '/admin/lessons': typeof AdminLessonsRoute
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -357,6 +364,7 @@ export interface FileRoutesByTo {
   '/admin/alc-access': typeof AdminAlcAccessRoute
   '/admin/alc-library': typeof AdminAlcLibraryRoute
   '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/featured-videos': typeof AdminFeaturedVideosRoute
   '/admin/lessons': typeof AdminLessonsRoute
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -405,6 +413,7 @@ export interface FileRoutesById {
   '/admin/alc-access': typeof AdminAlcAccessRoute
   '/admin/alc-library': typeof AdminAlcLibraryRoute
   '/admin/certificates': typeof AdminCertificatesRoute
+  '/admin/featured-videos': typeof AdminFeaturedVideosRoute
   '/admin/lessons': typeof AdminLessonsRoute
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
@@ -454,6 +463,7 @@ export interface FileRouteTypes {
     | '/admin/alc-access'
     | '/admin/alc-library'
     | '/admin/certificates'
+    | '/admin/featured-videos'
     | '/admin/lessons'
     | '/admin/mentorship-applications'
     | '/admin/payments'
@@ -497,6 +507,7 @@ export interface FileRouteTypes {
     | '/admin/alc-access'
     | '/admin/alc-library'
     | '/admin/certificates'
+    | '/admin/featured-videos'
     | '/admin/lessons'
     | '/admin/mentorship-applications'
     | '/admin/payments'
@@ -544,6 +555,7 @@ export interface FileRouteTypes {
     | '/admin/alc-access'
     | '/admin/alc-library'
     | '/admin/certificates'
+    | '/admin/featured-videos'
     | '/admin/lessons'
     | '/admin/mentorship-applications'
     | '/admin/payments'
@@ -590,6 +602,7 @@ export interface RootRouteChildren {
   AdminAlcAccessRoute: typeof AdminAlcAccessRoute
   AdminAlcLibraryRoute: typeof AdminAlcLibraryRoute
   AdminCertificatesRoute: typeof AdminCertificatesRoute
+  AdminFeaturedVideosRoute: typeof AdminFeaturedVideosRoute
   AdminLessonsRoute: typeof AdminLessonsRoute
   AdminMentorshipApplicationsRoute: typeof AdminMentorshipApplicationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
@@ -840,6 +853,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLessonsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/featured-videos': {
+      id: '/admin/featured-videos'
+      path: '/admin/featured-videos'
+      fullPath: '/admin/featured-videos'
+      preLoaderRoute: typeof AdminFeaturedVideosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/certificates': {
       id: '/admin/certificates'
       path: '/admin/certificates'
@@ -1052,6 +1072,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminAlcAccessRoute: AdminAlcAccessRoute,
   AdminAlcLibraryRoute: AdminAlcLibraryRoute,
   AdminCertificatesRoute: AdminCertificatesRoute,
+  AdminFeaturedVideosRoute: AdminFeaturedVideosRoute,
   AdminLessonsRoute: AdminLessonsRoute,
   AdminMentorshipApplicationsRoute: AdminMentorshipApplicationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,

@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   UserRound,
   Sparkles,
+  Video,
 } from "lucide-react";
 import { NAV } from "@/lib/site-data";
 import { ThemeToggle } from "./ThemeToggle";
@@ -41,6 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const ADMIN_NAV = [
   { to: "/admin/trading-tips" as const, label: "Trading Tips", icon: Sparkles },
+  { to: "/admin/featured-videos" as const, label: "Featured Videos", icon: Video },
   { to: "/admin/alc-access" as const, label: "ALC Access", icon: KeyRound },
   { to: "/admin/alc-library" as const, label: "ALC Library", icon: BookOpen },
   { to: "/admin/payments" as const, label: "Payments", icon: CreditCard },
