@@ -155,7 +155,15 @@ const sections = [
         </a>{" "}
         from the address connected to your account and state that you want your account deleted. We
         will verify the request, explain any information that must be retained, and process eligible
-        account data. Removing the app from a device does not itself delete the account.
+        account data. Removing the app from a device does not itself delete the account. You can
+        start this process from our{" "}
+        <Link
+          className="font-medium text-gold underline-offset-4 hover:underline"
+          to="/delete-account"
+        >
+          account deletion page
+        </Link>
+        .
       </p>
     ),
   },

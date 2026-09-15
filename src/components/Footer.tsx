@@ -101,6 +101,11 @@ export function Footer() {
                   Privacy Policy
                 </Link>
               </li>
+              <li>
+                <Link to="/delete-account" className="hover:text-foreground">
+                  Delete Account
+                </Link>
+              </li>
             </ul>
           </div>
 

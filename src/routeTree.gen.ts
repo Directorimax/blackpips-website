@@ -19,6 +19,7 @@ import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as MentorshipRouteImport } from './routes/mentorship'
 import { Route as FreeRouteImport } from './routes/free'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BlogRouteImport } from './routes/blog'
@@ -106,6 +107,11 @@ const FreeRoute = FreeRouteImport.update({
 const FaqRoute = FaqRouteImport.update({
   id: '/faq',
   path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoursesRoute = CoursesRouteImport.update({
@@ -311,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
   '/courses': typeof CoursesRouteWithChildren
+  '/delete-account': typeof DeleteAccountRoute
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
@@ -358,6 +365,7 @@ export interface FileRoutesByTo {
   '/alc-access': typeof AlcAccessRoute
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
@@ -406,6 +414,7 @@ export interface FileRoutesById {
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
   '/courses': typeof CoursesRouteWithChildren
+  '/delete-account': typeof DeleteAccountRoute
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
@@ -457,6 +466,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/contact'
     | '/courses'
+    | '/delete-account'
     | '/faq'
     | '/free'
     | '/mentorship'
@@ -504,6 +514,7 @@ export interface FileRouteTypes {
     | '/alc-access'
     | '/blog'
     | '/contact'
+    | '/delete-account'
     | '/faq'
     | '/free'
     | '/mentorship'
@@ -551,6 +562,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/contact'
     | '/courses'
+    | '/delete-account'
     | '/faq'
     | '/free'
     | '/mentorship'
@@ -602,6 +614,7 @@ export interface RootRouteChildren {
   BlogRoute: typeof BlogRoute
   ContactRoute: typeof ContactRoute
   CoursesRoute: typeof CoursesRouteWithChildren
+  DeleteAccountRoute: typeof DeleteAccountRoute
   FaqRoute: typeof FaqRoute
   FreeRoute: typeof FreeRoute
   MentorshipRoute: typeof MentorshipRoute
@@ -696,6 +709,13 @@ declare module '@tanstack/react-router' {
       path: '/faq'
       fullPath: '/faq'
       preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/courses': {
@@ -1080,6 +1100,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogRoute: BlogRoute,
   ContactRoute: ContactRoute,
   CoursesRoute: CoursesRouteWithChildren,
+  DeleteAccountRoute: DeleteAccountRoute,
   FaqRoute: FaqRoute,
   FreeRoute: FreeRoute,
   MentorshipRoute: MentorshipRoute,
