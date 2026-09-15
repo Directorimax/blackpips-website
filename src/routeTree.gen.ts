@@ -15,6 +15,7 @@ import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as MentorshipRouteImport } from './routes/mentorship'
 import { Route as FreeRouteImport } from './routes/free'
 import { Route as FaqRouteImport } from './routes/faq'
@@ -85,6 +86,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MentorshipRoute = MentorshipRouteImport.update({
@@ -308,6 +314,7 @@ export interface FileRoutesByFullPath {
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
@@ -354,6 +361,7 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
@@ -401,6 +409,7 @@ export interface FileRoutesById {
   '/faq': typeof FaqRoute
   '/free': typeof FreeRoute
   '/mentorship': typeof MentorshipRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/testimonials': typeof TestimonialsRoute
@@ -451,6 +460,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/free'
     | '/mentorship'
+    | '/privacy-policy'
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
@@ -497,6 +507,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/free'
     | '/mentorship'
+    | '/privacy-policy'
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
@@ -543,6 +554,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/free'
     | '/mentorship'
+    | '/privacy-policy'
     | '/reset-password'
     | '/sitemap.xml'
     | '/testimonials'
@@ -593,6 +605,7 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   FreeRoute: typeof FreeRoute
   MentorshipRoute: typeof MentorshipRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TestimonialsRoute: typeof TestimonialsRoute
@@ -655,6 +668,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mentorship': {
@@ -1063,6 +1083,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   FreeRoute: FreeRoute,
   MentorshipRoute: MentorshipRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TestimonialsRoute: TestimonialsRoute,
