@@ -14,18 +14,21 @@ export type Database = {
           user_id: string;
           gift_id: string;
           claimed_at: string;
+          first_viewed_at: string | null;
         };
         Insert: {
           id?: string;
           user_id: string;
           gift_id: string;
           claimed_at?: string;
+          first_viewed_at?: string | null;
         };
         Update: {
           id?: string;
           user_id?: string;
           gift_id?: string;
           claimed_at?: string;
+          first_viewed_at?: string | null;
         };
         Relationships: [];
       };
@@ -784,6 +787,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      mark_welcome_gift_viewed: {
+        Args: { p_gift_id: string };
+        Returns: string;
+      };
       list_featured_videos: {
         Args: Record<PropertyKey, never>;
         Returns: {

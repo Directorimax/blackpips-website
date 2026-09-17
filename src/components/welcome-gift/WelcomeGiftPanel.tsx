@@ -11,11 +11,17 @@ import {
 
 const dismissalKey = `blackpips-gift-dismissed:${WELCOME_GIFT.id}`;
 
-export function WelcomeGiftPanel() {
+type WelcomeGiftPanelProps = {
+  showPanel?: boolean;
+  onUnreadChange?: (unread: boolean) => void;
+};
+
+export function WelcomeGiftPanel({ showPanel = true, onUnreadChange }: WelcomeGiftPanelProps) {
   const [loading, setLoading] = useState(true);
   const [statusError, setStatusError] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
+  const [firstViewedAt, setFirstViewedAt] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -27,6 +33,7 @@ export function WelcomeGiftPanel() {
       .then((status) => {
         if (!active) return;
         setClaimed(status.claimed);
+        setFirstViewedAt(status.firstViewedAt);
         if (!status.claimed && sessionStorage.getItem(dismissalKey) !== "1") setModalOpen(true);
       })
       .catch(() => {
@@ -39,6 +46,10 @@ export function WelcomeGiftPanel() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    onUnreadChange?.(claimed && !firstViewedAt);
+  }, [claimed, firstViewedAt, onUnreadChange]);
 
   useEffect(() => {
     return loadStatus();
@@ -55,6 +66,7 @@ export function WelcomeGiftPanel() {
     try {
       await claimWelcomeGift();
       setClaimed(true);
+      setFirstViewedAt(null);
       setUnlocked(true);
       setModalOpen(false);
       sessionStorage.removeItem(dismissalKey);
@@ -67,7 +79,7 @@ export function WelcomeGiftPanel() {
     }
   }
 
-  if (loading) {
+  if (loading && showPanel) {
     return (
       <div
         className="mt-8 h-28 animate-pulse rounded-3xl border border-border bg-muted/45"
@@ -76,7 +88,7 @@ export function WelcomeGiftPanel() {
     );
   }
 
-  if (statusError) {
+  if (statusError && showPanel) {
     return (
       <div className="mt-8 flex min-h-28 items-center justify-between gap-4 rounded-3xl border border-border bg-card p-5">
         <p className="text-sm text-muted-foreground">We could not load your Welcome Gift.</p>
@@ -93,72 +105,73 @@ export function WelcomeGiftPanel() {
 
   return (
     <>
-      {claimed ? (
-        <section
-          aria-labelledby="starter-resources-heading"
-          className={`mt-8 rounded-3xl border border-gold/25 bg-card p-5 shadow-elegant transition duration-500 sm:p-6 ${unlocked ? "scale-[1.01] shadow-glow" : ""}`}
-        >
-          <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-full bg-gold/15 text-gold">
-              <Sparkles className="size-5" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
-                Gift unlocked
-              </p>
-              <h2 id="starter-resources-heading" className="font-display text-xl font-bold">
-                My Starter Resources
-              </h2>
-            </div>
-          </div>
-          <div className="mt-5">
-            <article className="rounded-2xl border border-border bg-muted/35 p-4">
-              <div className="flex items-start gap-3">
-                <FileText className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden="true" />
-                <div>
-                  <h3 className="font-display font-semibold">{WELCOME_GIFT.pdf.title}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">PDF starter resource</p>
-                </div>
-              </div>
-              <div className="mt-4">
-                <Link
-                  to="/dashboard/gift/$giftId"
-                  params={{ giftId: WELCOME_GIFT.id }}
-                  className="inline-flex min-h-10 items-center rounded-full bg-gradient-gold px-4 text-xs font-bold text-primary-foreground shadow-glow"
-                >
-                  View PDF
-                </Link>
-              </div>
-            </article>
-          </div>
-        </section>
-      ) : (
-        <section className="mt-8 flex flex-col gap-5 rounded-3xl border border-gold/25 bg-gradient-to-br from-gold/10 via-card to-card p-6 shadow-elegant sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="grid size-11 shrink-0 place-items-center rounded-full bg-gold/15 text-gold">
-              <Gift className="size-5" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
-                Your BLACKPIPS Welcome Gift
-              </p>
-              <h2 className="mt-1 font-display text-xl font-bold">
-                Claim your free starter resources
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">BLACKPIPS Starter Guide PDF.</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => void handleClaim()}
-            disabled={claiming}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-gold px-5 text-sm font-bold text-primary-foreground shadow-glow disabled:opacity-65"
+      {showPanel &&
+        (claimed ? (
+          <section
+            aria-labelledby="starter-resources-heading"
+            className={`mt-8 rounded-3xl border border-gold/25 bg-card p-5 shadow-elegant transition duration-500 sm:p-6 ${unlocked ? "scale-[1.01] shadow-glow" : ""}`}
           >
-            {claiming ? <Loader2 className="size-4 animate-spin" /> : <Gift className="size-4" />}
-            {claiming ? "Unlocking…" : "Claim Gift"}
-          </button>
-        </section>
-      )}
+            <div className="flex items-center gap-3">
+              <div className="grid size-10 place-items-center rounded-full bg-gold/15 text-gold">
+                <Sparkles className="size-5" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
+                  Gift unlocked
+                </p>
+                <h2 id="starter-resources-heading" className="font-display text-xl font-bold">
+                  My Starter Resources
+                </h2>
+              </div>
+            </div>
+            <div className="mt-5">
+              <article className="rounded-2xl border border-border bg-muted/35 p-4">
+                <div className="flex items-start gap-3">
+                  <FileText className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden="true" />
+                  <div>
+                    <h3 className="font-display font-semibold">{WELCOME_GIFT.pdf.title}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">PDF starter resource</p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Link
+                    to="/dashboard/gift/$giftId"
+                    params={{ giftId: WELCOME_GIFT.id }}
+                    className="inline-flex min-h-10 items-center rounded-full bg-gradient-gold px-4 text-xs font-bold text-primary-foreground shadow-glow"
+                  >
+                    View PDF
+                  </Link>
+                </div>
+              </article>
+            </div>
+          </section>
+        ) : (
+          <section className="mt-8 flex flex-col gap-5 rounded-3xl border border-gold/25 bg-gradient-to-br from-gold/10 via-card to-card p-6 shadow-elegant sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="grid size-11 shrink-0 place-items-center rounded-full bg-gold/15 text-gold">
+                <Gift className="size-5" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gold">
+                  Your BLACKPIPS Welcome Gift
+                </p>
+                <h2 className="mt-1 font-display text-xl font-bold">
+                  Claim your free starter resources
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">BLACKPIPS Starter Guide PDF.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleClaim()}
+              disabled={claiming}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-gold px-5 text-sm font-bold text-primary-foreground shadow-glow disabled:opacity-65"
+            >
+              {claiming ? <Loader2 className="size-4 animate-spin" /> : <Gift className="size-4" />}
+              {claiming ? "Unlocking…" : "Claim Gift"}
+            </button>
+          </section>
+        ))}
 
       <Dialog open={modalOpen && !claimed} onOpenChange={handleModalChange}>
         <DialogContent className="w-[calc(100%-2rem)] overflow-hidden rounded-3xl border-gold/30 bg-card p-0 shadow-glow sm:max-w-md">

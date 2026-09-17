@@ -12,6 +12,7 @@ import {
   Sparkles,
   CreditCard,
   MessageCircle,
+  Gift,
   User as UserIcon,
 } from "lucide-react";
 import { z } from "zod";
@@ -38,7 +39,8 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: Dashboard,
 });
 
-type Tab = "learning" | "bookmarks" | "mentorship" | "account" | "billing" | "certificates";
+type Tab =
+  "learning" | "bookmarks" | "mentorship" | "account" | "billing" | "certificates" | "gifts";
 
 type Profile = { full_name: string | null; avatar: string | null; country: string | null };
 type Lesson = {
@@ -130,6 +132,7 @@ function Dashboard() {
   const [certificates, setCertificates] = useState<CourseCertificate[]>([]);
   const [certificatesLoading, setCertificatesLoading] = useState(true);
   const [certificatesError, setCertificatesError] = useState<string | null>(null);
+  const [giftUnread, setGiftUnread] = useState(false);
 
   useEffect(() => {
     if (!adminLoading && isAdmin) navigate({ to: "/admin", replace: true });
@@ -461,6 +464,7 @@ function Dashboard() {
             ["certificates", "Certificates", Award],
             ["account", "Account", UserIcon],
             ["billing", "Billing", CreditCard],
+            ["gifts", "Gifts", Gift],
           ] as const
         ).map(([id, label, Icon]) => (
           <button
@@ -469,11 +473,14 @@ function Dashboard() {
             className={`inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${tab === id ? "bg-gradient-gold text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground"}`}
           >
             <Icon className="h-3.5 w-3.5" /> {label}
+            {id === "gifts" && giftUnread && (
+              <span className="size-1.5 rounded-full bg-current" aria-label="New gift" />
+            )}
           </button>
         ))}
       </nav>
 
-      <WelcomeGiftPanel />
+      <WelcomeGiftPanel showPanel={tab === "gifts"} onUnreadChange={setGiftUnread} />
 
       <section className="mt-8">
         {tab === "learning" && (

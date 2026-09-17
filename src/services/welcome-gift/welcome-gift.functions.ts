@@ -20,12 +20,16 @@ const getWelcomeGiftStatusServer = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: claim, error } = await table(context.supabase)
       .from("user_gift_claims")
-      .select("claimed_at")
+      .select("claimed_at, first_viewed_at")
       .eq("user_id", context.userId)
       .eq("gift_id", data.giftId)
       .maybeSingle();
     if (error) throw new Error("Could not load your Welcome Gift status.");
-    return { claimed: Boolean(claim), claimedAt: claim?.claimed_at ?? null };
+    return {
+      claimed: Boolean(claim),
+      claimedAt: claim?.claimed_at ?? null,
+      firstViewedAt: claim?.first_viewed_at ?? null,
+    };
   });
 
 const claimWelcomeGiftServer = createServerFn({ method: "POST" })
@@ -37,19 +41,58 @@ const claimWelcomeGiftServer = createServerFn({ method: "POST" })
     const { data: claim, error } = await table(context.supabase)
       .from("user_gift_claims")
       .insert({ user_id: context.userId, gift_id: data.giftId })
-      .select("claimed_at")
+      .select("claimed_at, first_viewed_at")
       .single();
     if (error?.code === "23505") {
       const { data: existing } = await table(context.supabase)
         .from("user_gift_claims")
-        .select("claimed_at")
+        .select("claimed_at, first_viewed_at")
         .eq("user_id", context.userId)
         .eq("gift_id", data.giftId)
         .single();
-      return { claimed: true, claimedAt: existing?.claimed_at ?? null };
+      return {
+        claimed: true,
+        claimedAt: existing?.claimed_at ?? null,
+        firstViewedAt: existing?.first_viewed_at ?? null,
+      };
     }
     if (error || !claim) throw new Error("Could not unlock your Welcome Gift.");
-    return { claimed: true, claimedAt: claim.claimed_at as string };
+    return {
+      claimed: true,
+      claimedAt: claim.claimed_at as string,
+      firstViewedAt: claim.first_viewed_at as string | null,
+    };
+  });
+
+const markWelcomeGiftViewedServer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator(giftSchema)
+  .handler(async ({ data, context }) => {
+    const { data: firstViewedAt, error } = await table(context.supabase).rpc(
+      "mark_welcome_gift_viewed",
+      { p_gift_id: data.giftId },
+    );
+    if (error) throw new Error("Could not update your Welcome Gift status.");
+    if (typeof firstViewedAt !== "string") {
+      throw new Error("Could not update your Welcome Gift status.");
+    }
+    const { data: status, error: statusError } = await table(context.supabase)
+      .from("user_gift_claims")
+      .select("claimed_at, first_viewed_at")
+      .eq("user_id", context.userId)
+      .eq("gift_id", data.giftId)
+      .single();
+    if (statusError || !status?.first_viewed_at) {
+      throw new Error("Could not update your Welcome Gift status.");
+    }
+    return {
+      firstViewedAt,
+      status: {
+        claimed: true,
+        claimedAt: status.claimed_at as string,
+        firstViewedAt: status.first_viewed_at as string,
+      },
+    };
   });
 
 const getWelcomeGiftPdfUrlServer = createServerFn({ method: "POST" })
@@ -98,6 +141,13 @@ export async function claimWelcomeGift() {
 
 export async function getWelcomeGiftPdfUrl() {
   return getWelcomeGiftPdfUrlServer({
+    data: { giftId: WELCOME_GIFT.id },
+    headers: await authenticatedHeaders(),
+  });
+}
+
+export async function markWelcomeGiftViewed() {
+  return markWelcomeGiftViewedServer({
     data: { giftId: WELCOME_GIFT.id },
     headers: await authenticatedHeaders(),
   });

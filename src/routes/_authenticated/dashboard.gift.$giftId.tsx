@@ -5,7 +5,10 @@ import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { createSeoHead } from "@/lib/seo";
 import { WELCOME_GIFT } from "@/lib/welcome-gift";
-import { getWelcomeGiftPdfUrl } from "@/services/welcome-gift/welcome-gift.functions";
+import {
+  getWelcomeGiftPdfUrl,
+  markWelcomeGiftViewed,
+} from "@/services/welcome-gift/welcome-gift.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard/gift/$giftId")({
   head: () =>
@@ -25,6 +28,15 @@ function WelcomeGiftPdfViewer() {
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
+  const markedViewed = useRef(false);
+
+  const handleFirstPageVisible = useCallback(() => {
+    if (markedViewed.current) return;
+    markedViewed.current = true;
+    void markWelcomeGiftViewed().catch(() => {
+      markedViewed.current = false;
+    });
+  }, []);
 
   const loadPdf = useCallback(async () => {
     if (giftId !== WELCOME_GIFT.id) {
@@ -136,7 +148,14 @@ function WelcomeGiftPdfViewer() {
             </button>
           </div>
         )}
-        {pdf && <PdfPages pdf={pdf} zoom={zoom} onCurrentPageChange={setCurrentPage} />}
+        {pdf && (
+          <PdfPages
+            pdf={pdf}
+            zoom={zoom}
+            onCurrentPageChange={setCurrentPage}
+            onFirstPageVisible={handleFirstPageVisible}
+          />
+        )}
       </main>
     </div>
   );
@@ -146,10 +165,12 @@ function PdfPages({
   pdf,
   zoom,
   onCurrentPageChange,
+  onFirstPageVisible,
 }: {
   pdf: PDFDocumentProxy;
   zoom: number;
   onCurrentPageChange: (page: number) => void;
+  onFirstPageVisible: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -187,7 +208,13 @@ function PdfPages({
       aria-label="Protected PDF pages"
     >
       {Array.from({ length: pdf.numPages }, (_, index) => (
-        <PdfPage key={index + 1} pdf={pdf} pageNumber={index + 1} zoom={zoom} />
+        <PdfPage
+          key={index + 1}
+          pdf={pdf}
+          pageNumber={index + 1}
+          zoom={zoom}
+          onFirstPageVisible={onFirstPageVisible}
+        />
       ))}
     </div>
   );
@@ -197,10 +224,12 @@ function PdfPage({
   pdf,
   pageNumber,
   zoom,
+  onFirstPageVisible,
 }: {
   pdf: PDFDocumentProxy;
   pageNumber: number;
   zoom: number;
+  onFirstPageVisible: () => void;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -246,8 +275,11 @@ function PdfPage({
       viewport,
       transform: pixelRatio === 1 ? undefined : [pixelRatio, 0, 0, pixelRatio, 0, 0],
     });
+    if (pageNumber === 1) {
+      void task.promise.then(onFirstPageVisible).catch(() => {});
+    }
     return () => task.cancel();
-  }, [page, width, zoom]);
+  }, [onFirstPageVisible, page, pageNumber, width, zoom]);
 
   return (
     <div
