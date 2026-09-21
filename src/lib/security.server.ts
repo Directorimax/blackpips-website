@@ -71,10 +71,13 @@ function clientIp(request: Request) {
 export function enforceRequestSecurity(request: Request): Response | null {
   const url = new URL(request.url);
   const production = process.env.NODE_ENV === "production";
+  const loopbackHost =
+    url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
   const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
   const nonCanonicalProductionHost = production && url.hostname === "blackpips.com";
   if (
     production &&
+    !loopbackHost &&
     (forwardedProto === "http" || url.protocol === "http:" || nonCanonicalProductionHost)
   ) {
     url.protocol = "https:";

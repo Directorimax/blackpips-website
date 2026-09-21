@@ -76,10 +76,9 @@ describe("admin lesson learning areas", () => {
     expect(lessonsSource).toContain(
       '<option value="self_hosted">Upload lesson video from device</option>',
     );
-    expect(lessonsSource).toContain(
-      '{area === "free" && <option value="youtube_legacy">YouTube Link</option>}',
-    );
-    expect(lessonsSource).toContain('form.mediaSource === "youtube_legacy"');
+    expect(lessonsSource).toContain('{area === "free" && (');
+    expect(lessonsSource).toContain('<option value="youtube_legacy">YouTube Link</option>');
+    expect(lessonsSource).toContain('area === "free" && form.mediaSource === "youtube_legacy"');
     expect(lessonsSource).toContain("getEmbeddableVideoUrl(form.videoUrl)");
   });
 

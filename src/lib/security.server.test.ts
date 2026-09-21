@@ -26,6 +26,11 @@ describe("request security", () => {
     );
   });
 
+  it("allows an HTTP loopback URL for local production preview", () => {
+    process.env.NODE_ENV = "production";
+    expect(enforceRequestSecurity(new Request("http://127.0.0.1:4173/tools"))).toBeNull();
+  });
+
   it("rejects unapproved cross-origin requests", () => {
     const request = new Request("https://blackpips.com/", {
       headers: { Origin: "https://attacker.example" },

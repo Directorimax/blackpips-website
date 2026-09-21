@@ -12,30 +12,68 @@ import {
 import {
   CATEGORY_ORDER,
   calculateEstimatedValue,
+  convertReferenceCurrency,
   INSTRUMENTS,
   isValidLotSize,
   type InstrumentConfig,
 } from "@/lib/pip-calculator";
+import { loadFxReferenceRates, type FxReferenceRates } from "@/lib/fx-reference-rates";
 import { MarketSessionsWorkspace } from "@/components/market-sessions/MarketSessionsWorkspace";
 
-const formatUsd = (value: number) =>
+const formatMoney = (value: number) =>
   value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const ACCOUNT_CURRENCIES = [
+  { code: "USD", symbol: "$" },
+  { code: "EUR", symbol: "€" },
+  { code: "GBP", symbol: "£" },
+] as const;
 
 export function PipCalculator() {
   const [symbol, setSymbol] = useState("EURUSD");
   const instrument = INSTRUMENTS.find((item) => item.symbol === symbol) ?? INSTRUMENTS[0];
   const [lots, setLots] = useState<number | null>(instrument.defaultLotSize);
   const [move, setMove] = useState(20);
+  const [accountCurrency, setAccountCurrency] = useState<(typeof ACCOUNT_CURRENCIES)[number]>(
+    ACCOUNT_CURRENCIES[0],
+  );
+  const [rates, setRates] = useState<FxReferenceRates | null>(null);
+  const [ratesLoading, setRatesLoading] = useState(true);
 
   useEffect(() => {
     setLots(instrument.defaultLotSize);
     setMove(Math.max(20, instrument.minMove));
   }, [instrument]);
 
-  const estimatedValue = useMemo(
+  useEffect(() => {
+    let active = true;
+    void loadFxReferenceRates().then((value) => {
+      if (!active) return;
+      setRates(value);
+      setRatesLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const quoteValue = useMemo(
     () => (lots === null ? null : calculateEstimatedValue(instrument, lots, move)),
     [instrument, lots, move],
   );
+  const estimatedValue = useMemo(
+    () =>
+      quoteValue === null
+        ? null
+        : convertReferenceCurrency(
+            quoteValue,
+            instrument.quoteCurrency,
+            accountCurrency.code,
+            rates?.unitsPerEur ?? {},
+          ),
+    [accountCurrency.code, instrument.quoteCurrency, quoteValue, rates],
+  );
+  const requiresConversion = instrument.quoteCurrency !== accountCurrency.code;
   const moveLabel =
     instrument.calculationType === "pip"
       ? "Pips"
@@ -61,10 +99,40 @@ export function PipCalculator() {
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <div className="sm:col-span-3">
+        <div className="sm:col-span-2">
           <span className="text-xs font-medium text-muted-foreground">Instrument</span>
           <InstrumentSelect value={symbol} onValueChange={setSymbol} />
         </div>
+        <label>
+          <span className="text-xs font-medium text-muted-foreground">
+            Account / result currency
+          </span>
+          <select
+            value={accountCurrency.code}
+            onChange={(event) =>
+              setAccountCurrency(
+                ACCOUNT_CURRENCIES.find((currency) => currency.code === event.target.value) ??
+                  ACCOUNT_CURRENCIES[0],
+              )
+            }
+            className="mt-1.5 w-full rounded-xl border border-gold/45 bg-card px-4 py-3 text-sm text-card-foreground"
+          >
+            {ACCOUNT_CURRENCIES.map((currency) => (
+              <option key={currency.code} value={currency.code}>
+                {currency.code}
+              </option>
+            ))}
+          </select>
+        </label>
+        {requiresConversion && (
+          <p className="sm:col-span-3 text-xs text-muted-foreground" aria-live="polite">
+            {ratesLoading
+              ? "Loading ECB reference rates…"
+              : rates
+                ? `FX conversion based on ECB reference rates · ${formatReferenceDate(rates.referenceDate)}`
+                : "ECB reference rate unavailable. No conversion has been estimated."}
+          </p>
+        )}
         <NumberStepper
           label="Lot size"
           value={lots}
@@ -108,7 +176,9 @@ export function PipCalculator() {
         <div
           className={`mt-1 font-display text-4xl font-black ${estimatedValue === null ? "text-muted-foreground" : "text-gradient-gold"}`}
         >
-          {estimatedValue === null ? "—" : `$${formatUsd(estimatedValue)}`}
+          {estimatedValue === null
+            ? "—"
+            : `${accountCurrency.symbol}${formatMoney(estimatedValue)}`}
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
           {lots === null
@@ -118,10 +188,20 @@ export function PipCalculator() {
       </div>
       <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
         {instrument.disclaimer ??
-          "This is an estimate in USD based on the configured instrument value. Verify tick size, contract size and conversion with your broker before trading."}
+          "This uses ECB reference conversion data with the configured instrument value. Verify tick size and contract size with your broker before trading."}
       </p>
     </div>
   );
+}
+
+function formatReferenceDate(value: string) {
+  const date = new Date(`${value}T00:00:00Z`);
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
 }
 
 function InstrumentSelect({

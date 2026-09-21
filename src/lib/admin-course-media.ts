@@ -7,6 +7,13 @@ export const ADMIN_VIDEO_TUS_CHUNK_BYTES = 20 * 1024 * 1024;
 export type MediaSource = "none" | "youtube_legacy" | "self_hosted";
 export type UploadProgress = { uploaded: number; total: number; percentage: number };
 
+export class MediaUploadCancelledError extends Error {
+  constructor() {
+    super("Upload cancelled.");
+    this.name = "MediaUploadCancelledError";
+  }
+}
+
 export function courseVideoPath(courseId: string, lessonId: string) {
   return `${courseId}/${lessonId}/video.mp4`;
 }
@@ -110,6 +117,9 @@ export type ResumableUploadOptions = {
 
 export function startResumableMediaUpload(options: ResumableUploadOptions) {
   const bucketName = options.bucketName ?? COURSE_MEDIA_BUCKET;
+  let cancelled = false;
+  let settled = false;
+  let rejectCompletion: (reason: Error) => void = () => undefined;
   const upload = new Upload(options.file, {
     endpoint: options.endpoint,
     chunkSize: ADMIN_VIDEO_TUS_CHUNK_BYTES,
@@ -136,29 +146,52 @@ export function startResumableMediaUpload(options: ResumableUploadOptions) {
       objectName: options.objectPath,
       contentType: options.contentType ?? options.file.type ?? "application/octet-stream",
     },
-    onProgress: (uploaded, total) =>
+    onProgress: (uploaded, total) => {
+      if (cancelled || settled) return;
       options.onProgress({
         uploaded,
         total,
         percentage: total > 0 ? Math.round((uploaded / total) * 100) : 0,
-      }),
+      });
+    },
   });
 
   const completion = new Promise<void>((resolve, reject) => {
-    upload.options.onSuccess = () => resolve();
-    upload.options.onError = (error) => reject(error);
+    rejectCompletion = reject;
+    upload.options.onSuccess = () => {
+      if (settled) return;
+      settled = true;
+      if (cancelled) reject(new MediaUploadCancelledError());
+      else resolve();
+    };
+    upload.options.onError = (error) => {
+      if (settled) return;
+      settled = true;
+      reject(cancelled ? new MediaUploadCancelledError() : error);
+    };
     void upload
       .findPreviousUploads()
       .then((previous) => {
+        if (cancelled || settled) return;
         if (previous[0]) upload.resumeFromPreviousUpload(previous[0]);
         upload.start();
       })
-      .catch(reject);
+      .catch((error) => {
+        if (settled) return;
+        settled = true;
+        reject(cancelled ? new MediaUploadCancelledError() : error);
+      });
   });
 
   return {
     completion,
-    cancel: () => upload.abort(true),
+    cancel: async () => {
+      if (cancelled || settled) return;
+      cancelled = true;
+      settled = true;
+      rejectCompletion(new MediaUploadCancelledError());
+      await upload.abort(true);
+    },
   };
 }
 

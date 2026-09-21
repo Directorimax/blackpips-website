@@ -20,8 +20,8 @@ export type InstrumentConfig = {
   minLotSize: number;
   lotStep: number;
   calculationType: CalculationType;
-  /** Conservative USD configuration estimate; broker specifications can differ. */
-  usdValuePerUnitPerLot: number;
+  /** Value of one configured pip/tick/point per lot in quoteCurrency. */
+  valuePerUnitPerLot: number;
   minMove: number;
   moveStep: number;
   contractBasis?: string;
@@ -35,7 +35,6 @@ const createForexInstrument = (
   category: Extract<InstrumentCategory, "Forex majors" | "Forex minors">,
   quoteCurrency: string,
   pipSize: number,
-  quoteToUsdEstimate: number,
 ): InstrumentConfig => ({
   symbol,
   displayName,
@@ -48,60 +47,58 @@ const createForexInstrument = (
   minLotSize: 0.01,
   lotStep: 0.01,
   calculationType: "pip",
-  usdValuePerUnitPerLot: pipSize * 100_000 * quoteToUsdEstimate,
+  valuePerUnitPerLot: pipSize * 100_000,
   minMove: 1,
   moveStep: 1,
 });
 
 const FOREX_MAJORS: InstrumentConfig[] = [
-  ["EURUSD", "Euro / US Dollar", "USD", 0.0001, 1],
-  ["GBPUSD", "British Pound / US Dollar", "USD", 0.0001, 1],
-  ["USDJPY", "US Dollar / Japanese Yen", "JPY", 0.01, 0.0064],
-  ["USDCHF", "US Dollar / Swiss Franc", "CHF", 0.0001, 1.12],
-  ["USDCAD", "US Dollar / Canadian Dollar", "CAD", 0.0001, 0.73],
-  ["AUDUSD", "Australian Dollar / US Dollar", "USD", 0.0001, 1],
-  ["NZDUSD", "New Zealand Dollar / US Dollar", "USD", 0.0001, 1],
-].map(([symbol, displayName, quoteCurrency, pipSize, quoteToUsdEstimate]) =>
+  ["EURUSD", "Euro / US Dollar", "USD", 0.0001],
+  ["GBPUSD", "British Pound / US Dollar", "USD", 0.0001],
+  ["USDJPY", "US Dollar / Japanese Yen", "JPY", 0.01],
+  ["USDCHF", "US Dollar / Swiss Franc", "CHF", 0.0001],
+  ["USDCAD", "US Dollar / Canadian Dollar", "CAD", 0.0001],
+  ["AUDUSD", "Australian Dollar / US Dollar", "USD", 0.0001],
+  ["NZDUSD", "New Zealand Dollar / US Dollar", "USD", 0.0001],
+].map(([symbol, displayName, quoteCurrency, pipSize]) =>
   createForexInstrument(
     symbol as string,
     displayName as string,
     "Forex majors",
     quoteCurrency as string,
     pipSize as number,
-    quoteToUsdEstimate as number,
   ),
 );
 
 const FOREX_MINORS: InstrumentConfig[] = [
-  ["EURGBP", "GBP", 1.27],
-  ["EURJPY", "JPY", 0.0064],
-  ["EURAUD", "AUD", 0.65],
-  ["EURCAD", "CAD", 0.73],
-  ["EURCHF", "CHF", 1.12],
-  ["EURNZD", "NZD", 0.61],
-  ["GBPJPY", "JPY", 0.0064],
-  ["GBPAUD", "AUD", 0.65],
-  ["GBPCAD", "CAD", 0.73],
-  ["GBPCHF", "CHF", 1.12],
-  ["GBPNZD", "NZD", 0.61],
-  ["AUDJPY", "JPY", 0.0064],
-  ["AUDCAD", "CAD", 0.73],
-  ["AUDCHF", "CHF", 1.12],
-  ["AUDNZD", "NZD", 0.61],
-  ["CADJPY", "JPY", 0.0064],
-  ["CADCHF", "CHF", 1.12],
-  ["CHFJPY", "JPY", 0.0064],
-  ["NZDJPY", "JPY", 0.0064],
-  ["NZDCAD", "CAD", 0.73],
-  ["NZDCHF", "CHF", 1.12],
-].map(([symbol, quoteCurrency, quoteToUsdEstimate]) =>
+  ["EURGBP", "GBP"],
+  ["EURJPY", "JPY"],
+  ["EURAUD", "AUD"],
+  ["EURCAD", "CAD"],
+  ["EURCHF", "CHF"],
+  ["EURNZD", "NZD"],
+  ["GBPJPY", "JPY"],
+  ["GBPAUD", "AUD"],
+  ["GBPCAD", "CAD"],
+  ["GBPCHF", "CHF"],
+  ["GBPNZD", "NZD"],
+  ["AUDJPY", "JPY"],
+  ["AUDCAD", "CAD"],
+  ["AUDCHF", "CHF"],
+  ["AUDNZD", "NZD"],
+  ["CADJPY", "JPY"],
+  ["CADCHF", "CHF"],
+  ["CHFJPY", "JPY"],
+  ["NZDJPY", "JPY"],
+  ["NZDCAD", "CAD"],
+  ["NZDCHF", "CHF"],
+].map(([symbol, quoteCurrency]) =>
   createForexInstrument(
     symbol as string,
     symbol as string,
     "Forex minors",
     quoteCurrency as string,
     quoteCurrency === "JPY" ? 0.01 : 0.0001,
-    quoteToUsdEstimate as number,
   ),
 );
 
@@ -113,7 +110,6 @@ const createNonForexInstrument = (
   tickOrPointSize: number,
   contractSize: number,
   quoteCurrency: string,
-  conversion: number,
 ): InstrumentConfig => ({
   symbol,
   displayName,
@@ -126,7 +122,7 @@ const createNonForexInstrument = (
   minLotSize: 0.01,
   lotStep: 0.01,
   calculationType,
-  usdValuePerUnitPerLot: tickOrPointSize * contractSize * conversion,
+  valuePerUnitPerLot: tickOrPointSize * contractSize,
   minMove: calculationType === "tick" ? 0.1 : 1,
   moveStep: calculationType === "tick" ? 0.1 : 1,
 });
@@ -143,7 +139,7 @@ const XAUUSD: InstrumentConfig = {
   minLotSize: 0.01,
   lotStep: 0.01,
   calculationType: "pip",
-  usdValuePerUnitPerLot: 10,
+  valuePerUnitPerLot: 10,
   minMove: 1,
   moveStep: 1,
   contractBasis: "100 oz / lot",
@@ -154,7 +150,7 @@ const XAUUSD: InstrumentConfig = {
 
 const NON_FOREX: InstrumentConfig[] = [
   XAUUSD,
-  createNonForexInstrument("XAGUSD", "Silver / US Dollar", "Metals", "tick", 0.01, 5_000, "USD", 2),
+  createNonForexInstrument("XAGUSD", "Silver / US Dollar", "Metals", "tick", 0.01, 5_000, "USD"),
   createNonForexInstrument(
     "US30",
     "US Wall Street 30",
@@ -163,7 +159,6 @@ const NON_FOREX: InstrumentConfig[] = [
     1,
     1,
     "USD",
-    1,
   ),
   createNonForexInstrument(
     "NAS100",
@@ -173,7 +168,6 @@ const NON_FOREX: InstrumentConfig[] = [
     1,
     1,
     "USD",
-    1,
   ),
   createNonForexInstrument(
     "SPX500",
@@ -183,7 +177,6 @@ const NON_FOREX: InstrumentConfig[] = [
     1,
     1,
     "USD",
-    1,
   ),
   createNonForexInstrument(
     "GER40",
@@ -193,7 +186,6 @@ const NON_FOREX: InstrumentConfig[] = [
     1,
     1,
     "EUR",
-    1.08,
   ),
   createNonForexInstrument(
     "UK100",
@@ -203,7 +195,6 @@ const NON_FOREX: InstrumentConfig[] = [
     1,
     1,
     "GBP",
-    1.27,
   ),
   createNonForexInstrument(
     "JP225",
@@ -213,12 +204,11 @@ const NON_FOREX: InstrumentConfig[] = [
     1,
     1,
     "JPY",
-    0.0064,
   ),
-  createNonForexInstrument("USOIL", "US Oil", "Energy", "tick", 0.01, 1_000, "USD", 2),
-  createNonForexInstrument("UKOIL", "UK Oil", "Energy", "tick", 0.01, 1_000, "USD", 2),
-  createNonForexInstrument("BTCUSD", "Bitcoin / US Dollar", "Crypto", "point", 1, 1, "USD", 1),
-  createNonForexInstrument("ETHUSD", "Ethereum / US Dollar", "Crypto", "point", 1, 1, "USD", 1),
+  createNonForexInstrument("USOIL", "US Oil", "Energy", "tick", 0.01, 1_000, "USD"),
+  createNonForexInstrument("UKOIL", "UK Oil", "Energy", "tick", 0.01, 1_000, "USD"),
+  createNonForexInstrument("BTCUSD", "Bitcoin / US Dollar", "Crypto", "point", 1, 1, "USD"),
+  createNonForexInstrument("ETHUSD", "Ethereum / US Dollar", "Crypto", "point", 1, 1, "USD"),
 ];
 
 export const INSTRUMENTS = [...FOREX_MAJORS, ...FOREX_MINORS, ...NON_FOREX];
@@ -228,7 +218,21 @@ export function calculateEstimatedValue(
   lotSize: number,
   numberOfPipsOrUnits: number,
 ) {
-  return instrument.usdValuePerUnitPerLot * lotSize * numberOfPipsOrUnits;
+  return instrument.valuePerUnitPerLot * lotSize * numberOfPipsOrUnits;
+}
+
+/** Rates are currency units per EUR, matching the ECB/Frankfurter representation. */
+export function convertReferenceCurrency(
+  amount: number,
+  from: string,
+  to: string,
+  unitsPerEur: Readonly<Record<string, number>>,
+) {
+  if (from === to) return amount;
+  const fromRate = from === "EUR" ? 1 : unitsPerEur[from];
+  const toRate = to === "EUR" ? 1 : unitsPerEur[to];
+  if (!fromRate || !toRate || fromRate <= 0 || toRate <= 0) return null;
+  return (amount / fromRate) * toRate;
 }
 
 export function isValidLotSize(instrument: InstrumentConfig, lotSize: number) {

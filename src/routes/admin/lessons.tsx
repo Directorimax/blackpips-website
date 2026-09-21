@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { MediaDropzone } from "@/components/admin/MediaDropzone";
 import { MediaFaststartStatus } from "@/components/admin/MediaFaststartStatus";
+import { PremiumLessonUploadQueue } from "@/components/admin/PremiumLessonUploadQueue";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -979,321 +980,344 @@ function AdminLessons() {
           </div>
         </section>
       )}
+      {area === "premium" && selectedCourseId && (
+        <PremiumLessonUploadQueue
+          key={selectedCourseId}
+          courseId={selectedCourseId}
+          phaseCount={phaseConfiguration[selectedCourseId]}
+          onChanged={() => loadLessons(selectedCourseId)}
+        />
+      )}
       {(area === "premium" || area === "free") && (
         <>
-          <form
-            id="admin-lesson-form"
-            aria-label={form.id ? "Save lesson" : "Create lesson"}
-            onSubmit={(event) => {
-              void runLessonSave(saveLesson, event);
-            }}
-            className="glass mt-8 rounded-3xl p-5 sm:p-6"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-display text-xl font-semibold">
-                {form.id
-                  ? `Edit ${area === "free" ? freeCategory : "Premium"} lesson`
-                  : `Add ${area === "free" ? freeCategory : "Premium"} lesson`}
-              </h2>
-              {form.id && (
-                <div className="flex items-center gap-3">
-                  {area === "free" && (
+          {(area === "free" || Boolean(form.id)) && (
+            <form
+              id="admin-lesson-form"
+              aria-label={form.id ? "Save lesson" : "Create lesson"}
+              onSubmit={(event) => {
+                void runLessonSave(saveLesson, event);
+              }}
+              className="glass mt-8 rounded-3xl p-5 sm:p-6"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="font-display text-xl font-semibold">
+                  {form.id
+                    ? `Edit ${area === "free" ? freeCategory : "Premium"} lesson`
+                    : `Add ${area === "free" ? freeCategory : "Premium"} lesson`}
+                </h2>
+                {form.id && (
+                  <div className="flex items-center gap-3">
+                    {area === "free" && (
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => {
+                          const destination = freeCategory === "basic" ? "advanced" : "basic";
+                          setFreeCategory(destination);
+                          setForm((current) => ({ ...current, learningCategory: destination }));
+                        }}
+                        className="text-xs font-semibold text-gold"
+                      >
+                        Move to {freeCategory === "basic" ? "Advanced" : "Basic"}
+                      </button>
+                    )}
                     <button
                       type="button"
-                      disabled={saving}
                       onClick={() => {
-                        const destination = freeCategory === "basic" ? "advanced" : "basic";
-                        setFreeCategory(destination);
-                        setForm((current) => ({ ...current, learningCategory: destination }));
+                        setForm(blankForm(selectedCourseId, freeCategory));
+                        resetSelectedMedia();
                       }}
-                      className="text-xs font-semibold text-gold"
+                      className="text-xs font-semibold text-muted-foreground hover:text-foreground"
                     >
-                      Move to {freeCategory === "basic" ? "Advanced" : "Basic"}
+                      Cancel editing
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForm(blankForm(selectedCourseId, freeCategory));
-                      resetSelectedMedia();
-                    }}
-                    className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-                  >
-                    Cancel editing
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              {area === "premium" && (
-                <div className="rounded-xl border border-border bg-background/50 px-3 py-2.5">
-                  <span className="block text-xs font-semibold text-muted-foreground">Course</span>
-                  <span className="mt-1 block text-sm font-semibold">
-                    {areaCourses.find((course) => course.id === form.courseId)?.title ??
-                      "Choose a Premium course above"}
-                  </span>
-                </div>
-              )}
-              {area === "premium" && selectedPhaseCount && (
-                <Field label="Phase">
-                  <select
-                    value={form.phaseNumber ?? ""}
+                  </div>
+                )}
+              </div>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                {area === "premium" && (
+                  <div className="rounded-xl border border-border bg-background/50 px-3 py-2.5">
+                    <span className="block text-xs font-semibold text-muted-foreground">
+                      Course
+                    </span>
+                    <span className="mt-1 block text-sm font-semibold">
+                      {areaCourses.find((course) => course.id === form.courseId)?.title ??
+                        "Choose a Premium course above"}
+                    </span>
+                  </div>
+                )}
+                {area === "premium" && selectedPhaseCount && (
+                  <Field label="Phase">
+                    <select
+                      value={form.phaseNumber ?? ""}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          phaseNumber: event.target.value ? Number(event.target.value) : null,
+                        }))
+                      }
+                      className="admin-input"
+                      required
+                    >
+                      {form.id && form.phaseNumber === null && (
+                        <option value="">Unassigned — choose a phase</option>
+                      )}
+                      {phaseOptions(selectedPhaseCount).map((phase) => (
+                        <option key={phase} value={phase}>
+                          Phase {phase}
+                        </option>
+                      ))}
+                    </select>
+                    {form.id && form.phaseNumber === null && (
+                      <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                        This existing lesson has no phase. Choose its curriculum phase before
+                        saving.
+                      </p>
+                    )}
+                  </Field>
+                )}
+                <Field label="Position">
+                  <input
+                    value={form.position}
                     onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        phaseNumber: event.target.value ? Number(event.target.value) : null,
-                      }))
+                      setForm((current) => ({ ...current, position: event.target.value }))
                     }
+                    inputMode="numeric"
+                    placeholder="Automatic"
+                    className="admin-input"
+                  />
+                </Field>
+                <Field label="Lesson title">
+                  <input
+                    value={form.title}
+                    onChange={(event) => updateTitle(event.target.value)}
+                    maxLength={160}
                     className="admin-input"
                     required
-                  >
-                    {form.id && form.phaseNumber === null && (
-                      <option value="">Unassigned — choose a phase</option>
-                    )}
-                    {phaseOptions(selectedPhaseCount).map((phase) => (
-                      <option key={phase} value={phase}>
-                        Phase {phase}
-                      </option>
-                    ))}
-                  </select>
-                  {form.id && form.phaseNumber === null && (
-                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
-                      This existing lesson has no phase. Choose its curriculum phase before saving.
+                  />
+                </Field>
+                {area === "free" && (
+                  <Field label="Video source">
+                    <select
+                      value={form.mediaSource}
+                      onChange={(event) => {
+                        setSelectedVideo(null);
+                        setForm((current) => ({
+                          ...current,
+                          mediaSource: event.target.value as MediaSource,
+                        }));
+                      }}
+                      className="admin-input"
+                    >
+                      <option value="self_hosted">Upload lesson video from device</option>
+                      <option value="youtube_legacy">YouTube Link</option>
+                    </select>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Choose private upload or a supported YouTube link.
                     </p>
-                  )}
-                </Field>
-              )}
-              <Field label="Position">
-                <input
-                  value={form.position}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, position: event.target.value }))
-                  }
-                  inputMode="numeric"
-                  placeholder="Automatic"
-                  className="admin-input"
-                />
-              </Field>
-              <Field label="Lesson title">
-                <input
-                  value={form.title}
-                  onChange={(event) => updateTitle(event.target.value)}
-                  maxLength={160}
-                  className="admin-input"
-                  required
-                />
-              </Field>
-              <Field label="Video source">
-                <select
-                  value={form.mediaSource}
-                  onChange={(event) => {
-                    setSelectedVideo(null);
-                    setForm((current) => ({
-                      ...current,
-                      mediaSource: event.target.value as MediaSource,
-                    }));
-                  }}
-                  className="admin-input"
-                >
-                  <option value="self_hosted">Upload lesson video from device</option>
-                  {area === "free" && <option value="youtube_legacy">YouTube Link</option>}
-                </select>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {area === "premium"
-                    ? "Premium lessons use private uploaded video only."
-                    : "Choose private upload or a supported YouTube link."}
-                </p>
-              </Field>
-              {form.mediaSource === "youtube_legacy" && (
-                <Field label="YouTube URL (legacy HTTPS)">
-                  <input
-                    value={form.videoUrl}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, videoUrl: event.target.value }))
-                    }
-                    type="url"
-                    placeholder="https://…"
-                    className="admin-input"
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Watch, youtu.be, Shorts, and embed URLs are supported during migration.
-                  </p>
-                </Field>
-              )}
-              <label className="flex items-end gap-3 rounded-xl border border-border bg-background/50 px-3 py-2.5 text-sm font-semibold">
-                <input
-                  type="checkbox"
-                  checked={form.isPublished}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, isPublished: event.target.checked }))
-                  }
-                  className="h-4 w-4 accent-amber-500"
-                />
-                {area === "free"
-                  ? "Published and visible to authenticated learners"
-                  : "Published and visible to entitled learners"}
-              </label>
-              <div className="sm:col-span-2">
-                <Field label="Description">
-                  <textarea
-                    value={form.description}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, description: event.target.value }))
-                    }
-                    maxLength={1000}
-                    className="admin-input min-h-28 resize-y"
-                  />
-                </Field>
-              </div>
-            </div>
-            <section className="mt-5 rounded-2xl border border-border bg-background/40 p-4">
-              <h3 className="flex items-center gap-2 font-semibold">
-                <ImageIcon className="h-4 w-4 text-gold" /> Thumbnail
-              </h3>
-              <div className="mt-3 grid gap-4 sm:grid-cols-[12rem_1fr] sm:items-center">
-                <div className="aspect-video w-full max-w-48 overflow-hidden rounded-xl border border-border bg-gradient-to-br from-gold/15 to-background">
-                  {thumbnailPreview || (form.id && lessonThumbnails[form.id]) ? (
-                    <img
-                      src={thumbnailPreview ?? lessonThumbnails[form.id!]}
-                      alt="Lesson thumbnail preview"
-                      className="h-full w-full object-cover object-center"
+                  </Field>
+                )}
+                {area === "free" && form.mediaSource === "youtube_legacy" && (
+                  <Field label="YouTube URL (legacy HTTPS)">
+                    <input
+                      value={form.videoUrl}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, videoUrl: event.target.value }))
+                      }
+                      type="url"
+                      placeholder="https://…"
+                      className="admin-input"
                     />
-                  ) : (
-                    <div className="grid h-full place-items-center text-center text-xs text-muted-foreground">
-                      <ImageIcon className="mx-auto mb-1 h-6 w-6 text-gold/70" /> No thumbnail
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Watch, youtu.be, Shorts, and embed URLs are supported during migration.
+                    </p>
+                  </Field>
+                )}
+                <label className="flex items-end gap-3 rounded-xl border border-border bg-background/50 px-3 py-2.5 text-sm font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={form.isPublished}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, isPublished: event.target.checked }))
+                    }
+                    className="h-4 w-4 accent-amber-500"
+                  />
+                  {area === "free"
+                    ? "Published and visible to authenticated learners"
+                    : "Published and visible to entitled learners"}
+                </label>
+                <div className="sm:col-span-2">
+                  <Field label="Description">
+                    <textarea
+                      value={form.description}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, description: event.target.value }))
+                      }
+                      maxLength={1000}
+                      className="admin-input min-h-28 resize-y"
+                    />
+                  </Field>
+                </div>
+              </div>
+              {area === "free" && (
+                <section className="mt-5 rounded-2xl border border-border bg-background/40 p-4">
+                  <h3 className="flex items-center gap-2 font-semibold">
+                    <ImageIcon className="h-4 w-4 text-gold" /> Thumbnail
+                  </h3>
+                  <div className="mt-3 grid gap-4 sm:grid-cols-[12rem_1fr] sm:items-center">
+                    <div className="aspect-video w-full max-w-48 overflow-hidden rounded-xl border border-border bg-gradient-to-br from-gold/15 to-background">
+                      {thumbnailPreview || (form.id && lessonThumbnails[form.id]) ? (
+                        <img
+                          src={thumbnailPreview ?? lessonThumbnails[form.id!]}
+                          alt="Lesson thumbnail preview"
+                          className="h-full w-full object-cover object-center"
+                        />
+                      ) : (
+                        <div className="grid h-full place-items-center text-center text-xs text-muted-foreground">
+                          <ImageIcon className="mx-auto mb-1 h-6 w-6 text-gold/70" /> No thumbnail
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/webp,image/jpeg,.webp,.jpg,.jpeg"
+                        disabled={saving}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          if (file) {
+                            const validation = validatePoster(file);
+                            if (validation) return toast.error(validation);
+                          }
+                          setSelectedThumbnail(file);
+                          setRemoveThumbnailRequested(false);
+                        }}
+                        className="admin-input file:mr-3 file:rounded-full file:border-0 file:bg-gold/10 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-gold"
+                      />
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        JPEG or WebP · stored privately as poster.webp
+                      </p>
+                      {(selectedThumbnail || (form.id && lessonThumbnails[form.id])) && (
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() => {
+                            setSelectedThumbnail(null);
+                            setRemoveThumbnailRequested(
+                              Boolean(form.id && lessonThumbnails[form.id]),
+                            );
+                          }}
+                          className="mt-2 text-xs font-semibold text-destructive"
+                        >
+                          Remove thumbnail
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+              {area === "free" && form.mediaSource === "self_hosted" && (
+                <section className="mt-5">
+                  <h3 className="mb-3 flex items-center gap-2 font-semibold">
+                    <FileVideo className="h-4 w-4 text-gold" /> Lesson video
+                  </h3>
+                  <MediaDropzone
+                    accept="video/mp4,.mp4"
+                    disabled={saving}
+                    onFiles={(files) => {
+                      const file = files[0] ?? null;
+                      if (!file) return;
+                      const validation = validateCourseVideo(file);
+                      if (validation) return toast.error(validation);
+                      setSelectedVideo(file);
+                      setWorkflowError("");
+                    }}
+                  >
+                    <span>
+                      <FileVideo className="mx-auto h-7 w-7 text-gold" />
+                      <span className="mt-2 block text-sm font-semibold">
+                        Drag and drop or select media
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        MP4 · Up to 3 GiB
+                      </span>
+                    </span>
+                  </MediaDropzone>
+                  {selectedVideo && (
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+                      <span className="truncate">
+                        {selectedVideo.name} · {formatBytes(selectedVideo.size)}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => setSelectedVideo(null)}
+                        className="text-xs font-semibold text-destructive"
+                      >
+                        Remove
+                      </button>
                     </div>
                   )}
-                </div>
-                <div>
-                  <input
-                    type="file"
-                    accept="image/webp,image/jpeg,.webp,.jpg,.jpeg"
-                    disabled={saving}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0] ?? null;
-                      if (file) {
-                        const validation = validatePoster(file);
-                        if (validation) return toast.error(validation);
-                      }
-                      setSelectedThumbnail(file);
-                      setRemoveThumbnailRequested(false);
-                    }}
-                    className="admin-input file:mr-3 file:rounded-full file:border-0 file:bg-gold/10 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-gold"
-                  />
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    JPEG or WebP · stored privately as poster.webp
-                  </p>
-                  {(selectedThumbnail || (form.id && lessonThumbnails[form.id])) && (
+                  {form.id &&
+                    lessons.find((lesson) => lesson.id === form.id)?.video_storage_path &&
+                    !selectedVideo && (
+                      <p className="mt-2 text-xs text-emerald-600">
+                        Existing private video remains attached. Choose a file only to replace it.
+                      </p>
+                    )}
+                </section>
+              )}
+              {(saving || uploadProgress.total > 0 || workflowError) && (
+                <div className="mt-5 rounded-xl border border-border p-3" aria-live="polite">
+                  <div className="flex justify-between gap-3 text-xs font-semibold">
+                    <span>{workflowStage || "Preparing…"}</span>
+                    {uploadProgress.total > 0 && <span>{uploadProgress.percentage}%</span>}
+                  </div>
+                  {uploadProgress.total > 0 && (
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full bg-gradient-gold"
+                        style={{ width: `${uploadProgress.percentage}%` }}
+                      />
+                    </div>
+                  )}
+                  {workflowError && (
+                    <p className="mt-2 text-sm text-destructive">{workflowError}</p>
+                  )}
+                  {saving && uploadCancelRef.current && (
                     <button
                       type="button"
-                      disabled={saving}
-                      onClick={() => {
-                        setSelectedThumbnail(null);
-                        setRemoveThumbnailRequested(Boolean(form.id && lessonThumbnails[form.id]));
-                      }}
-                      className="mt-2 text-xs font-semibold text-destructive"
+                      onClick={() => void uploadCancelRef.current?.()}
+                      className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-destructive"
                     >
-                      Remove thumbnail
+                      <X className="h-3 w-3" /> Cancel upload
                     </button>
                   )}
                 </div>
-              </div>
-            </section>
-            {form.mediaSource === "self_hosted" && (
-              <section className="mt-5">
-                <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                  <FileVideo className="h-4 w-4 text-gold" /> Lesson video
-                </h3>
-                <MediaDropzone
-                  accept="video/mp4,.mp4"
-                  disabled={saving}
-                  onFiles={(files) => {
-                    const file = files[0] ?? null;
-                    if (!file) return;
-                    const validation = validateCourseVideo(file);
-                    if (validation) return toast.error(validation);
-                    setSelectedVideo(file);
-                    setWorkflowError("");
-                  }}
-                >
-                  <span>
-                    <FileVideo className="mx-auto h-7 w-7 text-gold" />
-                    <span className="mt-2 block text-sm font-semibold">
-                      Drag and drop or select media
-                    </span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      MP4 · Up to 3 GiB
-                    </span>
-                  </span>
-                </MediaDropzone>
-                {selectedVideo && (
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-sm">
-                    <span className="truncate">
-                      {selectedVideo.name} · {formatBytes(selectedVideo.size)}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={saving}
-                      onClick={() => setSelectedVideo(null)}
-                      className="text-xs font-semibold text-destructive"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                )}
-                {form.id &&
-                  lessons.find((lesson) => lesson.id === form.id)?.video_storage_path &&
-                  !selectedVideo && (
-                    <p className="mt-2 text-xs text-emerald-600">
-                      Existing private video remains attached. Choose a file only to replace it.
-                    </p>
-                  )}
-              </section>
-            )}
-            {(saving || uploadProgress.total > 0 || workflowError) && (
-              <div className="mt-5 rounded-xl border border-border p-3" aria-live="polite">
-                <div className="flex justify-between gap-3 text-xs font-semibold">
-                  <span>{workflowStage || "Preparing…"}</span>
-                  {uploadProgress.total > 0 && <span>{uploadProgress.percentage}%</span>}
-                </div>
-                {uploadProgress.total > 0 && (
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full bg-gradient-gold"
-                      style={{ width: `${uploadProgress.percentage}%` }}
-                    />
-                  </div>
-                )}
-                {workflowError && <p className="mt-2 text-sm text-destructive">{workflowError}</p>}
-                {saving && uploadCancelRef.current && (
-                  <button
-                    type="button"
-                    onClick={() => void uploadCancelRef.current?.()}
-                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-destructive"
-                  >
-                    <X className="h-3 w-3" /> Cancel upload
-                  </button>
-                )}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => void runLessonSave(saveLesson)}
-              disabled={
-                saving || !form.courseId || (area === "premium" && !phaseConfigurationLoaded)
-              }
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}{" "}
-              {saving
-                ? workflowStage || "Saving…"
-                : form.id
-                  ? "Save Lesson"
-                  : form.isPublished
-                    ? "Publish Lesson"
-                    : "Save Draft"}
-            </button>
-          </form>
+              )}
+              <button
+                type="button"
+                onClick={() => void runLessonSave(saveLesson)}
+                disabled={
+                  saving || !form.courseId || (area === "premium" && !phaseConfigurationLoaded)
+                }
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}{" "}
+                {saving
+                  ? workflowStage || "Saving…"
+                  : form.id
+                    ? "Save Lesson"
+                    : form.isPublished
+                      ? "Publish Lesson"
+                      : "Save Draft"}
+              </button>
+            </form>
+          )}
 
           <section className="mt-8">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -1352,7 +1376,7 @@ function AdminLessons() {
                     className="flex min-h-[168px] w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-elegant sm:flex-row"
                   >
                     <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-gradient-to-br from-gold/20 via-card to-background sm:w-60">
-                      {lessonThumbnails[lesson.id] ? (
+                      {area === "free" && lessonThumbnails[lesson.id] ? (
                         <img
                           src={lessonThumbnails[lesson.id]}
                           alt={`${lesson.title} thumbnail`}
