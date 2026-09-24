@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Lock, Unlock, Star, Clock, BookOpen } from "lucide-react";
+import { Lock, Smartphone, Star, Clock, BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { COURSES, formatTZS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +37,7 @@ function CoursesCatalog() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
-  const [purchasedSlugs, setPurchasedSlugs] = useState<Set<string>>(new Set());
+  const [courseAccess, setCourseAccess] = useState<Map<string, "pending" | "purchased">>(new Map());
   const [purchasesLoading, setPurchasesLoading] = useState(true);
 
   useEffect(() => {
@@ -51,22 +51,32 @@ function CoursesCatalog() {
       setPurchasesLoading(true);
       const [
         { data: purchases, error: purchasesError },
+        { data: payments, error: paymentsError },
         { data: databaseCourses, error: coursesError },
       ] = await Promise.all([
         supabase.from("purchases").select("course_id").eq("user_id", userId),
+        supabase
+          .from("payments")
+          .select("course_id,status,created_at")
+          .eq("user_id", userId)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false }),
         supabase.from("courses").select("id,slug"),
       ]);
-      if (active && !purchasesError && !coursesError) {
+      if (active && !purchasesError && !paymentsError && !coursesError) {
         const courseSlugById = new Map(
           (databaseCourses ?? []).map((course) => [course.id, course.slug]),
         );
-        setPurchasedSlugs(
-          new Set(
-            (purchases ?? [])
-              .map((purchase) => courseSlugById.get(purchase.course_id))
-              .filter((courseSlug): courseSlug is string => Boolean(courseSlug)),
-          ),
-        );
+        const nextAccess = new Map<string, "pending" | "purchased">();
+        for (const payment of payments ?? []) {
+          const courseSlug = courseSlugById.get(payment.course_id);
+          if (courseSlug) nextAccess.set(courseSlug, "pending");
+        }
+        for (const purchase of purchases ?? []) {
+          const courseSlug = courseSlugById.get(purchase.course_id);
+          if (courseSlug) nextAccess.set(courseSlug, "purchased");
+        }
+        setCourseAccess(nextAccess);
       }
       if (active) setPurchasesLoading(false);
     }
@@ -91,7 +101,9 @@ function CoursesCatalog() {
       </header>
       <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {COURSES.map((course) => {
-          const purchased = purchasedSlugs.has(course.slug);
+          const access = courseAccess.get(course.slug);
+          const purchased = access === "purchased";
+          const pending = access === "pending";
           const available = isPremiumCourseAvailable(course.slug) || isAdmin;
           return (
             <article
@@ -111,7 +123,7 @@ function CoursesCatalog() {
                   role="img"
                 >
                   {available && purchased ? (
-                    <Unlock className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
+                    <Smartphone className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
                   ) : (
                     <Lock className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
                   )}
@@ -149,6 +161,11 @@ function CoursesCatalog() {
                         <div className="text-xs font-semibold text-gold">Purchased</div>
                         <div className="text-sm text-muted-foreground">Lifetime access</div>
                       </>
+                    ) : pending ? (
+                      <>
+                        <div className="text-xs font-semibold text-gold">Awaiting approval</div>
+                        <div className="text-sm text-muted-foreground">Payment under review</div>
+                      </>
                     ) : (
                       <>
                         <div className="text-xs text-muted-foreground">One-time</div>
@@ -165,14 +182,14 @@ function CoursesCatalog() {
                     >
                       Coming Soon
                     </button>
-                  ) : purchased ? (
+                  ) : purchased || pending ? (
                     <button
                       onClick={() =>
                         navigate({ to: "/courses/$slug", params: { slug: course.slug } })
                       }
                       className="rounded-full border border-gold/40 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold transition-colors hover:bg-gold/20"
                     >
-                      View Lessons
+                      {purchased ? "Continue in BLACKPIPS App" : "View status"}
                     </button>
                   ) : (
                     <button

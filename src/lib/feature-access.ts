@@ -1,6 +1,6 @@
 export const FEATURE_ACCESS = {
   freeLessonsEnabled: false,
-  premiumLessonsEnabled: false,
+  premiumLessonsEnabled: true,
   alcAccessEnabled: false,
   mentorshipEnabled: true,
 } as const;

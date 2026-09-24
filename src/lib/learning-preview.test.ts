@@ -56,13 +56,13 @@ describe("live Free Lessons catalog", () => {
     expect(formatLessonDuration(null)).toBe("Duration unavailable");
   });
 
-  it("uses real course and lesson UUIDs with the existing private playback contract", () => {
+  it("uses real course and lesson UUIDs for Free Lessons while Premium playback stays app-only", () => {
     expect(freeRoute).toContain("lesson.id");
     expect(freeRoute).toContain("lesson.course_id");
-    expect(courseRoute).toContain('"can_access_published_lesson"');
-    expect(courseRoute).toContain('"get_lesson_playback_descriptor"');
-    expect(courseRoute).toContain('.from("course-media")');
-    expect(courseRoute).toContain("createSignedUrl");
+    expect(courseRoute).toContain('<Navigate to="/courses/$slug"');
+    expect(courseRoute).not.toContain('"get_lesson_playback_descriptor"');
+    expect(courseRoute).not.toContain('.from("course-media")');
+    expect(courseRoute).not.toContain("createSignedUrl");
   });
 
   it("uses authoritative Basic/Advanced categories and private signed thumbnails", () => {
