@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Lock, Smartphone, Star, Clock, BookOpen } from "lucide-react";
+import { Lock, Smartphone, Star, Clock, BookOpen, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { COURSES, formatTZS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +36,7 @@ function Courses() {
 function CoursesCatalog() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isAdmin } = useAdmin();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const [courseAccess, setCourseAccess] = useState<Map<string, "pending" | "purchased">>(new Map());
   const [purchasesLoading, setPurchasesLoading] = useState(true);
 
@@ -119,10 +119,18 @@ function CoursesCatalog() {
                 </div>
                 <div
                   className="absolute right-3 top-3 glass rounded-full p-2"
-                  aria-label={purchased ? "Course unlocked" : "Course locked"}
+                  aria-label={
+                    isAdmin
+                      ? "Administrator course access"
+                      : purchased
+                        ? "Course unlocked"
+                        : "Course locked"
+                  }
                   role="img"
                 >
-                  {available && purchased ? (
+                  {isAdmin ? (
+                    <ShieldCheck className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
+                  ) : available && purchased ? (
                     <Smartphone className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
                   ) : (
                     <Lock className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
@@ -149,7 +157,12 @@ function CoursesCatalog() {
                 </div>
                 <div className="mt-6 flex items-center justify-between border-t border-border pt-5">
                   <div>
-                    {!available ? (
+                    {isAdmin ? (
+                      <>
+                        <div className="text-xs font-semibold text-gold">Administrator access</div>
+                        <div className="text-sm text-muted-foreground">Course inspection</div>
+                      </>
+                    ) : !available ? (
                       <>
                         <div className="text-xs font-semibold text-muted-foreground">
                           Coming Soon
@@ -175,7 +188,16 @@ function CoursesCatalog() {
                       </>
                     )}
                   </div>
-                  {!available ? (
+                  {isAdmin ? (
+                    <button
+                      onClick={() =>
+                        navigate({ to: "/courses/$slug", params: { slug: course.slug } })
+                      }
+                      className="rounded-full border border-gold/40 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold transition-colors hover:bg-gold/20"
+                    >
+                      View Course
+                    </button>
+                  ) : !available ? (
                     <button
                       disabled
                       className="cursor-not-allowed rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-muted-foreground opacity-70"
@@ -193,7 +215,7 @@ function CoursesCatalog() {
                     </button>
                   ) : (
                     <button
-                      disabled={purchasesLoading}
+                      disabled={purchasesLoading || adminLoading}
                       onClick={() =>
                         navigate({ to: "/payment/$slug", params: { slug: course.slug } })
                       }

@@ -1,16 +1,41 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CheckCircle2, Clock3, Lock, Smartphone } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  CheckCircle2,
+  Clock3,
+  Lock,
+  PlayCircle,
+  Smartphone,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdmin } from "@/hooks/useAdmin";
 
 export const Route = createFileRoute("/courses/$slug/")({ component: CourseAccess });
 
 type Course = { id: string; slug: string; title: string };
 type AccessState = "locked" | "pending" | "purchased";
+type Lesson = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+};
 
 function CourseAccess() {
+  const { isAdmin, loading } = useAdmin();
+
+  if (loading)
+    return (
+      <div className="px-4 py-24 text-center text-sm text-muted-foreground">Verifying access…</div>
+    );
+  return isAdmin ? <AdminCourseLessons /> : <LearnerCourseAccess />;
+}
+
+function LearnerCourseAccess() {
   const { slug } = Route.useParams();
   const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
@@ -117,6 +142,103 @@ function CourseAccess() {
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function AdminCourseLessons() {
+  const { slug } = Route.useParams();
+  const [course, setCourse] = useState<Course | null>(null);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      const { data: courseData, error: courseError } = await supabase
+        .from("courses")
+        .select("id,slug,title")
+        .eq("slug", slug)
+        .eq("access_type", "premium")
+        .eq("published", true)
+        .maybeSingle();
+      if (!active) return;
+      if (courseError || !courseData) {
+        toast.error("This course could not be loaded.");
+        setLoading(false);
+        return;
+      }
+      const { data: lessonData, error: lessonsError } = await supabase
+        .from("lessons")
+        .select("id,slug,title,description")
+        .eq("course_id", courseData.id)
+        .eq("is_published", true)
+        .order("position", { ascending: true });
+      if (!active) return;
+      if (lessonsError) toast.error("Lessons could not be loaded.");
+      setCourse(courseData);
+      setLessons(lessonData ?? []);
+      setLoading(false);
+    }
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  if (loading)
+    return (
+      <div className="px-4 py-24 text-center text-sm text-muted-foreground">Loading course…</div>
+    );
+  if (!course)
+    return <CourseMessage title="Course unavailable" body="Please return to Premium Lessons." />;
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-16">
+      <Link
+        to="/courses"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-gold"
+      >
+        <ArrowLeft className="h-4 w-4" /> Premium Lessons
+      </Link>
+      <header className="mt-6">
+        <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gold">
+          <BookOpen className="h-4 w-4" /> Administrator course inspection
+        </div>
+        <h1 className="mt-3 break-words font-display text-3xl font-bold sm:text-4xl">
+          {course.title}
+        </h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Review the published Premium lessons and verify their playback quality.
+        </p>
+      </header>
+      {lessons.length === 0 ? (
+        <div className="glass mt-8 rounded-3xl p-10 text-center text-sm text-muted-foreground">
+          Lessons are being prepared.
+        </div>
+      ) : (
+        <div className="mt-8 space-y-3">
+          {lessons.map((lesson, index) => (
+            <Link
+              key={lesson.id}
+              to="/courses/$slug/$lessonSlug"
+              params={{ slug: course.slug, lessonSlug: lesson.slug }}
+              className="glass grid grid-cols-[2.5rem_minmax(0,1fr)_1.25rem] items-center gap-4 rounded-2xl p-5 transition hover:-translate-y-0.5 hover:shadow-elegant"
+            >
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-gold/10 text-sm font-semibold text-gold">
+                {index + 1}
+              </span>
+              <span className="min-w-0">
+                <span className="block font-display font-semibold">{lesson.title}</span>
+                <span className="mt-1 block line-clamp-2 text-sm text-muted-foreground">
+                  {lesson.description || "Premium lesson"}
+                </span>
+              </span>
+              <PlayCircle className="h-5 w-5 text-gold" aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
