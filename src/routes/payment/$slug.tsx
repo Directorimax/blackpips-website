@@ -22,6 +22,11 @@ import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { createSeoHead } from "@/lib/seo";
 import { sendNotification } from "@/services/email/notification.functions";
 import { extensionForImageMime, validateImageFile } from "@/lib/upload-security";
+import {
+  getPaymentSubmissionErrorMessage,
+  PaymentSubmissionError,
+  submitPaymentRecord,
+} from "@/lib/payment-submission";
 
 export const Route = createFileRoute("/payment/$slug")({
   head: () =>
@@ -124,7 +129,12 @@ function Checkout() {
     created_at: string | null;
   }>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [uploadedProofPath, setUploadedProofPath] = useState<string | null>(null);
+  const [uploadedProof, setUploadedProof] = useState<null | {
+    path: string;
+    transactionId: string;
+    method: MethodKey;
+    file: File;
+  }>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const activeMethod = METHODS.find((m) => m.key === method)!;
@@ -177,7 +187,6 @@ function Checkout() {
       return;
     }
     setSubmitting(true);
-    let uploadedPath: string | null = null;
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError) throw authError;
@@ -192,52 +201,79 @@ function Checkout() {
       if (courseError) throw courseError;
       if (!databaseCourse) throw new Error("This course is no longer available for payment.");
 
-      const ext = extensionForImageMime(file.type);
-      const path = `${authenticatedUser.id}/${databaseCourse.id}/${crypto.randomUUID()}.${ext}`;
-      const up = await supabase.storage
-        .from("payment-proofs")
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (up.error) throw up.error;
-      uploadedPath = path;
-      setUploadedProofPath(path);
-
-      const { data, error } = await supabase
-        .from("payments")
-        .insert({
-          user_id: authenticatedUser.id,
-          course_id: databaseCourse.id,
-          amount: databaseCourse.price,
-          currency: "TZS",
-          payment_method: activeMethod.name,
-          provider: activeMethod.short,
-          transaction_id: transactionId,
-          provider_reference: transactionId,
-          proof_url: path,
-          status: "pending",
-          paid_at: new Date().toISOString(),
-        })
-        .select("id, status, created_at")
-        .single();
-      if (error) throw error;
-      setSubmittedPayment(data);
-      try {
-        await sendNotification({
-          data: { type: "payment_submitted", resourceId: data.id },
-        });
-      } catch {
-        console.error("Payment review notification could not be queued.");
+      const result = await submitPaymentRecord(
+        {
+          uploadProof: async () => {
+            const ext = extensionForImageMime(file.type);
+            const path = `${authenticatedUser.id}/${databaseCourse.id}/${crypto.randomUUID()}.${ext}`;
+            const { error } = await supabase.storage
+              .from("payment-proofs")
+              .upload(path, file, { contentType: file.type, upsert: false });
+            return error ? { data: null, error } : { data: { path }, error: null };
+          },
+          createPayment: async (proofPath) => {
+            const { data, error } = await supabase
+              .from("payments")
+              .insert({
+                user_id: authenticatedUser.id,
+                course_id: databaseCourse.id,
+                amount: databaseCourse.price,
+                currency: "TZS",
+                payment_method: activeMethod.name,
+                provider: activeMethod.short,
+                transaction_id: transactionId,
+                provider_reference: transactionId,
+                proof_url: proofPath,
+                status: "pending",
+                paid_at: new Date().toISOString(),
+              })
+              .select("id, status, created_at")
+              .single();
+            return error ? { data: null, error } : { data, error: null };
+          },
+          findPayment: async () => {
+            const { data, error } = await supabase
+              .from("payments")
+              .select("id, status, created_at, proof_url")
+              .eq("user_id", authenticatedUser.id)
+              .eq("course_id", databaseCourse.id)
+              .eq("transaction_id", transactionId)
+              .maybeSingle();
+            return error ? { data: null, error } : { data, error: null };
+          },
+          removeProof: async (proofPath) => {
+            const { error } = await supabase.storage.from("payment-proofs").remove([proofPath]);
+            if (error) console.error("Could not roll back uploaded payment proof.");
+            return { error };
+          },
+        },
+        uploadedProof?.transactionId === transactionId &&
+          uploadedProof.method === method &&
+          uploadedProof.file === file
+          ? uploadedProof.path
+          : null,
+      );
+      setUploadedProof({ path: result.proofPath, transactionId, method, file });
+      setSubmittedPayment(result.payment);
+      if (!result.recoveredExistingPayment) {
+        try {
+          await sendNotification({
+            data: { type: "payment_submitted", resourceId: result.payment.id },
+          });
+        } catch {
+          console.error("Payment review notification could not be queued.");
+        }
       }
     } catch (error) {
-      if (uploadedPath) {
-        const { error: rollbackError } = await supabase.storage
-          .from("payment-proofs")
-          .remove([uploadedPath]);
-        if (rollbackError)
-          console.error("Could not roll back uploaded payment proof:", rollbackError);
-        setUploadedProofPath(null);
+      if (error instanceof PaymentSubmissionError && error.proofPathRetained) {
+        if (error.proofPath) {
+          setUploadedProof({ path: error.proofPath, transactionId, method, file });
+        }
+      } else {
+        setUploadedProof(null);
       }
       console.error("Payment submission failed:", error);
-      const message = getSubmissionErrorMessage(error);
+      const message = getPaymentSubmissionErrorMessage(error);
       setSubmitError(message);
       toast.error(message);
     } finally {
@@ -502,23 +538,6 @@ function Checkout() {
       </div>
     </div>
   );
-}
-
-function getSubmissionErrorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
-  if (/auth session missing|session.*expired|jwt.*expired/i.test(message)) {
-    return "Your session has expired. Please sign in again.";
-  }
-  if (/row-level security|policy/i.test(message)) {
-    return "We could not save your payment because your account does not have permission. Please contact support.";
-  }
-  if (/bucket|storage|object/i.test(message)) {
-    return "We could not upload your payment proof. Please try again.";
-  }
-  if (/network|fetch/i.test(message)) {
-    return "Network error. Please check your connection and try again.";
-  }
-  return message || "We could not submit your payment. Please try again.";
 }
 
 function SuccessState({
