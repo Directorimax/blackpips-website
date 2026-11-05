@@ -15,6 +15,10 @@ export type TradingTipMedia = {
   media_path: string;
   mime_type: string;
   sort_order: number;
+  /** Set when the file lives in Cloudflare R2 (the app's central media). */
+  media_asset_id?: string | null;
+  /** Tip id for a tip-level R2 video, signed by the tip rather than a media row. */
+  central_tip_id?: string;
 };
 
 export type TradingTip = {
@@ -26,6 +30,7 @@ export type TradingTip = {
   mime_type: string | null;
   created_at: string;
   expires_at: string | null;
+  media_asset_id?: string | null;
   trading_tip_media?: TradingTipMedia[];
 };
 
@@ -82,4 +87,20 @@ export function expiryAt(option: "24h" | "72h" | "7d" | "forever" | "custom", cu
   if (option === "custom") return custom ? new Date(custom).toISOString() : null;
   const hours = option === "24h" ? 24 : option === "72h" ? 72 : 168;
   return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+}
+
+/** Adds the tip-level R2 video as a media item, the way the app does. */
+export function withCentralTipVideo(tip: TradingTip): TradingTipMedia[] {
+  const media = [...(tip.trading_tip_media ?? [])];
+  if (tip.media_asset_id && !media.some((item) => item.media_type === "video")) {
+    media.push({
+      id: `central-r2-${tip.id}`,
+      media_type: "video",
+      media_path: "",
+      mime_type: "video/mp4",
+      sort_order: 0,
+      central_tip_id: tip.id,
+    });
+  }
+  return media.sort((a, b) => a.sort_order - b.sort_order);
 }

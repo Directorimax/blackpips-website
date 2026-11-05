@@ -1,12 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Smartphone,
   UploadCloud,
-  CheckCircle2,
   Loader2,
-  ArrowLeft,
   Copy,
   Check,
   ShieldCheck,
@@ -27,6 +24,7 @@ import {
   PaymentSubmissionError,
   submitPaymentRecord,
 } from "@/lib/payment-submission";
+import { PageFrame } from "@/components/bp/PageFrame";
 
 export const Route = createFileRoute("/payment/$slug")({
   head: () =>
@@ -42,9 +40,11 @@ export const Route = createFileRoute("/payment/$slug")({
     return { course };
   },
   component: () => (
-    <AuthenticatedRouteGuard>
-      <Checkout />
-    </AuthenticatedRouteGuard>
+    <PageFrame>
+      <AuthenticatedRouteGuard>
+        <Checkout />
+      </AuthenticatedRouteGuard>
+    </PageFrame>
   ),
 });
 
@@ -283,260 +283,253 @@ function Checkout() {
 
   if (submittedPayment) return <SuccessState course={course} success={submittedPayment} />;
 
+  const busy = submitting || authLoading;
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
-      <Link
-        to="/courses"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-gold"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to courses
-      </Link>
-
-      <motion.header
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="glass relative mt-4 overflow-hidden rounded-3xl border border-gold/20 p-6 sm:p-8"
-      >
-        <div className="absolute inset-0 bg-hero-glow opacity-40" />
-        <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:justify-between">
-          <div className="min-w-0">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-gold">
-              Complete payment
-            </div>
-            <h1 className="mt-1 break-words font-display text-2xl font-bold sm:text-3xl">
-              {course.title}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Lifetime access · Instant unlock after verification
-            </p>
-          </div>
-          <div className="shrink-0 text-right">
-            <div className="text-xs text-muted-foreground">Amount due</div>
-            <div className="text-gradient-gold font-display text-3xl font-black sm:text-4xl">
-              {formatTZS(course.price)}
-            </div>
-          </div>
-        </div>
-      </motion.header>
-
-      <section className="mt-8">
-        <h2 className="font-display text-lg font-semibold">Choose a payment method</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {METHODS.map((m) => {
-            const Icon = m.icon;
-            const active = m.key === method;
-            return (
-              <button
-                key={m.key}
-                onClick={() => setMethod(m.key)}
-                disabled={submitting || authLoading}
-                className={cn(
-                  "group relative overflow-hidden rounded-2xl border p-4 text-left transition-all",
-                  "disabled:cursor-not-allowed disabled:opacity-60",
-                  active
-                    ? "border-gold/60 bg-gold/5 shadow-glow"
-                    : "border-border bg-card hover:border-gold/30 hover:-translate-y-0.5",
-                )}
-              >
-                <div className={cn("absolute inset-0 bg-gradient-to-br opacity-40", m.color)} />
-                <div className="relative flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "grid h-10 w-10 shrink-0 place-items-center rounded-xl transition",
-                      active
-                        ? "bg-gradient-gold text-primary-foreground"
-                        : "bg-background/60 text-gold",
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="truncate font-semibold">{m.short}</div>
-                    <div className="truncate text-xs text-muted-foreground">{m.name}</div>
-                  </div>
-                  {active && (
-                    <motion.div layoutId="method-check" className="ml-auto shrink-0 text-gold">
-                      <CheckCircle2 className="h-5 w-5" />
-                    </motion.div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="mt-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeMethod.key}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
-            className="glass rounded-3xl border border-border p-6 sm:p-8"
-          >
-            <div className="flex items-center gap-2 text-gold">
-              <activeMethod.icon className="h-4 w-4" />
-              <span className="text-xs font-semibold uppercase tracking-widest">
-                {activeMethod.name} details
+    <section className="course-page">
+      <div className="wrap">
+        <nav className="row small crumbs" aria-label="Breadcrumb">
+          <Link to="/courses">Lessons</Link>
+          <span aria-hidden="true">/</span>
+          <Link to="/courses/$slug" params={{ slug: course.slug }}>
+            {course.title}
+          </Link>
+          <span aria-hidden="true">/</span>
+          <span style={{ color: "var(--tx)" }}>Checkout</span>
+        </nav>
+        <div className="clayout">
+          <div className="stack" style={{ gap: 24 }}>
+            <div className="stack rise" style={{ gap: 14 }}>
+              <span className="eyebrow" style={{ alignSelf: "flex-start" }}>
+                <span className="tag">Checkout</span> Complete payment
               </span>
+              <h1 className="h1" style={{ fontSize: "clamp(32px, 4.4vw, 52px)" }}>
+                {course.title}
+              </h1>
+              <p className="lead">Lifetime access · Instant unlock after verification</p>
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <DetailField
-                label="Business name"
-                value={activeMethod.business}
-                onCopy={copy}
-                copied={copied}
-              />
-              <DetailField
-                label="Phone number"
-                value={activeMethod.phone}
-                onCopy={copy}
-                copied={copied}
-              />
-              <DetailField
-                label="Amount"
-                value={formatTZS(course.price)}
-                onCopy={copy}
-                copied={copied}
-                highlight
-              />
-            </div>
-            <div className="mt-6">
-              <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Instructions
+
+            <div className="card spot rise d1" style={{ padding: "clamp(22px, 3vw, 28px)" }}>
+              <h2 className="h3">Pay with mobile money</h2>
+              <div
+                className="stack"
+                style={{ gap: 8, marginTop: 16 }}
+                role="radiogroup"
+                aria-label="Payment method"
+              >
+                {METHODS.map((m) => {
+                  const active = m.key === method;
+                  return (
+                    <button
+                      key={m.key}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setMethod(m.key)}
+                      disabled={busy}
+                      className={cn("method", active && "on")}
+                    >
+                      <span className="radio" />
+                      <span>{m.short}</span>
+                      <span className="small">{m.name}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <ol className="mt-3 space-y-2 text-sm">
+            </div>
+
+            <div
+              className="card rise d2"
+              style={{ padding: "clamp(22px, 3vw, 28px)" }}
+              key={activeMethod.key}
+            >
+              <p className="micro">{activeMethod.name} details</p>
+              <div className="stack" style={{ gap: 8, marginTop: 14 }}>
+                <DetailField
+                  label="Business name"
+                  value={activeMethod.business}
+                  onCopy={copy}
+                  copied={copied}
+                />
+                <DetailField
+                  label="Phone number"
+                  value={activeMethod.phone}
+                  onCopy={copy}
+                  copied={copied}
+                />
+                <DetailField
+                  label="Amount"
+                  value={formatTZS(course.price)}
+                  onCopy={copy}
+                  copied={copied}
+                  highlight
+                />
+              </div>
+              <hr className="divider" style={{ margin: "22px 0" }} />
+              <p className="micro" style={{ marginBottom: 14 }}>
+                Instructions
+              </p>
+              <ol className="pay-steps">
                 {activeMethod.instructions.map((step, i) => (
-                  <li key={i} className="flex gap-3">
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-gold/30 bg-gold/10 text-[11px] font-bold text-gold">
-                      {i + 1}
-                    </span>
-                    <span className="text-muted-foreground">{step}</span>
-                  </li>
+                  <li key={i}>{step}</li>
                 ))}
               </ol>
             </div>
-          </motion.div>
-        </AnimatePresence>
-      </section>
+          </div>
 
-      <section className="mt-6 grid gap-6 md:grid-cols-2">
-        <div className="rounded-3xl border border-border bg-card p-6">
-          <label
-            htmlFor="txid"
-            className="text-xs font-semibold uppercase tracking-widest text-muted-foreground"
-          >
-            Transaction ID <span className="text-gold">*</span>
-          </label>
-          <input
-            id="txid"
-            value={txId}
-            onChange={(e) => setTxId(e.target.value)}
-            disabled={submitting || authLoading}
-            placeholder="e.g. CJ1A2B3C4D"
-            className="mt-3 w-full rounded-xl border border-border bg-background/60 px-4 py-3 font-mono text-sm outline-none transition focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
-          />
-          <p className="mt-2 text-xs text-muted-foreground">
-            Paste the reference code from the SMS confirmation you received.
-          </p>
-        </div>
-        <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragOver(false);
-            onFiles(e.dataTransfer.files);
-          }}
-          onClick={() => inputRef.current?.click()}
-          className={cn(
-            "group relative cursor-pointer overflow-hidden rounded-3xl border-2 border-dashed p-6 text-center transition",
-            (submitting || authLoading) && "pointer-events-none cursor-not-allowed opacity-60",
-            dragOver
-              ? "border-gold bg-gold/5"
-              : file
-                ? "border-gold/50 bg-gold/[0.03]"
-                : "border-border bg-card hover:border-gold/50",
-          )}
-        >
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={(e) => onFiles(e.target.files)}
-            disabled={submitting || authLoading}
-          />
-          {file ? (
-            <div className="flex items-center gap-3 text-left">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-gold text-primary-foreground">
-                <FileImage className="h-6 w-6" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold">{file.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {(file.size / 1024).toFixed(0)} KB · Ready to submit
-                </div>
-              </div>
-              <button
-                type="button"
-                disabled={submitting || authLoading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFile(null);
-                }}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-muted-foreground transition hover:bg-background hover:text-foreground"
-                aria-label="Remove file"
+          <aside className="buy rise d2">
+            <div className="orbit">
+              <div
+                className="orbit-in"
+                style={{ padding: 26, display: "flex", flexDirection: "column", gap: 18 }}
               >
-                <X className="h-4 w-4" />
-              </button>
+                <div className="pstep" aria-hidden="true">
+                  {[0, 1, 2, 3].map((i) => (
+                    <i key={i} className={i <= 1 ? "on" : ""} />
+                  ))}
+                </div>
+                <div>
+                  <p className="micro">Amount due</p>
+                  <p
+                    style={{
+                      fontSize: 40,
+                      fontWeight: 800,
+                      letterSpacing: "-.04em",
+                      lineHeight: 1.1,
+                      marginTop: 6,
+                    }}
+                  >
+                    {formatTZS(course.price)}
+                  </p>
+                  <p className="small" style={{ marginTop: 6 }}>
+                    Send with {activeMethod.short}, then confirm below.
+                  </p>
+                </div>
+                <label className="field" htmlFor="txid">
+                  <span className="label">
+                    Transaction ID <span className="gold">*</span>
+                  </span>
+                  <input
+                    id="txid"
+                    className="input mono"
+                    value={txId}
+                    onChange={(e) => setTxId(e.target.value)}
+                    disabled={busy}
+                    placeholder="e.g. CJ1A2B3C4D"
+                  />
+                  <span className="small" style={{ fontSize: 12 }}>
+                    Paste the reference code from the SMS confirmation you received.
+                  </span>
+                </label>
+                <div className="field">
+                  <span className="label">Payment receipt</span>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOver(true);
+                    }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOver(false);
+                      onFiles(e.dataTransfer.files);
+                    }}
+                    onClick={() => inputRef.current?.click()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        inputRef.current?.click();
+                      }
+                    }}
+                    className={cn("dropzone", dragOver && "over", file && "has", busy && "off")}
+                  >
+                    <input
+                      ref={inputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => onFiles(e.target.files)}
+                      disabled={busy}
+                    />
+                    {file ? (
+                      <div className="file-row">
+                        <span className="ico ico-solid">
+                          <FileImage aria-hidden="true" />
+                        </span>
+                        <span style={{ minWidth: 0 }}>
+                          <span className="h4 truncate" style={{ display: "block" }}>
+                            {file.name}
+                          </span>
+                          <span className="small" style={{ fontSize: 12 }}>
+                            {(file.size / 1024).toFixed(0)} KB · Ready to submit
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFile(null);
+                          }}
+                          className="icon-btn"
+                          aria-label="Remove file"
+                        >
+                          <X aria-hidden="true" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="ico">
+                          <UploadCloud aria-hidden="true" />
+                        </span>
+                        <span className="h4">Drop your screenshot here</span>
+                        <span className="small" style={{ fontSize: 12 }}>
+                          or click to browse · PNG/JPG up to 5MB
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={busy}
+                  className="btn btn-gold btn-lg btn-block"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="animate-spin" aria-hidden="true" /> Submitting…
+                    </>
+                  ) : (
+                    <>Submit Payment · {formatTZS(course.price)}</>
+                  )}
+                </button>
+                {submitError && (
+                  <p role="alert" className="err center">
+                    {submitError}
+                  </p>
+                )}
+                <p className="small center" style={{ fontSize: 12 }}>
+                  <ShieldCheck
+                    aria-hidden="true"
+                    style={{
+                      width: 13,
+                      height: 13,
+                      display: "inline",
+                      verticalAlign: "-2px",
+                      marginRight: 4,
+                    }}
+                  />
+                  Your submission is encrypted and reviewed manually before access is granted.
+                </p>
+              </div>
             </div>
-          ) : (
-            <>
-              <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-gold/10 text-gold transition group-hover:scale-110">
-                <UploadCloud className="h-6 w-6" />
-              </div>
-              <div className="mt-3 text-sm font-semibold">Drop your screenshot here</div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                or click to browse · PNG/JPG up to 5MB
-              </div>
-            </>
-          )}
+          </aside>
         </div>
-      </section>
-
-      <div className="mt-8 flex flex-col items-center gap-3">
-        <motion.button
-          whileHover={{ scale: submitting || authLoading ? 1 : 1.02 }}
-          whileTap={{ scale: submitting || authLoading ? 1 : 0.98 }}
-          onClick={submit}
-          disabled={submitting || authLoading}
-          className="shine relative inline-flex w-full max-w-md items-center justify-center gap-2 rounded-full bg-gradient-gold px-8 py-4 font-display text-base font-bold text-primary-foreground shadow-glow transition disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {submitting ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" /> Submitting…
-            </>
-          ) : (
-            <>Submit Payment · {formatTZS(course.price)}</>
-          )}
-        </motion.button>
-        <p className="text-xs text-muted-foreground">
-          Your submission is encrypted and reviewed manually before access is granted.
-        </p>
-        {submitError && (
-          <p role="alert" className="text-xs text-destructive">
-            {submitError}
-          </p>
-        )}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -548,70 +541,71 @@ function SuccessState({
   success: { id: string };
 }) {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-20">
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
-        className="glass relative overflow-hidden rounded-3xl border border-gold/30 p-10 text-center shadow-elegant"
-      >
-        <div className="absolute inset-0 bg-hero-glow opacity-60" />
-        <div className="relative">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.15, type: "spring", stiffness: 200, damping: 15 }}
-            className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-gradient-gold shadow-glow"
+    <section className="course-page">
+      <div className="wrap" style={{ maxWidth: 640 }}>
+        <div className="orbit rise">
+          <div
+            className="orbit-in stack"
+            style={{
+              padding: "clamp(26px, 4vw, 40px)",
+              gap: 18,
+              alignItems: "center",
+              textAlign: "center",
+            }}
           >
-            <CheckCircle2 className="h-10 w-10 text-primary-foreground" />
-          </motion.div>
-          <h1 className="mt-6 font-display text-3xl font-bold sm:text-4xl">Payment submitted</h1>
-          <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-            We've received your payment for{" "}
-            <span className="font-semibold text-foreground">{course.title}</span>. Your submission
-            is now marked{" "}
-            <span className="rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-xs font-semibold text-gold">
-              Pending Verification
-            </span>
-            .
-          </p>
-          <div className="mt-6 rounded-2xl border border-border bg-background/40 p-5 text-left text-sm">
-            <div className="flex items-center gap-2 text-gold">
-              <ShieldCheck className="h-4 w-4" />
-              <span className="font-semibold">What happens next</span>
+            <div className="pstep" aria-hidden="true" style={{ alignSelf: "stretch" }}>
+              {[0, 1, 2, 3].map((i) => (
+                <i key={i} className={i <= 2 ? "on" : ""} />
+              ))}
             </div>
-            <ul className="mt-3 space-y-2 text-muted-foreground">
-              <li>
-                • Our team verifies your transaction (typically under 30 minutes during business
-                hours).
-              </li>
-              <li>• Course access is unlocked automatically in your dashboard once approved.</li>
-              <li>• You'll receive an email confirmation at approval.</li>
-            </ul>
-            <div className="mt-4 text-xs text-muted-foreground">
-              Reference:{" "}
-              <span className="font-mono text-foreground">
-                {success.id.replaceAll("-", "").slice(0, 8).toUpperCase()}
-              </span>
+            <div className="spinner" aria-hidden="true" />
+            <h1 className="h2">Payment submitted</h1>
+            <p className="body">
+              We've received your payment for{" "}
+              <strong style={{ color: "var(--tx)" }}>{course.title}</strong>. Your submission is now
+              marked <span className="chip chip-gold">Pending Verification</span>.
+            </p>
+            <div
+              className="card-flat stack"
+              style={{ padding: 20, gap: 10, textAlign: "left", alignSelf: "stretch" }}
+            >
+              <p className="h4 row" style={{ gap: 8 }}>
+                <ShieldCheck
+                  aria-hidden="true"
+                  style={{ width: 16, height: 16, color: "var(--gold-ink)" }}
+                />
+                What happens next
+              </p>
+              <ul className="stack small" style={{ gap: 6, margin: 0, paddingLeft: 18 }}>
+                <li>
+                  Our team verifies your transaction (typically under 30 minutes during business
+                  hours).
+                </li>
+                <li>
+                  Your course unlocks in the BLACKPIPS app once approved — sign in with the same
+                  account.
+                </li>
+                <li>You'll receive an email confirmation at approval.</li>
+              </ul>
+              <p className="small" style={{ fontSize: 12 }}>
+                Reference:{" "}
+                <span className="mono" style={{ color: "var(--tx)" }}>
+                  {success.id.replaceAll("-", "").slice(0, 8).toUpperCase()}
+                </span>
+              </p>
             </div>
-          </div>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link
-              to="/dashboard"
-              className="rounded-full bg-gradient-gold px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"
-            >
-              Go to dashboard
-            </Link>
-            <Link
-              to="/courses"
-              className="glass rounded-full px-6 py-2.5 text-sm font-semibold transition hover:border-gold/50"
-            >
-              Browse more courses
-            </Link>
+            <div className="row-wrap" style={{ gap: 10, justifyContent: "center" }}>
+              <Link to="/dashboard" className="btn btn-gold">
+                Go to dashboard
+              </Link>
+              <Link to="/courses" className="btn btn-ghost">
+                Browse more courses
+              </Link>
+            </div>
           </div>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -631,32 +625,24 @@ function DetailField({
   const isCopied = copied === label;
   return (
     <div
-      className={cn(
-        "rounded-2xl border p-4",
-        highlight ? "border-gold/40 bg-gold/5" : "border-border bg-background/40",
-      )}
+      className="copy"
+      style={
+        highlight ? { borderColor: "var(--gold-line)", background: "var(--gold-wash)" } : undefined
+      }
     >
-      <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <div
-          className={cn(
-            "truncate font-mono text-sm font-semibold",
-            highlight && "text-gradient-gold font-display text-lg",
-          )}
-        >
-          {value}
-        </div>
-        <button
-          type="button"
-          onClick={() => onCopy(label, value)}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-muted-foreground transition hover:bg-background hover:text-gold"
-          aria-label={`Copy ${label}`}
-        >
-          {isCopied ? <Check className="h-4 w-4 text-gold" /> : <Copy className="h-4 w-4" />}
-        </button>
-      </div>
+      <span className="copy-v">
+        <span className="copy-l">{label}</span>
+        {value}
+      </span>
+      <button
+        type="button"
+        onClick={() => onCopy(label, value)}
+        className={cn("copy-btn", isCopied && "done")}
+        aria-label={`Copy ${label}`}
+      >
+        {isCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+        {isCopied ? "Copied" : "Copy"}
+      </button>
     </div>
   );
 }

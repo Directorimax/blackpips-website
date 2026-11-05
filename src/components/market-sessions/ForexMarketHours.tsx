@@ -225,10 +225,10 @@ export function ForexMarketHours() {
   };
 
   return (
-    <div className="-mt-8 mx-auto w-full max-w-4xl overflow-x-clip">
-      <div className="overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+    <div className="w-full overflow-x-clip">
+      <div className="card rise market-converter">
         <div className="px-3 pb-4 pt-3 sm:px-7 sm:pb-6 sm:pt-5">
-          <h1 className="font-display text-xl font-extrabold tracking-tight sm:text-2xl">
+          <h1 className="h2" style={{ fontSize: "clamp(24px, 2.8vw, 32px)" }}>
             Forex Market Time Zone Converter
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

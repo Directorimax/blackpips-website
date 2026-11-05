@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { withCentralTipVideo } from "@/lib/trading-tips";
 import {
   Archive,
   CalendarClock,
@@ -63,7 +64,7 @@ export const Route = createFileRoute("/admin/trading-tips")({
 });
 type Expiry = "24h" | "72h" | "7d" | "forever" | "custom";
 const tipSelect =
-  "id,title,caption,media_type,media_path,mime_type,created_at,expires_at,trading_tip_media(id,media_type,media_path,mime_type,sort_order)";
+  "id,title,caption,media_type,media_path,mime_type,created_at,expires_at,media_asset_id,trading_tip_media(id,media_type,media_path,mime_type,sort_order,media_asset_id)";
 
 async function uploadTipFiles(tipId: string, files: File[], startOrder: number) {
   const uploadedPaths: string[] = [];
@@ -188,11 +189,9 @@ function AdminTradingTips() {
       toast.error("Could not load active tips.");
       return;
     }
-    const loaded = (data ?? []).map((tip) => ({
+    const loaded = ((data ?? []) as unknown as TradingTip[]).map((tip) => ({
       ...tip,
-      trading_tip_media: [
-        ...(((tip.trading_tip_media ?? []) as unknown as TradingTip["trading_tip_media"]) ?? []),
-      ].sort((a, b) => a.sort_order - b.sort_order),
+      trading_tip_media: withCentralTipVideo(tip),
     })) as unknown as TradingTip[];
     setTips(loaded);
     if (loaded.length) {

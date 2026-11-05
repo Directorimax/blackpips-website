@@ -5,16 +5,14 @@ export function ThemeToggle() {
   const { theme, toggle } = useTheme();
   return (
     <button
+      type="button"
       onClick={toggle}
-      aria-label="Toggle theme"
-      className="glass relative inline-flex h-10 w-10 items-center justify-center rounded-full transition-transform hover:scale-110"
+      data-theme-toggle
+      aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      className="icon-btn"
     >
-      <Sun
-        className={`absolute h-4 w-4 transition-all duration-500 ${theme === "dark" ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`}
-      />
-      <Moon
-        className={`absolute h-4 w-4 transition-all duration-500 ${theme === "dark" ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`}
-      />
+      <Sun className="theme-ico-sun" aria-hidden="true" />
+      <Moon className="theme-ico-moon" aria-hidden="true" />
     </button>
   );
 }

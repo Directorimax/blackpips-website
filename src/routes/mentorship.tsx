@@ -1,28 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { FormEvent, memo, useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, Crown, Loader2, Sparkles } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { ArrowRight, Check, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatTZS, MENTORSHIP } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { createSeoHead } from "@/lib/seo";
 import { sendNotification } from "@/services/email/notification.functions";
-import { getCurriculumPreview } from "@/lib/mentorship-presentation";
 import {
   isMentorshipPromotionActive,
   mentorshipOfferCountdown,
@@ -38,6 +23,8 @@ export const Route = createFileRoute("/mentorship")({
       path: "/mentorship",
       noindex: true,
     }),
+  validateSearch: (search: Record<string, unknown>): { apply?: string } =>
+    typeof search.apply === "string" ? { apply: search.apply } : {},
   component: () => (
     <AuthenticatedRouteGuard>
       <Mentorship />
@@ -84,14 +71,20 @@ const EMPTY_FORM: ApplicationForm = {
 
 function Mentorship() {
   const { user } = useAuth();
-  const [selectedPackage, setSelectedPackage] = useState<MentorshipPackage | null>(null);
   const [packages, setPackages] = useState<MentorshipPackage[]>([]);
   const [packagesLoading, setPackagesLoading] = useState(true);
   const [packagesError, setPackagesError] = useState<string | null>(null);
   const packageErrorNotified = useRef(false);
   const [form, setForm] = useState<ApplicationForm>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [expandedTier, setExpandedTier] = useState<string | null>(null);
+  const { apply } = Route.useSearch();
+  const applyTier = MENTORSHIP.find((program) => program.tier.toLowerCase() === apply)?.tier;
+  const selectedTier =
+    applyTier ?? MENTORSHIP.find((program) => program.popular)?.tier ?? MENTORSHIP[0].tier;
+
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [applyTier]);
   const offerNow = useOfferClock();
 
   useEffect(() => {
@@ -118,19 +111,18 @@ function Mentorship() {
       });
   }, []);
 
-  const openApplication = useCallback((packageOption: MentorshipPackage | undefined) => {
-    if (!packageOption?.is_active)
-      return toast.error("This mentorship package is currently unavailable.");
-    setSelectedPackage(packageOption);
-  }, []);
-
-  const toggleCurriculum = useCallback((tier: string) => {
-    setExpandedTier((current) => (current === tier ? null : tier));
-  }, []);
-
   async function submitApplication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedPackage || submitting) return;
+    const selectedPackage = packages.find(
+      (item) =>
+        item.slug ===
+        PACKAGE_SLUGS[MENTORSHIP.findIndex((program) => program.tier === selectedTier)],
+    );
+    if (!selectedPackage?.is_active) {
+      toast.error("This mentorship package is currently unavailable.");
+      return;
+    }
+    if (submitting) return;
     setSubmitting(true);
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -158,7 +150,6 @@ function Mentorship() {
         console.error("Mentorship review notification could not be queued.");
       }
       toast.success("Mentorship application received.");
-      setSelectedPackage(null);
       setForm((current) => ({ ...EMPTY_FORM, email: current.email }));
     } catch (error) {
       console.error("Could not submit mentorship application:", error);
@@ -176,196 +167,431 @@ function Mentorship() {
     }
   }
 
+  const selectedIndex = MENTORSHIP.findIndex((program) => program.tier === selectedTier);
+  const selectedProgram = MENTORSHIP[selectedIndex] ?? MENTORSHIP[1];
+  const selectedDatabasePackage = packages.find(
+    (item) => item.slug === PACKAGE_SLUGS[selectedIndex],
+  );
+  const selectedPrice = selectedDatabasePackage
+    ? mentorshipPayablePrice(selectedDatabasePackage, offerNow ?? Infinity)
+    : null;
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16">
-      <header className="mx-auto max-w-3xl text-center">
-        <div className="inline-flex rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold">
-          Mentorship
-        </div>
-        <h1 className="mt-4 font-display text-4xl font-bold sm:text-5xl">
-          The complete ALC program
-        </h1>
-        <p className="mt-3 text-muted-foreground">
-          Live Zoom coaching, direct mentor communication, market analysis and a structured path
-          built around your goals.
-        </p>
-      </header>
-
-      <div className="mt-10 grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {packagesError ? (
-          <div className="glass lg:col-span-3 rounded-3xl p-10 text-center">
-            <h2 className="font-display text-xl font-semibold">
-              Unable to load mentorship packages
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">{packagesError}</p>
-          </div>
-        ) : !packagesLoading && packages.length === 0 ? (
-          <div className="glass lg:col-span-3 rounded-3xl p-10 text-center">
-            <h2 className="font-display text-xl font-semibold">Mentorship unavailable for now</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Please check back soon for new mentorship availability.
-            </p>
-          </div>
-        ) : (
-          MENTORSHIP.map((mentorshipPackage, index) => {
-            const databasePackage = packages.find((item) => item.slug === PACKAGE_SLUGS[index]);
-            const available = Boolean(databasePackage?.is_active);
-            return (
-              <MentorshipProgramCard
-                key={mentorshipPackage.tier}
-                program={mentorshipPackage}
-                packageOption={databasePackage}
-                available={available}
-                loading={packagesLoading}
-                onEnroll={openApplication}
-                expanded={expandedTier === mentorshipPackage.tier}
-                onToggle={toggleCurriculum}
-                offerNow={offerNow}
-              />
-            );
-          })
-        )}
-      </div>
-
-      <Dialog
-        open={Boolean(selectedPackage)}
-        onOpenChange={(open) => !open && setSelectedPackage(null)}
-      >
-        <DialogContent className="mentorship-application-scrollbar max-h-[90vh] max-w-2xl overflow-x-hidden overflow-y-auto rounded-3xl border-gold/20 bg-card p-6 sm:p-8">
-          <DialogHeader>
-            <DialogTitle className="font-display text-2xl">Mentorship application</DialogTitle>
-            <DialogDescription>
-              Apply for the {selectedPackage?.name} program. We will review your goals and
-              availability before discussing scheduling or payment.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={submitApplication} className="mt-2 grid gap-4" aria-busy={submitting}>
-            <div className="rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3">
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-gold">
-                Selected Mentorship Package
+    <div className="bp bp-page">
+      <div className="page-bg" aria-hidden="true" />
+      {!applyTier ? (
+        <>
+          <section className="pkg-intro">
+            <div className="wrap center">
+              <span className="eyebrow rise">
+                <span className="tag">Mentorship</span> Learn directly with the desk
+              </span>
+              <h1 className="h1 rise d1" style={{ marginTop: 18 }}>
+                What each programme covers.
+              </h1>
+              <p className="lead rise d2" style={{ maxWidth: 600, margin: "16px auto 0" }}>
+                Live Zoom coaching, direct mentor communication and a structured path. Choose your
+                programme and apply.
+              </p>
+            </div>
+          </section>
+          {packagesError ? (
+            <div className="wrap" style={{ paddingBottom: 96 }}>
+              <div className="card center" style={{ padding: 40 }}>
+                <h2 className="h3">Unable to load mentorship packages</h2>
+                <p className="small" style={{ marginTop: 8 }}>
+                  {packagesError}
+                </p>
               </div>
-              <div className="mt-1 flex items-center gap-2 font-display text-lg font-semibold">
-                <CheckCircle2 className="h-4 w-4 text-gold" /> {selectedPackage?.name}
+            </div>
+          ) : !packagesLoading && packages.length === 0 ? (
+            <div className="wrap" style={{ paddingBottom: 96 }}>
+              <div className="card center" style={{ padding: 40 }}>
+                <h2 className="h3">Mentorship unavailable for now</h2>
+                <p className="small" style={{ marginTop: 8 }}>
+                  Please check back soon for new mentorship availability.
+                </p>
               </div>
-              {selectedPackage && (
-                <div className="mt-1 text-sm text-muted-foreground">
-                  Current price:{" "}
-                  {formatTZS(mentorshipPayablePrice(selectedPackage, offerNow ?? Infinity))}
+            </div>
+          ) : (
+            <CompareTable packages={packages} offerNow={offerNow} />
+          )}
+        </>
+      ) : (
+        <>
+          <section className="apply-top">
+            <div className="wrap">
+              <Link to="/mentorship" className="row small crumbs" style={{ gap: 8 }}>
+                <span aria-hidden="true">←</span> All programmes
+              </Link>
+              <div className="rise" style={{ maxWidth: 680 }}>
+                <p className="kicker">Apply · {selectedTier}</p>
+                <h1 className="h1" style={{ marginTop: 12 }}>
+                  From application to first session.
+                </h1>
+              </div>
+              <div className="grid-4" style={{ marginTop: 32 }}>
+                {STEPS.map((step, i) => (
+                  <div
+                    className="step spot rise"
+                    style={{ animationDelay: `${0.1 + i * 0.08}s` }}
+                    key={step.t}
+                  >
+                    <span className="step-n">{i + 1}</span>
+                    <span className="h3">{step.t}</span>
+                    <span className="small">{step.d}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+          <section id="apply" className="rise d2" style={{ padding: "28px 0 104px" }}>
+            <div className="wrap">
+              <div className="orbit">
+                <div className="orbit-in split apply-grid">
+                  <div>
+                    <p className="kicker">Apply</p>
+                    <h2 className="h2" style={{ marginTop: 14 }}>
+                      Reserve your seat in <span className="gold-text">{selectedProgram.tier}</span>
+                      .
+                    </h2>
+                    <p className="lead" style={{ marginTop: 16 }}>
+                      We will review your goals and availability before discussing scheduling or
+                      payment. The team replies on WhatsApp.
+                    </p>
+                    <div className="card-flat" style={{ marginTop: 28, padding: 22 }}>
+                      <div className="between">
+                        <span className="small">Selected programme</span>
+                        <span className="chip chip-gold">
+                          {selectedDatabasePackage?.name ?? selectedProgram.tier}
+                        </span>
+                      </div>
+                      <div className="between" style={{ marginTop: 14 }}>
+                        <span className="small">Programme fee</span>
+                        <span style={{ fontSize: 26, fontWeight: 800 }}>
+                          {selectedPrice !== null ? formatTZS(selectedPrice) : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <form
+                    className="stack"
+                    style={{ gap: 16 }}
+                    onSubmit={submitApplication}
+                    aria-busy={submitting}
+                  >
+                    <div className="grid-2" style={{ gap: 14 }}>
+                      <label className="field">
+                        <span className="label">Full name</span>
+                        <input
+                          className="input"
+                          required
+                          autoComplete="name"
+                          value={form.full_name}
+                          onChange={(event) => setForm({ ...form, full_name: event.target.value })}
+                        />
+                      </label>
+                      <label className="field">
+                        <span className="label">Email address</span>
+                        <input
+                          className="input"
+                          required
+                          type="email"
+                          value={form.email}
+                          onChange={(event) => setForm({ ...form, email: event.target.value })}
+                        />
+                      </label>
+                      <label className="field">
+                        <span className="label">WhatsApp number</span>
+                        <input
+                          className="input"
+                          required
+                          type="tel"
+                          placeholder="+255 7XX XXX XXX"
+                          value={form.whatsapp}
+                          onChange={(event) => setForm({ ...form, whatsapp: event.target.value })}
+                        />
+                      </label>
+                      <label className="field">
+                        <span className="label">Country</span>
+                        <input
+                          className="input"
+                          required
+                          value={form.country}
+                          onChange={(event) => setForm({ ...form, country: event.target.value })}
+                        />
+                      </label>
+                      <label className="field">
+                        <span className="label">Forex experience</span>
+                        <select
+                          className="input"
+                          value={form.experience_level}
+                          onChange={(event) =>
+                            setForm({
+                              ...form,
+                              experience_level: event.target
+                                .value as ApplicationForm["experience_level"],
+                            })
+                          }
+                        >
+                          <option value="beginner">Beginner</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="advanced">Advanced</option>
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span className="label">How long have you been trading?</span>
+                        <input
+                          className="input"
+                          required
+                          placeholder="For example, 2 years"
+                          value={form.trading_duration}
+                          onChange={(event) =>
+                            setForm({ ...form, trading_duration: event.target.value })
+                          }
+                        />
+                      </label>
+                    </div>
+                    <label className="field">
+                      <span className="label">What are your biggest trading challenges?</span>
+                      <textarea
+                        className="input"
+                        required
+                        value={form.biggest_challenge}
+                        onChange={(event) =>
+                          setForm({ ...form, biggest_challenge: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label className="field">
+                      <span className="label">
+                        What do you want to achieve through this mentorship?
+                      </span>
+                      <textarea
+                        className="input"
+                        required
+                        value={form.learning_goal}
+                        onChange={(event) =>
+                          setForm({ ...form, learning_goal: event.target.value })
+                        }
+                      />
+                    </label>
+                    <div className="grid-2" style={{ gap: 14 }}>
+                      <label className="field">
+                        <span className="label">Preferred session time</span>
+                        <input
+                          className="input"
+                          required
+                          placeholder="For example, weekday evenings (EAT)"
+                          value={form.preferred_schedule}
+                          onChange={(event) =>
+                            setForm({ ...form, preferred_schedule: event.target.value })
+                          }
+                        />
+                      </label>
+                      <label className="field">
+                        <span className="label">Additional notes (optional)</span>
+                        <input
+                          className="input"
+                          value={form.notes}
+                          onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                        />
+                      </label>
+                    </div>
+                    <button
+                      className="btn btn-gold btn-lg btn-block"
+                      type="submit"
+                      disabled={
+                        submitting || packagesLoading || !selectedDatabasePackage?.is_active
+                      }
+                      aria-busy={submitting}
+                    >
+                      {submitting && <Loader2 className="animate-spin" aria-hidden="true" />}
+                      {submitting
+                        ? "Submitting application…"
+                        : packagesLoading
+                          ? "Checking availability…"
+                          : selectedDatabasePackage?.is_active
+                            ? "Submit application"
+                            : "Currently unavailable"}
+                    </button>
+                  </form>
                 </div>
-              )}
+              </div>
             </div>
-            <ApplicationField label="Selected mentorship package">
-              <input value={selectedPackage?.name ?? ""} readOnly aria-readonly="true" />
-            </ApplicationField>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <ApplicationField label="Full name">
-                <input
-                  required
-                  value={form.full_name}
-                  onChange={(event) => setForm({ ...form, full_name: event.target.value })}
-                />
-              </ApplicationField>
-              <ApplicationField label="Email address">
-                <input
-                  required
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => setForm({ ...form, email: event.target.value })}
-                />
-              </ApplicationField>
-              <ApplicationField label="WhatsApp number">
-                <input
-                  required
-                  value={form.whatsapp}
-                  onChange={(event) => setForm({ ...form, whatsapp: event.target.value })}
-                  placeholder="+255 …"
-                />
-              </ApplicationField>
-              <ApplicationField label="Country">
-                <input
-                  required
-                  value={form.country}
-                  onChange={(event) => setForm({ ...form, country: event.target.value })}
-                />
-              </ApplicationField>
-            </div>
-            <ApplicationField label="Forex experience">
-              <Select
-                value={form.experience_level}
-                onValueChange={(value) =>
-                  setForm({
-                    ...form,
-                    experience_level: value as ApplicationForm["experience_level"],
-                  })
-                }
-              >
-                <SelectTrigger
-                  aria-label="Forex experience"
-                  className="h-10 rounded-xl border-gold/30 bg-background/60 text-foreground focus:ring-gold/50"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="z-[100] rounded-xl border-gold/30 bg-card text-foreground">
-                  <SelectItem value="beginner" className="focus:bg-gold/15 focus:text-gold">
-                    Beginner
-                  </SelectItem>
-                  <SelectItem value="intermediate" className="focus:bg-gold/15 focus:text-gold">
-                    Intermediate
-                  </SelectItem>
-                  <SelectItem value="advanced" className="focus:bg-gold/15 focus:text-gold">
-                    Advanced
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </ApplicationField>
-            <ApplicationField label="How long have you been trading?">
-              <input
-                required
-                value={form.trading_duration}
-                onChange={(event) => setForm({ ...form, trading_duration: event.target.value })}
-                placeholder="For example, 2 years"
-              />
-            </ApplicationField>
-            <ApplicationField label="What are your biggest trading challenges?">
-              <textarea
-                required
-                value={form.biggest_challenge}
-                onChange={(event) => setForm({ ...form, biggest_challenge: event.target.value })}
-              />
-            </ApplicationField>
-            <ApplicationField label="What do you want to achieve through this mentorship?">
-              <textarea
-                required
-                value={form.learning_goal}
-                onChange={(event) => setForm({ ...form, learning_goal: event.target.value })}
-              />
-            </ApplicationField>
-            <ApplicationField label="Preferred session time">
-              <input
-                required
-                value={form.preferred_schedule}
-                onChange={(event) => setForm({ ...form, preferred_schedule: event.target.value })}
-                placeholder="For example, weekday evenings (EAT)"
-              />
-            </ApplicationField>
-            <ApplicationField label="Additional notes (optional)">
-              <textarea
-                value={form.notes}
-                onChange={(event) => setForm({ ...form, notes: event.target.value })}
-              />
-            </ApplicationField>
-            <button
-              disabled={submitting}
-              aria-busy={submitting}
-              className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-gold px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
-            >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? "Submitting application…" : "Submit application"}
-            </button>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </section>
+        </>
+      )}
     </div>
+  );
+}
+
+const STEPS = [
+  { t: "Apply", d: "Choose a programme and tell us where you are today." },
+  { t: "Review", d: "The team reviews your application and replies on WhatsApp." },
+  { t: "Pay", d: "Pay with mobile money and submit your payment for confirmation." },
+  { t: "Start", d: "Your programme opens in the BLACKPIPS app." },
+];
+
+const TIER_DESCRIPTIONS: Record<string, string> = {
+  Regular:
+    "Build your forex foundation through core market knowledge, structure, practical entries and selected advanced concepts.",
+  Advanced:
+    "Deepen an existing foundation with top-down analysis, structured market reading and a stronger decision process.",
+  Masterclass:
+    "The complete BLACKPIPS programme — Regular and Advanced combined, plus additional advanced material.",
+};
+
+type CompareValue = "yes" | "no" | string;
+const COMPARE_ROWS: (string | [string, CompareValue, CompareValue, CompareValue])[] = [
+  "Foundation",
+  ["Market structure & swing points", "yes", "no", "yes"],
+  ["Break of structure (BOS)", "yes", "no", "yes"],
+  ["Liquidity engineering & failed LE", "yes", "no", "yes"],
+  ["Formations & flip zones", "yes", "no", "yes"],
+  "Execution & mastery",
+  ["Directional bias", "yes", "yes", "yes"],
+  ["Entry types", "T1–T2", "T1–T8", "T1–T8"],
+  ["FTA & DTO", "no", "yes", "yes"],
+  ["Liquidity consumption", "no", "yes", "yes"],
+  ["LTF trading & TF switching", "no", "yes", "yes"],
+  ["XAUUSD session trading", "no", "yes", "yes"],
+  ["Top-down analysis", "no", "yes", "yes"],
+];
+
+const PACKAGE_TAGLINES = [
+  "Build the foundation",
+  "Execute with precision",
+  "The complete programme",
+];
+
+/** One premium card per programme: what it covers, grouped the way the curriculum is taught. */
+function CompareTable({
+  packages,
+  offerNow,
+}: {
+  packages: MentorshipPackage[];
+  offerNow: number | null;
+}) {
+  const pricing = (index: number) => {
+    const option = packages.find((item) => item.slug === PACKAGE_SLUGS[index]);
+    if (!option) return null;
+    const promo = offerNow !== null && isMentorshipPromotionActive(option, offerNow);
+    return {
+      price: formatTZS(mentorshipPayablePrice(option, offerNow ?? Infinity)),
+      was: promo ? formatTZS(option.normal_price) : null,
+      countdown:
+        promo && option.promotion_ends_at && offerNow !== null
+          ? mentorshipOfferCountdown(option.promotion_ends_at, offerNow)
+          : null,
+      available: option.is_active,
+    };
+  };
+  const groups: { title: string; rows: [string, CompareValue, CompareValue, CompareValue][] }[] =
+    [];
+  for (const row of COMPARE_ROWS) {
+    if (typeof row === "string") groups.push({ title: row, rows: [] });
+    else groups[groups.length - 1].rows.push(row);
+  }
+  return (
+    <section style={{ padding: "0 0 104px" }}>
+      <div className="wrap">
+        <div className="pkg-grid">
+          {MENTORSHIP.map((program, i) => {
+            const included = groups.flatMap((group) =>
+              group.rows.filter((row) => row[i + 1] !== "no"),
+            ).length;
+            const total = groups.reduce((sum, group) => sum + group.rows.length, 0);
+            const price = pricing(i);
+            const card = (
+              <div className="pkg-in">
+                <div className="pkg-head">
+                  <div className="between" style={{ alignItems: "flex-start" }}>
+                    <span className="pkg-n mono">0{i + 1}</span>
+                    {program.popular && <span className="chip chip-gold">Most popular</span>}
+                  </div>
+                  <p className="micro" style={{ marginTop: 18 }}>
+                    {PACKAGE_TAGLINES[i]}
+                  </p>
+                  <h3 className="h2" style={{ fontSize: 30, marginTop: 6 }}>
+                    {program.tier}
+                  </h3>
+                  <p className="small" style={{ marginTop: 8 }}>
+                    {TIER_DESCRIPTIONS[program.tier]}
+                  </p>
+                  <div className="pkg-price">
+                    {price?.was && <s className="pkg-was">{price.was}</s>}
+                    <span>{price?.price ?? "\u00a0"}</span>
+                  </div>
+                  {price?.countdown && (
+                    <span className="chip chip-gold" style={{ marginTop: 10 }}>
+                      Offer ends in {price.countdown.days}d {price.countdown.hours}h{" "}
+                      {price.countdown.minutes}m
+                    </span>
+                  )}
+                  <div className="pkg-cover">
+                    <div className="csegs" aria-hidden="true">
+                      {Array.from({ length: total }, (_, k) => (
+                        <i key={k} className={k < included ? "on" : ""} />
+                      ))}
+                    </div>
+                    <span className="small mono" style={{ fontSize: 12 }}>
+                      {included} of {total} topics
+                    </span>
+                  </div>
+                </div>
+                {groups.map((group) => (
+                  <div className="pkg-group" key={group.title}>
+                    <p className="micro">{group.title}</p>
+                    <ul>
+                      {group.rows.map((row) => {
+                        const value = row[i + 1];
+                        const on = value !== "no";
+                        return (
+                          <li key={row[0]} className={on ? "" : "off"}>
+                            <span className="pkg-ic" aria-hidden="true">
+                              {on ? <Check /> : <X />}
+                            </span>
+                            <span style={{ flex: 1 }}>
+                              {row[0]}
+                              <span className="sr-only">
+                                {on ? " — included" : " — not included"}
+                              </span>
+                            </span>
+                            {on && value !== "yes" && (
+                              <span className="chip chip-gold mono">{value}</span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+                <div className="pkg-foot">
+                  <Link
+                    to="/mentorship"
+                    search={{ apply: program.tier.toLowerCase() }}
+                    className={`pkg-cta ${program.popular ? "gold" : ""}`}
+                    aria-disabled={price ? !price.available : undefined}
+                  >
+                    Apply for {program.tier} <ArrowRight aria-hidden="true" />
+                  </Link>
+                </div>
+              </div>
+            );
+            return program.popular ? (
+              <article key={program.tier} className="pkg pkg-hl orbit reveal">
+                <div className="orbit-in">{card}</div>
+              </article>
+            ) : (
+              <article key={program.tier} className="pkg card spot reveal">
+                {card}
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -380,170 +606,4 @@ function useOfferClock() {
   }, []);
 
   return now;
-}
-
-const MentorshipProgramCard = memo(function MentorshipProgramCard({
-  program,
-  packageOption,
-  available,
-  loading,
-  onEnroll,
-  expanded,
-  onToggle,
-  offerNow,
-}: {
-  program: MentorshipProgram;
-  packageOption: MentorshipPackage | undefined;
-  available: boolean;
-  loading: boolean;
-  onEnroll: (packageOption: MentorshipPackage | undefined) => void;
-  expanded: boolean;
-  onToggle: (tier: string) => void;
-  offerNow: number | null;
-}) {
-  const curriculumId = `mentorship-curriculum-${program.tier.toLowerCase()}`;
-  const previewModules = getCurriculumPreview(program.modules);
-  const promotionActive = Boolean(
-    packageOption && offerNow !== null && isMentorshipPromotionActive(packageOption, offerNow),
-  );
-  const currentPrice = packageOption
-    ? mentorshipPayablePrice(packageOption, offerNow ?? Infinity)
-    : null;
-  const savings =
-    promotionActive && packageOption && currentPrice !== null
-      ? packageOption.normal_price - currentPrice
-      : 0;
-  const countdown =
-    promotionActive && packageOption?.promotion_ends_at && offerNow !== null
-      ? mentorshipOfferCountdown(packageOption.promotion_ends_at, offerNow)
-      : null;
-
-  return (
-    <article
-      className={`relative flex min-h-[34rem] flex-col rounded-3xl border bg-card p-5 shadow-sm transition-[transform,box-shadow,border-color] duration-200 ease-out motion-reduce:transition-none sm:p-6 [@media(hover:hover)]:hover:-translate-y-2 [@media(hover:hover)]:hover:shadow-elegant motion-reduce:[@media(hover:hover)]:hover:translate-y-0 ${program.popular ? "border-gold/50 [@media(hover:hover)]:hover:border-gold" : "border-border [@media(hover:hover)]:hover:border-gold/50"}`}
-    >
-      {program.popular && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-gold px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-glow">
-          Most popular
-        </span>
-      )}
-      <div className="flex items-center gap-2 text-gold">
-        {program.popular ? <Crown className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
-        <span className="text-xs font-semibold uppercase tracking-wide">
-          {packageOption?.name ?? program.tier}
-        </span>
-        {promotionActive && (
-          <span className="ml-auto rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-gold">
-            Limited offer
-          </span>
-        )}
-      </div>
-
-      <div className="mt-3">
-        {promotionActive && packageOption && (
-          <div className="mb-1 text-sm font-semibold text-muted-foreground line-through decoration-gold/70 decoration-2">
-            {formatTZS(packageOption.normal_price)}
-          </div>
-        )}
-        <div className="flex flex-wrap items-end gap-x-3 gap-y-0.5">
-          <div className="font-display font-black leading-none text-gradient-gold">
-            <span className="block text-xl sm:text-2xl">TSh</span>
-            <span className="block text-4xl sm:text-5xl">
-              {currentPrice?.toLocaleString("en-US") ?? "—"}
-            </span>
-          </div>
-          <span className="mb-1 text-sm text-muted-foreground">per program</span>
-        </div>
-      </div>
-      {promotionActive && countdown && (
-        <div className="mt-4 rounded-2xl border border-gold/25 bg-gold/5 p-3">
-          <p className="text-xs font-semibold text-gold">Save {formatTZS(savings)}</p>
-          <div className="mt-2 grid grid-cols-4 gap-2" aria-label="Masterclass offer countdown">
-            {(
-              [
-                ["Days", countdown.days],
-                ["Hours", countdown.hours],
-                ["Minutes", countdown.minutes],
-                ["Seconds", countdown.seconds],
-              ] as const
-            ).map(([label, value]) => (
-              <div key={label} className="rounded-xl bg-background/60 px-1 py-2 text-center">
-                <div className="font-display text-lg font-bold tabular-nums">
-                  {String(value).padStart(2, "0")}
-                </div>
-                <div className="text-[8px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-[9px]">
-                  {label}
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-[10px] text-muted-foreground">
-            Ends Sunday, 6 September 2026 at 23:59:59 EAT
-          </p>
-        </div>
-      )}
-      <p className="mt-3 text-sm leading-5 text-muted-foreground">
-        Application required · Scheduling and payment follow approval
-      </p>
-      <button
-        disabled={loading || !available}
-        onClick={() => onEnroll(packageOption)}
-        className="mt-5 min-h-11 rounded-full bg-gradient-gold px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform motion-reduce:transition-none [@media(hover:hover)]:hover:scale-[1.02] disabled:opacity-60"
-      >
-        {loading ? "Checking availability…" : available ? "Enroll now" : "Currently unavailable"}
-      </button>
-
-      <section className="mt-5 border-t border-border pt-5">
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Curriculum
-        </div>
-        <div id={curriculumId} className="relative">
-          <div className={expanded ? "space-y-4" : "h-40 overflow-hidden"}>
-            {(expanded ? program.modules : previewModules).map((module) => (
-              <div key={module.name}>
-                <h3 className="text-sm font-semibold">{module.name}</h3>
-                <ul className="mt-1.5 space-y-1">
-                  {(expanded ? module.items : module.items.slice(0, 2)).map((item) => (
-                    <li
-                      key={item}
-                      className="flex items-start gap-2 text-xs leading-5 text-muted-foreground"
-                    >
-                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          {!expanded && (
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent"
-            />
-          )}
-        </div>
-        <button
-          type="button"
-          aria-expanded={expanded}
-          aria-controls={curriculumId}
-          onClick={() => onToggle(program.tier)}
-          className="mt-4 min-h-11 rounded-xl px-3 text-sm font-semibold text-gold underline-offset-4 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60"
-        >
-          {expanded ? "Hide curriculum" : "View curriculum"}
-        </button>
-      </section>
-    </article>
-  );
-});
-
-function ApplicationField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>
-      <div className="glass rounded-xl px-3 py-2.5 [&_input]:w-full [&_input]:bg-transparent [&_input]:outline-none [&_select]:w-full [&_select]:bg-transparent [&_select]:outline-none [&_textarea]:min-h-24 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:bg-transparent [&_textarea]:outline-none">
-        {children}
-      </div>
-    </label>
-  );
 }

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Mail } from "lucide-react";
 import { createSeoHead } from "@/lib/seo";
 import { SITE } from "@/lib/site-data";
+import { PageFrame } from "@/components/bp/PageFrame";
 
 export const Route = createFileRoute("/privacy-policy")({
   head: () =>
@@ -11,7 +12,11 @@ export const Route = createFileRoute("/privacy-policy")({
         "How BLACK PIPS processes and protects account, learning, payment and support information.",
       path: "/privacy-policy",
     }),
-  component: PrivacyPolicyPage,
+  component: () => (
+    <PageFrame>
+      <PrivacyPolicyPage />
+    </PageFrame>
+  ),
 });
 
 const sections = [

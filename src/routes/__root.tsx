@@ -14,6 +14,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
+import { PointerEffects } from "@/components/bp/PointerEffects";
+import { RevealOnScroll } from "@/components/bp/RevealOnScroll";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -89,7 +91,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             "BLACKPIPS provides structured forex education, premium lessons, free learning resources and mentorship.",
         },
         { name: "author", content: "BlackPips" },
-        { name: "theme-color", content: "#0b0b12" },
+        { name: "theme-color", content: "#05070b" },
       ],
       links: [
         { rel: "stylesheet", href: appCss },
@@ -100,7 +102,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
         {
           rel: "stylesheet",
-          href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap",
+          href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap",
         },
       ],
       scripts: [
@@ -122,6 +124,13 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en" className="dark">
       <head>
         <HeadContent />
+        <script
+          // Apply the saved theme before first paint so light mode doesn't flash dark.
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{if(localStorage.getItem("bp-theme")==="light")document.documentElement.classList.remove("dark")}catch(e){}',
+          }}
+        />
       </head>
       <body>
         {children}
@@ -141,6 +150,8 @@ function RootComponent() {
           <ContactAvailabilityProvider>
             <AuthProvider>
               <SessionLifecycleProvider>
+                <PointerEffects />
+                <RevealOnScroll />
                 <Nav />
                 <main className="pt-24">
                   <Outlet />

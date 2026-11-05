@@ -1,20 +1,22 @@
-import logo from "@/assets/blackpips-bull-gold.png";
+import wordmark from "@/assets/blackpips_wordmark.png";
+import bull from "@/assets/blackpips-bull-gold.png";
 
+/** The official BLACKPIPS wordmark used in the navigation and footer. */
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
-      <img
-        src={logo}
-        alt="BlackPips logo"
-        width={40}
-        height={40}
-        fetchPriority="high"
-        decoding="async"
-        className="h-10 w-auto object-contain drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]"
-      />
-      <span className="font-display text-lg font-bold tracking-tight text-foreground">
-        Black<span className="text-gradient-gold">Pips</span>
-      </span>
-    </span>
+    <img
+      src={wordmark}
+      alt="BLACKPIPS"
+      width={162}
+      height={28}
+      fetchPriority="high"
+      decoding="async"
+      className={`wordmark h-7 w-auto object-contain ${className}`}
+    />
   );
+}
+
+/** The gold bull mark, kept as a decorative brand icon. */
+export function BullMark({ className = "" }: { className?: string }) {
+  return <img src={bull} alt="" aria-hidden="true" decoding="async" className={className} />;
 }

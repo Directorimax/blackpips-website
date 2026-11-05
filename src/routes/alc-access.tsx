@@ -1,14 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import {
-  BookOpen,
-  CheckCircle2,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  MessageCircle,
-  Play,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, CheckCircle2, MessageCircle, ShieldCheck, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
@@ -18,11 +10,17 @@ import {
   alcWhatsAppUrl,
   type AlcAccessForm,
 } from "@/lib/alc-access";
-import { getEmbeddableVideoUrl } from "@/lib/video-url";
 import { isAlcAccessAvailable } from "@/lib/feature-access";
 import { LearningFeatureGate } from "@/components/LearningFeatureGate";
+import { PageFrame } from "@/components/bp/PageFrame";
 
-export const Route = createFileRoute("/alc-access")({ component: AlcAccessRoute });
+export const Route = createFileRoute("/alc-access")({
+  component: () => (
+    <PageFrame>
+      <AlcAccessRoute />
+    </PageFrame>
+  ),
+});
 
 type Request = {
   id: string;
@@ -101,43 +99,47 @@ function AlcAccess() {
       });
   }, [user]);
 
-  if (loading) return <div className="mx-auto max-w-3xl px-4 py-20" />;
+  if (loading) return <div className="wrap alc-page" />;
 
   if (!user)
     return (
-      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <h1 className="font-display text-4xl font-bold">ALC Access</h1>
-        <p className="mt-4 text-muted-foreground">
-          Previously studied with BlackPips before this website launched? Sign in to request free
-          verified access to the ALC student video library.
-        </p>
-        <a
-          href="/auth?redirect=%2Falc-access"
-          className="mt-6 inline-flex rounded-full bg-gradient-gold px-5 py-3 font-semibold text-primary-foreground"
-        >
-          Sign in or create an account
-        </a>
+      <main className="wrap alc-page">
+        <div className="orbit rise" style={{ maxWidth: 640, margin: "0 auto" }}>
+          <div className="orbit-in msg-card" style={{ padding: "clamp(28px, 5vw, 48px)" }}>
+            <span className="eyebrow">
+              <span className="tag">ALC</span> Former students
+            </span>
+            <h1 className="h1" style={{ fontSize: "clamp(32px, 4.4vw, 48px)" }}>
+              ALC Access
+            </h1>
+            <p className="body">
+              Previously studied with BlackPips before this website launched? Sign in to request
+              free verified access to the ALC student video library.
+            </p>
+            <a href="/auth?redirect=%2Falc-access" className="btn btn-gold">
+              Sign in or create an account
+            </a>
+          </div>
+        </div>
       </main>
     );
 
   if (requestLoading)
     return (
-      <main className="mx-auto max-w-3xl px-4 py-16">
-        <div className="glass rounded-3xl p-8 text-center text-sm text-muted-foreground">
-          Loading your ALC Access status…
+      <main className="wrap alc-page">
+        <div className="card msg-card">
+          <div className="spinner" aria-hidden="true" />
+          <p className="small">Loading your ALC Access status…</p>
         </div>
       </main>
     );
 
   if (requestError)
     return (
-      <main className="mx-auto max-w-3xl px-4 py-16">
-        <div className="glass rounded-3xl p-8 text-center">
-          <p className="text-sm text-muted-foreground">{requestError}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground"
-          >
+      <main className="wrap alc-page">
+        <div className="card msg-card">
+          <p className="err">{requestError}</p>
+          <button type="button" onClick={() => window.location.reload()} className="btn btn-gold">
             Try again
           </button>
         </div>
@@ -182,143 +184,166 @@ function AlcAccess() {
 
   if (request?.status === "approved")
     return (
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:py-12">
+      <main className="wrap-wide alc-page">
         <ApprovedHeader request={request} />
         <Library />
       </main>
     );
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-16">
-      <header className="text-center">
-        <div className="text-xs font-semibold uppercase tracking-widest text-gold">ALC Access</div>
-        <h1 className="mt-3 font-display text-4xl font-bold">Former student access</h1>
-        <p className="mt-3 text-muted-foreground">
-          Previously studied with BlackPips before this website launched? Submit your details for
-          verification and request free access to the ALC student video library.
-        </p>
-      </header>
+    <main className="wrap alc-page">
+      <div className="clayout alc-layout">
+        <header className="stack rise alc-intro" style={{ gap: 16 }}>
+          <span className="eyebrow" style={{ alignSelf: "flex-start" }}>
+            <span className="tag">ALC Access</span> Request only
+          </span>
+          <h1 className="h1" style={{ fontSize: "clamp(32px, 4.4vw, 52px)" }}>
+            Former student access
+          </h1>
+          <p className="lead">
+            Previously studied with BlackPips before this website launched? Submit your details for
+            verification and request free access to the ALC student video library.
+          </p>
+          <ol className="pay-steps" style={{ marginTop: 8 }}>
+            <li>Submit the details you used when you studied with BlackPips</li>
+            <li>The team verifies your request manually</li>
+            <li>Once approved, your ALC library unlocks on your account</li>
+          </ol>
+          <p className="small" style={{ fontSize: 12 }}>
+            Verification is performed manually using the details you previously used with BlackPips.
+            Submission does not guarantee approval.
+          </p>
+        </header>
 
-      {request ? (
-        <div className="mt-8">
-          <Status request={request} />
-          {request.status === "pending" && (
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href={alcWhatsAppUrl(
-                {
-                  fullName: request.full_name,
-                  studyYear: request.study_year,
-                  email: request.email,
-                  phone: request.phone,
-                  program: request.program,
-                  otherProgram: request.other_program ?? undefined,
-                },
-                request.id,
+        <div className="rise d2">
+          {request ? (
+            <div className="stack" style={{ gap: 14 }}>
+              <Status request={request} />
+              {request.status === "pending" && (
+                <a
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href={alcWhatsAppUrl(
+                    {
+                      fullName: request.full_name,
+                      studyYear: request.study_year,
+                      email: request.email,
+                      phone: request.phone,
+                      program: request.program,
+                      otherProgram: request.other_program ?? undefined,
+                    },
+                    request.id,
+                  )}
+                  className="btn btn-block alc-wa"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Chat on WhatsApp
+                </a>
               )}
-              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#25D366] px-5 py-3 font-semibold text-black"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Chat on WhatsApp
-            </a>
+            </div>
+          ) : (
+            <form onSubmit={submit} className="orbit">
+              <div className="orbit-in stack" style={{ padding: 26, gap: 14 }}>
+                <p className="h3">Request ALC Access</p>
+                {(
+                  [
+                    ["fullName", "Full name used during payment or enrollment"],
+                    ["email", "Email address"],
+                    ["phone", "Phone / WhatsApp number"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="field">
+                    <span className="label">{label}</span>
+                    <input
+                      required
+                      value={form[key] as string}
+                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                      className="input"
+                    />
+                  </label>
+                ))}
+                <label className="field">
+                  <span className="label">Year studied</span>
+                  <input
+                    required
+                    type="number"
+                    min="2010"
+                    max={new Date().getFullYear()}
+                    value={form.studyYear}
+                    onChange={(e) => setForm({ ...form, studyYear: Number(e.target.value) })}
+                    className="input"
+                  />
+                </label>
+                <label className="field">
+                  <span className="label">Program or class attended</span>
+                  <select
+                    value={form.program}
+                    onChange={(e) =>
+                      setForm({ ...form, program: e.target.value as AlcAccessForm["program"] })
+                    }
+                    className="input"
+                  >
+                    {ALC_PROGRAMS.map((v) => (
+                      <option key={v}>{v}</option>
+                    ))}
+                  </select>
+                </label>
+                {form.program === "Other" && (
+                  <label className="field">
+                    <span className="label">Specify program</span>
+                    <input
+                      required
+                      value={form.otherProgram || ""}
+                      onChange={(e) => setForm({ ...form, otherProgram: e.target.value })}
+                      className="input"
+                    />
+                  </label>
+                )}
+                <label className="field">
+                  <span className="label">
+                    Additional verification details <span className="small">(optional)</span>
+                  </span>
+                  <textarea
+                    maxLength={1000}
+                    value={form.additionalDetails || ""}
+                    onChange={(e) => setForm({ ...form, additionalDetails: e.target.value })}
+                    className="input"
+                  />
+                </label>
+                <button disabled={submitting} className="btn btn-gold btn-lg btn-block">
+                  {submitting ? "Submitting…" : "Request ALC Access"}
+                </button>
+              </div>
+            </form>
           )}
         </div>
-      ) : (
-        <form onSubmit={submit} className="glass mt-8 grid gap-4 rounded-3xl p-5 sm:p-7">
-          {(
-            [
-              ["fullName", "Full name used during payment or enrollment"],
-              ["email", "Email address"],
-              ["phone", "Phone / WhatsApp number"],
-            ] as const
-          ).map(([key, label]) => (
-            <label key={key} className="text-sm font-semibold">
-              {label}
-              <input
-                required
-                value={form[key] as string}
-                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 font-normal"
-              />
-            </label>
-          ))}
-          <label className="text-sm font-semibold">
-            Year studied
-            <input
-              required
-              type="number"
-              min="2010"
-              max={new Date().getFullYear()}
-              value={form.studyYear}
-              onChange={(e) => setForm({ ...form, studyYear: Number(e.target.value) })}
-              className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 font-normal"
-            />
-          </label>
-          <label className="text-sm font-semibold">
-            Program or class attended
-            <select
-              value={form.program}
-              onChange={(e) =>
-                setForm({ ...form, program: e.target.value as AlcAccessForm["program"] })
-              }
-              className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 font-normal"
-            >
-              {ALC_PROGRAMS.map((v) => (
-                <option key={v}>{v}</option>
-              ))}
-            </select>
-          </label>
-          {form.program === "Other" && (
-            <label className="text-sm font-semibold">
-              Specify program
-              <input
-                required
-                value={form.otherProgram || ""}
-                onChange={(e) => setForm({ ...form, otherProgram: e.target.value })}
-                className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 font-normal"
-              />
-            </label>
-          )}
-          <label className="text-sm font-semibold">
-            Additional verification details{" "}
-            <span className="font-normal text-muted-foreground">(optional)</span>
-            <textarea
-              maxLength={1000}
-              value={form.additionalDetails || ""}
-              onChange={(e) => setForm({ ...form, additionalDetails: e.target.value })}
-              className="mt-1.5 min-h-24 w-full rounded-xl border border-border bg-background px-3 py-2.5 font-normal"
-            />
-          </label>
-          <button
-            disabled={submitting}
-            className="min-h-11 rounded-full bg-gradient-gold px-5 py-3 font-semibold text-primary-foreground disabled:opacity-60"
-          >
-            {submitting ? "Submitting…" : "Request ALC Access"}
-          </button>
-        </form>
-      )}
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        Verification is performed manually using the details you previously used with BlackPips.
-        Submission does not guarantee approval.
-      </p>
+      </div>
     </main>
   );
 }
 
 function ApprovedHeader({ request }: { request: Request }) {
   return (
-    <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+    <header
+      className="between rise"
+      style={{
+        flexWrap: "wrap",
+        alignItems: "flex-end",
+        gap: 16,
+        paddingBottom: 24,
+        borderBottom: "1px solid var(--line)",
+      }}
+    >
       <div>
-        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">
-          ALC student library
-        </div>
-        <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">{request.program}</h1>
+        <p className="kicker">ALC student library</p>
+        <h1 className="h1" style={{ fontSize: "clamp(30px, 4vw, 46px)", marginTop: 8 }}>
+          {request.program}
+        </h1>
       </div>
-      <div className="inline-flex w-fit items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gold">
-        <span className="h-2 w-2 rounded-full bg-gold" aria-hidden="true" />
+      <span className="chip chip-gold">
+        <span className="live-dot" aria-hidden="true" />
         ALC Access · Active
-      </div>
+      </span>
     </header>
   );
 }
@@ -332,274 +357,88 @@ function Status({ request }: { request: Request }) {
         : request.public_review_message ||
           "We could not verify this request. Contact BlackPips if you believe this is a mistake.";
   return (
-    <section className="glass rounded-3xl p-6">
-      <CheckCircle2 className="h-6 w-6 text-gold" />
-      <h2 className="mt-3 font-display text-2xl font-bold">
-        {request.status === "approved"
-          ? "Access approved"
-          : request.status === "pending"
-            ? "Pending review"
-            : "Request not approved"}
-      </h2>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {text} Submitted {new Date(request.created_at).toLocaleDateString()}.
-      </p>
-      <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-        <div>
-          <dt className="text-muted-foreground">Request reference</dt>
-          <dd className="font-semibold">{request.id.slice(0, 8)}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Program</dt>
-          <dd className="font-semibold">{request.program}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">Study year</dt>
-          <dd className="font-semibold">{request.study_year}</dd>
-        </div>
-        {request.reviewed_at && (
-          <div>
-            <dt className="text-muted-foreground">Reviewed</dt>
-            <dd className="font-semibold">{new Date(request.reviewed_at).toLocaleDateString()}</dd>
-          </div>
+    <section className="orbit">
+      <div className="orbit-in stack" style={{ padding: 26, gap: 12 }}>
+        {request.status === "pending" ? (
+          <div className="spinner" aria-hidden="true" style={{ width: 44, height: 44 }} />
+        ) : (
+          <span className={`ico ${request.status === "approved" ? "ico-solid" : ""}`}>
+            <CheckCircle2 aria-hidden="true" />
+          </span>
         )}
-      </dl>
+        <h2 className="h3" style={{ fontSize: 22 }}>
+          {request.status === "approved"
+            ? "Access approved"
+            : request.status === "pending"
+              ? "Pending review"
+              : "Request not approved"}
+        </h2>
+        <p className="small">
+          {text} Submitted {new Date(request.created_at).toLocaleDateString()}.
+        </p>
+        <dl className="grid-2 alc-dl">
+          <div>
+            <dt className="micro">Request reference</dt>
+            <dd className="h4 mono">{request.id.slice(0, 8)}</dd>
+          </div>
+          <div>
+            <dt className="micro">Program</dt>
+            <dd className="h4 mono">{request.program}</dd>
+          </div>
+          <div>
+            <dt className="micro">Study year</dt>
+            <dd className="h4 mono">{request.study_year}</dd>
+          </div>
+          {request.reviewed_at && (
+            <div>
+              <dt className="micro">Reviewed</dt>
+              <dd className="h4 mono">{new Date(request.reviewed_at).toLocaleDateString()}</dd>
+            </div>
+          )}
+        </dl>
+      </div>
     </section>
   );
 }
 
+/** ALC lessons play only in the BLACKPIPS app, so the website hands approved students off to it. */
 function Library() {
-  type Video = {
-    module_id: string;
-    module_title: string;
-    module_description: string | null;
-    module_order: number;
-    id: string;
-    title: string;
-    description: string | null;
-    video_url: string;
-    video_order: number;
-  };
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [contentOpen, setContentOpen] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    void callRpc<unknown>("alc_access_library")
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("[alc-access] library RPC failed", error);
-          setError("We could not load the video library.");
-        } else {
-          const rows = Array.isArray(data) ? (data as Video[]) : [];
-          setVideos(rows);
-          setSelected(rows[0]?.id ?? null);
-        }
-        setLoading(false);
-      })
-      .catch((reason) => {
-        console.error("[alc-access] library RPC failed", reason);
-        setError("We could not load the video library.");
-        setLoading(false);
-      });
-  }, []);
-
-  const modules = useMemo(
-    () =>
-      Array.from(
-        new Map(
-          videos.map((video) => [
-            video.module_id,
-            {
-              id: video.module_id,
-              title: video.module_title,
-              order: video.module_order,
-              items: videos.filter((item) => item.module_id === video.module_id),
-            },
-          ]),
-        ).values(),
-      ),
-    [videos],
-  );
-  const activeLesson = videos.find((video) => video.id === selected) ?? videos[0] ?? null;
-  const activeEmbedUrl = getEmbeddableVideoUrl(activeLesson?.video_url);
-  const activeIndex = activeLesson ? videos.findIndex((video) => video.id === activeLesson.id) : -1;
-  const previousLesson = activeIndex > 0 ? videos[activeIndex - 1] : null;
-  const nextLesson =
-    activeIndex >= 0 && activeIndex < videos.length - 1 ? videos[activeIndex + 1] : null;
-
   return (
-    <section className="mt-6">
-      {loading ? (
-        <div className="grid min-h-96 place-items-center rounded-3xl border border-border bg-card/40 text-sm text-muted-foreground">
-          Loading your course content…
+    <section className="orbit rise d1" style={{ marginTop: 28 }}>
+      <div className="orbit-in alc-app">
+        <div className="stack" style={{ gap: 14 }}>
+          <span className="ico ico-solid">
+            <Smartphone aria-hidden="true" />
+          </span>
+          <h2 className="h2">Your ALC library is in the BLACKPIPS app.</h2>
+          <p className="body" style={{ maxWidth: 560 }}>
+            Open the BLACKPIPS app already installed on your device and sign in with this same
+            account. Your approved ALC lessons are waiting there.
+          </p>
+          <div className="stack" style={{ gap: 10, marginTop: 4 }}>
+            {ALC_APP_POINTS.map((point) => (
+              <div className="learn" key={point}>
+                <Check strokeWidth={2.4} aria-hidden="true" />
+                {point}
+              </div>
+            ))}
+          </div>
         </div>
-      ) : error ? (
-        <div className="glass rounded-2xl p-6 text-sm text-muted-foreground">{error}</div>
-      ) : activeLesson ? (
-        <div className="grid min-w-0 items-start gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
-          <article className="order-1 min-w-0 lg:order-2">
-            <div className="mb-4 hidden lg:block">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">
-                {activeLesson.module_title}
-              </p>
-              <h2 className="mt-2 font-display text-2xl font-bold sm:text-3xl">
-                {activeLesson.title}
-              </h2>
-            </div>
-            <div className="overflow-hidden rounded-2xl border border-gold/20 bg-black shadow-xl shadow-black/10">
-              {activeEmbedUrl ? (
-                <iframe
-                  key={activeLesson.id}
-                  title={activeLesson.title}
-                  src={activeEmbedUrl}
-                  className="aspect-video w-full"
-                  allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  referrerPolicy="strict-origin-when-cross-origin"
-                />
-              ) : (
-                <div className="grid aspect-video place-items-center px-6 text-center text-sm text-white/70">
-                  This lesson’s video is temporarily unavailable.
-                </div>
-              )}
-            </div>
-            <div className="mt-4 lg:hidden">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold">
-                {activeLesson.module_title}
-              </p>
-              <h2 className="mt-1.5 font-display text-xl font-bold leading-tight sm:text-2xl">
-                {activeLesson.title}
-              </h2>
-            </div>
-            <section className="mt-6 border-t border-border pt-5">
-              <h3 className="font-display text-xl font-semibold">About this lesson</h3>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                {activeLesson.description ||
-                  "Follow the video lesson above and work through the module in order."}
-              </p>
-            </section>
-
-            <nav
-              aria-label="Lesson navigation"
-              className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-5"
-            >
-              <button
-                type="button"
-                disabled={!previousLesson}
-                onClick={() => previousLesson && setSelected(previousLesson.id)}
-                className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-left text-sm font-semibold transition-colors hover:border-gold/40 hover:bg-gold/5 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span className="min-w-0">
-                  <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
-                    Previous
-                  </span>
-                  <span className="block break-words leading-4">
-                    {previousLesson?.title || "First lesson"}
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                disabled={!nextLesson}
-                onClick={() => nextLesson && setSelected(nextLesson.id)}
-                className="flex min-h-12 min-w-0 items-center justify-end gap-2 rounded-xl border border-border px-3 py-2.5 text-right text-sm font-semibold transition-colors hover:border-gold/40 hover:bg-gold/5 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <span className="min-w-0">
-                  <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {nextLesson ? (
-                      <>
-                        <span className="lg:hidden">Next</span>
-                        <span className="hidden lg:inline">Next video</span>
-                      </>
-                    ) : (
-                      "Completed"
-                    )}
-                  </span>
-                  <span className="block break-words leading-4">
-                    {nextLesson?.title || "Final lesson"}
-                  </span>
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-              </button>
-            </nav>
-          </article>
-
-          <aside className="order-2 min-w-0 overflow-hidden rounded-2xl border border-border bg-card/60 lg:order-1 lg:sticky lg:top-24">
-            <button
-              type="button"
-              aria-expanded={contentOpen}
-              aria-controls="alc-course-content"
-              onClick={() => setContentOpen((current) => !current)}
-              className="flex min-h-12 w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left"
-            >
-              <span className="inline-flex items-center gap-2 font-display font-semibold">
-                <BookOpen className="h-4 w-4 text-gold" /> Course content
-              </span>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${contentOpen ? "rotate-180" : ""}`}
-                aria-hidden="true"
-              />
-            </button>
-            <div
-              id="alc-course-content"
-              className={`${contentOpen ? "block" : "hidden"} max-h-[65vh] overflow-y-auto p-3`}
-            >
-              {modules.map((module) => (
-                <section key={module.id} className="not-last:mb-5">
-                  <div className="px-2 pb-2 pt-1">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                      Module {String(module.order).padStart(2, "0")}
-                    </p>
-                    <h3 className="mt-1 text-sm font-semibold">{module.title}</h3>
-                  </div>
-                  <div className="space-y-1">
-                    {module.items.map((lesson, index) => {
-                      const isActive = lesson.id === activeLesson.id;
-                      return (
-                        <button
-                          key={lesson.id}
-                          type="button"
-                          aria-current={isActive ? "true" : undefined}
-                          onClick={() => {
-                            setSelected(lesson.id);
-                            if (window.matchMedia("(max-width: 767px)").matches)
-                              setContentOpen(false);
-                          }}
-                          className={`group flex min-h-12 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${isActive ? "bg-gold/15 text-gold" : "text-foreground hover:bg-accent"}`}
-                        >
-                          <span className="w-5 shrink-0 text-xs font-semibold tabular-nums text-muted-foreground group-aria-[current=true]:text-gold">
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
-                          <Play
-                            className={`h-3.5 w-3.5 shrink-0 ${isActive ? "fill-current" : "text-muted-foreground"}`}
-                            aria-hidden="true"
-                          />
-                          <span className="min-w-0 text-sm font-medium leading-5">
-                            {lesson.title}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-              ))}
-            </div>
-          </aside>
-        </div>
-      ) : (
-        <div className="glass rounded-3xl px-6 py-14 text-center">
-          <BookOpen className="mx-auto h-8 w-8 text-gold" />
-          <h2 className="mt-4 font-display text-2xl font-bold">Your library is being prepared</h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
-            No published ALC lessons are available yet. They will appear here automatically when the
-            BlackPips team publishes them.
+        <div className="card-flat stack alc-app-side">
+          <ShieldCheck aria-hidden="true" className="alc-app-shield" />
+          <p className="h4">Lessons play only in the app</p>
+          <p className="small">
+            This protects the content. Your access and progress are linked to your BLACKPIPS
+            account.
           </p>
         </div>
-      )}
+      </div>
     </section>
   );
 }
+
+const ALC_APP_POINTS = [
+  "Every ALC module, organised in order",
+  "Progress saved to your account",
+  "Same sign-in as this website",
+];

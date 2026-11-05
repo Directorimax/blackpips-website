@@ -1,4 +1,8 @@
-import { BlackPipsEmailLayout, EmailBodyText } from "./components/BlackPipsEmailLayout";
+import {
+  BlackPipsEmailLayout,
+  EmailBodyText,
+  EmailListItem,
+} from "./components/BlackPipsEmailLayout";
 
 export function CourseUnlockedEmail({
   studentName,
@@ -11,14 +15,18 @@ export function CourseUnlockedEmail({
 }) {
   return (
     <BlackPipsEmailLayout
-      preview={`${courseName} is now unlocked`}
+      preview={`${courseName} is unlocked`}
       title="Your course is unlocked"
-      action={{ label: "Open dashboard", href: dashboardUrl }}
+      action={{ label: "Start learning", href: dashboardUrl }}
     >
       <EmailBodyText>
-        Hi {studentName}, you now have lifetime access to <strong>{courseName}</strong>.
+        Hi {studentName}, payment received. <strong style={{ color: "#F8F5EE" }}>{courseName}</strong>{" "}
+        is now open in your BLACKPIPS app.
       </EmailBodyText>
-      <EmailBodyText>Your course is ready whenever you are.</EmailBodyText>
+      <EmailListItem icon="▶">Lifetime access to every lesson</EmailListItem>
+      <EmailListItem icon="⏱">Watch at your own pace, on any device</EmailListItem>
+      <EmailListItem icon="★">Certificate when you complete it</EmailListItem>
+      <div style={{ height: "18px" }} />
     </BlackPipsEmailLayout>
   );
 }

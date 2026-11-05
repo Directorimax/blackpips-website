@@ -20,9 +20,12 @@ export const Route = createFileRoute("/tools/pip-calculator")({
 
 function PipCalculatorPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-16">
-      <SeoBreadcrumbs current="Pips Calculator" />
-      <PipCalculator />
-    </main>
+    <div className="bp bp-page">
+      <div className="page-bg" aria-hidden="true" />
+      <div className="wrap" style={{ maxWidth: 860, padding: "32px 24px 104px" }}>
+        <SeoBreadcrumbs current="Pips Calculator" />
+        <PipCalculator />
+      </div>
+    </div>
   );
 }

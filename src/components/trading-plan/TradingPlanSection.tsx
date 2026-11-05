@@ -31,36 +31,28 @@ export function TradingPlanSection({
     <section
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={cn(
-        "overflow-hidden rounded-2xl border bg-card/70 transition-colors duration-200 hover:border-gold/50 hover:shadow-[0_8px_20px_hsl(var(--gold)/0.08)]",
-        expanded ? "border-gold/50 bg-card/90 shadow-elegant" : "border-border/80",
-      )}
+      className={cn("card spot plan-sec", expanded && "open")}
     >
       <button
         type="button"
         onClick={onExpandedChange}
         aria-expanded={expanded}
         aria-controls={contentId}
-        className="flex w-full cursor-pointer items-start gap-3 px-4 py-4 text-left outline-none transition-colors duration-200 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold sm:px-5"
+        className="plan-sec-h"
       >
-        <span
-          className={cn(
-            "mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl",
-            complete ? "bg-gold/15 text-gold" : "bg-muted text-muted-foreground",
-          )}
-        >
-          {icon}
-        </span>
+        <span className={cn("psec-n", complete && "done")}>{icon}</span>
         <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="font-display text-lg font-semibold">{title}</span>
+            <span className="h3">{title}</span>
             {complete && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-gold">
+              <span className="chip chip-gold" style={{ fontSize: 11 }}>
                 <CheckCircle2 className="h-3.5 w-3.5" /> Complete
               </span>
             )}
           </span>
-          <span className="mt-1 block text-sm leading-5 text-muted-foreground">{description}</span>
+          <span className="small" style={{ display: "block", marginTop: 4 }}>
+            {description}
+          </span>
         </span>
         <motion.span
           animate={{ rotate: expanded ? 180 : 0 }}
@@ -80,9 +72,7 @@ export function TradingPlanSection({
             transition={reducedMotion ? { duration: 0 } : { duration: 0.24, ease: "easeOut" }}
             className="min-w-0 overflow-hidden"
           >
-            <div className="min-w-0 overflow-x-hidden border-t border-border/70 px-4 py-5 sm:px-5">
-              {children}
-            </div>
+            <div className="plan-sec-body">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>

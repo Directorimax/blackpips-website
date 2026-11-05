@@ -14,8 +14,7 @@ export const formatTZS = (amount: number) => `TSh ${amount.toLocaleString("en-US
 
 export const NAV = [
   { to: "/", label: "Home" },
-  { to: "/courses", label: "Premium Lessons" },
-  { to: "/free", label: "Free Lessons" },
+  { to: "/courses", label: "Lessons" },
   { to: "/mentorship", label: "Mentorship" },
   { to: "/tools", label: "Tools" },
   { to: "/about", label: "About" },

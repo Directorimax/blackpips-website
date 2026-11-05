@@ -13,7 +13,14 @@ export function parseYouTubePlaybackState(value: unknown): LessonPlaybackState {
   const candidate = message as { event?: unknown; info?: unknown };
   if (candidate.event !== "onStateChange") return null;
   if (candidate.info === 1) return "playing";
-  if (candidate.info === 0 || candidate.info === 2 || candidate.info === -1) return "inactive";
+  if (
+    candidate.info === 0 ||
+    candidate.info === 2 ||
+    candidate.info === 3 ||
+    candidate.info === 5 ||
+    candidate.info === -1
+  )
+    return "inactive";
   return null;
 }
 

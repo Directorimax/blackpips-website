@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Star, Quote } from "lucide-react";
 import { TESTIMONIALS_DATA } from "@/lib/site-data";
+import { PageFrame } from "@/components/bp/PageFrame";
 
 export const Route = createFileRoute("/testimonials")({
   head: () => ({
@@ -15,7 +16,11 @@ export const Route = createFileRoute("/testimonials")({
       { property: "og:description", content: "What our students say about the ALC framework." },
     ],
   }),
-  component: TPage,
+  component: () => (
+    <PageFrame>
+      <TPage />
+    </PageFrame>
+  ),
 });
 
 function TPage() {

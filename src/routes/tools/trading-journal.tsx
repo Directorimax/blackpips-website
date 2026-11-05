@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnimatePresence } from "framer-motion";
 import {
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Image,
@@ -69,6 +68,7 @@ import {
   getTradingJournalMonth,
   updateTradingJournalEntry,
 } from "@/services/trading-journal/trading-journal.functions";
+import { PageFrame } from "@/components/bp/PageFrame";
 
 export const Route = createFileRoute("/tools/trading-journal")({
   head: () =>
@@ -83,7 +83,11 @@ export const Route = createFileRoute("/tools/trading-journal")({
         { name: "Trading Journal", path: "/tools/trading-journal" },
       ],
     }),
-  component: TradingJournalPage,
+  component: () => (
+    <PageFrame>
+      <TradingJournalPage />
+    </PageFrame>
+  ),
 });
 
 const PAGE_SIZE = 10;
@@ -295,73 +299,76 @@ function TradingJournalPage() {
 
   if (loading)
     return (
-      <main className="mx-auto max-w-7xl px-4 py-24">
-        <div className="glass h-64 animate-pulse rounded-3xl" />
+      <main className="wrap-wide journal-page">
+        <div className="card journal-skel" style={{ height: 256 }} />
       </main>
     );
   if (!user)
     return (
-      <main className="mx-auto max-w-3xl px-4 py-24 text-center">
+      <main className="wrap journal-page">
         <SeoBreadcrumbs current="Trading Journal" />
-        <NotebookPen className="mx-auto h-10 w-10 text-gold" />
-        <h1 className="mt-4 font-display text-3xl font-bold">Your Trading Journal</h1>
-        <p className="mt-3 text-muted-foreground">
-          Sign in to securely record and review your trades.
-        </p>
-        <Button asChild className="mt-6">
-          <Link to="/auth" search={{ redirect: "/tools/trading-journal" }}>
-            Sign in to continue
-          </Link>
-        </Button>
+        <div className="orbit rise" style={{ maxWidth: 560, margin: "24px auto 0" }}>
+          <div className="orbit-in msg-card">
+            <span className="ico ico-solid">
+              <NotebookPen aria-hidden="true" />
+            </span>
+            <h1 className="h2">Your Trading Journal</h1>
+            <p className="body">Sign in to securely record and review your trades.</p>
+            <Link
+              to="/auth"
+              search={{ redirect: "/tools/trading-journal" }}
+              className="btn btn-gold"
+            >
+              Sign in to continue
+            </Link>
+            <p className="small" style={{ fontSize: 12 }}>
+              Private to you and synced with the BLACKPIPS app.
+            </p>
+          </div>
+        </div>
       </main>
     );
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-12 sm:py-16">
+    <main className="wrap-wide journal-page">
       <SeoBreadcrumbs current="Trading Journal" />
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 text-sm font-semibold text-gold">
-            <NotebookPen className="h-4 w-4" /> TRADER TOOLS
-          </div>
-          <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">Trading Journal</h1>
-          <p className="mt-2 max-w-2xl text-muted-foreground">
+          <p className="kicker row" style={{ gap: 8 }}>
+            <NotebookPen className="h-4 w-4" aria-hidden="true" /> Trader tools
+          </p>
+          <h1 className="h1" style={{ fontSize: "clamp(32px, 4vw, 48px)", marginTop: 10 }}>
+            Trading Journal
+          </h1>
+          <p className="body" style={{ marginTop: 8, maxWidth: 640 }}>
             Build clarity through deliberate review of every trading decision.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <div
-            className="flex rounded-xl border border-border bg-card p-1"
-            role="group"
-            aria-label="Journal view"
-          >
-            <Button
-              variant={view === "calendar" ? "secondary" : "ghost"}
-              size="sm"
+          <div className="seg" role="group" aria-label="Journal view">
+            <button
+              type="button"
+              aria-pressed={view === "calendar"}
+              className={`seg-btn ${view === "calendar" ? "on" : ""}`}
               onClick={() => setView("calendar")}
             >
-              <CalendarDays /> Calendar
-            </Button>
-            <Button
-              variant={view === "list" ? "secondary" : "ghost"}
-              size="sm"
+              Calendar
+            </button>
+            <button
+              type="button"
+              aria-pressed={view === "list"}
+              className={`seg-btn ${view === "list" ? "on" : ""}`}
               onClick={() => setView("list")}
             >
-              <NotebookPen /> List
-            </Button>
+              List
+            </button>
           </div>
-          <Button
-            onClick={() => setEditing(null)}
-            className="bg-gradient-gold text-primary-foreground shadow-glow"
-          >
-            <Plus /> New Trade
-          </Button>
+          <button type="button" onClick={() => setEditing(null)} className="btn btn-gold">
+            <Plus aria-hidden="true" /> New Trade
+          </button>
         </div>
       </header>
-      <section
-        className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-6"
-        aria-label="Journal summary"
-      >
+      <section className="journal-summary" aria-label="Journal summary">
         <Summary label="Total Trades" value={total} />
         <Summary label="Wins" value={summary.win} tone="positive" />
         <Summary label="Losses" value={summary.loss} tone="negative" />
@@ -376,7 +383,7 @@ function TradingJournalPage() {
           tone={summary.pnl > 0 ? "positive" : summary.pnl < 0 ? "negative" : undefined}
         />
       </section>
-      <section className="glass mt-8 rounded-3xl p-4 sm:p-5">
+      <section className="card journal-filters">
         <div className="grid items-center gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(15rem,1.6fr)_repeat(5,minmax(8rem,1fr))]">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -483,11 +490,11 @@ function TradingJournalPage() {
         </div>
       </section>
       {error ? (
-        <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-sm">
-          <p>{error}</p>
-          <Button variant="outline" size="sm" className="mt-3" onClick={() => void load()}>
+        <div className="card journal-error">
+          <p className="err">{error}</p>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => void load()}>
             Try again
-          </Button>
+          </button>
         </div>
       ) : view === "calendar" ? (
         <JournalCalendar
@@ -514,9 +521,9 @@ function TradingJournalPage() {
           onDelete={deleteTrade}
         />
       ) : isLoading ? (
-        <div className="mt-6 grid gap-3">
+        <div className="stack" style={{ gap: 12, marginTop: 24 }}>
           {Array.from({ length: 5 }, (_, index) => (
-            <div key={index} className="glass h-20 animate-pulse rounded-2xl" />
+            <div key={index} className="card journal-skel" style={{ height: 80 }} />
           ))}
         </div>
       ) : entries.length ? (
@@ -527,40 +534,46 @@ function TradingJournalPage() {
           onDelete={deleteTrade}
         />
       ) : (
-        <div className="glass mt-6 rounded-3xl p-10 text-center">
-          <NotebookPen className="mx-auto h-9 w-9 text-gold" />
-          <h2 className="mt-4 font-display text-xl font-semibold">
-            {total ? "No matching trades" : "Your journal is ready"}
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+        <div className="card spot msg-card journal-empty">
+          <span className="ico">
+            <NotebookPen aria-hidden="true" />
+          </span>
+          <h2 className="h3">{total ? "No matching trades" : "Your journal is ready"}</h2>
+          <p className="small">
             {total
               ? "Adjust or reset your filters to see trades."
               : "Record your first trade to make your review process deliberate."}
           </p>
-          <Button className="mt-5" onClick={() => (total ? resetFilters() : setEditing(null))}>
+          <button
+            type="button"
+            className={total ? "btn btn-ghost" : "btn btn-gold"}
+            onClick={() => (total ? resetFilters() : setEditing(null))}
+          >
             {total ? "Reset filters" : "Add your first trade"}
-          </Button>
+          </button>
         </div>
       )}
       {total > PAGE_SIZE && (
-        <div className="mt-6 flex items-center justify-between">
-          <Button
-            variant="outline"
+        <div className="between" style={{ marginTop: 24 }}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
             disabled={page === 0}
             onClick={() => setPage((current) => current - 1)}
           >
-            <ChevronLeft /> Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
+            <ChevronLeft aria-hidden="true" /> Previous
+          </button>
+          <span className="small mono">
             Page {page + 1} of {pages}
           </span>
-          <Button
-            variant="outline"
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
             disabled={page + 1 >= pages}
             onClick={() => setPage((current) => current + 1)}
           >
-            Next <ChevronRight />
-          </Button>
+            Next <ChevronRight aria-hidden="true" />
+          </button>
         </div>
       )}
       <AnimatePresence>
@@ -603,10 +616,10 @@ function Summary({
   tone?: "positive" | "negative";
 }) {
   return (
-    <div className="glass rounded-2xl p-4">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+    <div className="card spot journal-stat">
+      <p className="micro">{label}</p>
       <p
-        className={`mt-2 font-display text-xl font-bold ${tone === "positive" ? "text-bull" : tone === "negative" ? "text-bear" : "text-foreground"}`}
+        className={`journal-stat-v ${tone === "positive" ? "bull" : tone === "negative" ? "bear" : ""}`}
       >
         {value}
       </p>
@@ -653,12 +666,9 @@ function TradeList({
   const [confirming, setConfirming] = useState<TradingJournalEntry | null>(null);
   return (
     <section className="mt-6 space-y-3">
-      <div className="journal-scrollbar hidden overflow-x-auto rounded-2xl border border-border bg-card md:block">
+      <div className="journal-scrollbar card journal-table hidden overflow-x-auto md:block">
         <div className="min-w-[1320px]">
-          <div
-            className="sticky top-0 z-10 grid gap-3 border-b border-border bg-card px-4 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground"
-            style={{ gridTemplateColumns: journalGridTemplateColumns }}
-          >
+          <div className="jt-head" style={{ gridTemplateColumns: journalGridTemplateColumns }}>
             {journalColumns.map((column) => (
               <span key={column.key}>{column.heading}</span>
             ))}
@@ -677,9 +687,9 @@ function TradeList({
       </div>
       <div className="grid gap-3 md:hidden">
         {entries.map((entry) => (
-          <article key={entry.id} className="glass grid gap-3 rounded-2xl p-4">
-            <div className="flex items-center justify-between">
-              <p className="font-display font-semibold">{entry.pair}</p>
+          <article key={entry.id} className="card spot journal-mobile">
+            <div className="between">
+              <p className="h4 mono">{entry.pair}</p>
               <Badge value={entry.result} />
             </div>
             <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm">
@@ -762,8 +772,10 @@ function TradeDeleteDialog({
 function MobileRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <div className="mt-0.5 truncate capitalize">{value}</div>
+      <p className="micro" style={{ fontSize: 10.5 }}>
+        {label}
+      </p>
+      <div className="mt-1 truncate capitalize">{value}</div>
     </div>
   );
 }
@@ -840,11 +852,8 @@ function DesktopTradeRow({
   deleting: boolean;
 }) {
   return (
-    <div
-      className="grid items-center gap-3 border-b border-border/70 px-4 py-3 text-sm last:border-0"
-      style={{ gridTemplateColumns: journalGridTemplateColumns }}
-    >
-      <strong>{entry.pair}</strong>
+    <div className="jt-row" style={{ gridTemplateColumns: journalGridTemplateColumns }}>
+      <strong className="mono">{entry.pair}</strong>
       <span>{new Date(entry.trade_at).toLocaleDateString()}</span>
       <Badge value={entry.direction} />
       <span className="capitalize">{entry.session.replaceAll("_", " ")}</span>
@@ -878,19 +887,15 @@ function Badge({ value }: { value: string }) {
     const config = journalResultConfig[value];
     return (
       <span
-        className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${config.badgeClassName}`}
+        className={`chip w-fit ${value === "win" ? "chip-bull" : value === "loss" ? "chip-bear" : ""}`}
       >
         {config.label}
       </span>
     );
   }
 
-  const tone = value === "long" ? "bg-bull/15 text-bull" : "bg-bear/15 text-bear";
-  return (
-    <span className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${tone}`}>
-      {value.replaceAll("_", " ")}
-    </span>
-  );
+  const tone = value === "long" ? "chip-bull" : "chip-bear";
+  return <span className={`chip w-fit capitalize ${tone}`}>{value.replaceAll("_", " ")}</span>;
 }
 
 function JournalCalendar({
@@ -945,27 +950,33 @@ function JournalCalendar({
   const todayKey = keyOf(new Date());
   return (
     <section className="mt-6 space-y-4">
-      <div className="glass rounded-3xl p-4 sm:p-5">
+      <div className="card journal-cal-head">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={onPrevious} aria-label="Previous month">
-              <ChevronLeft />
-            </Button>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={onPrevious}
+              aria-label="Previous month"
+            >
+              <ChevronLeft aria-hidden="true" />
+            </button>
             <div className="min-w-44 text-center">
-              <h2 className="font-display text-xl font-semibold">
+              <h2 className="h3">
                 {month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
               </h2>
               <button
                 type="button"
                 onClick={onToday}
-                className="text-xs font-semibold text-gold hover:underline"
+                className="text-link"
+                style={{ fontSize: 12 }}
               >
                 Today
               </button>
             </div>
-            <Button variant="outline" size="icon" onClick={onNext} aria-label="Next month">
-              <ChevronRight />
-            </Button>
+            <button type="button" className="icon-btn" onClick={onNext} aria-label="Next month">
+              <ChevronRight aria-hidden="true" />
+            </button>
           </div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm sm:flex sm:flex-wrap sm:items-center sm:gap-5">
             <CalendarMetric label="Monthly P/L" value={<Pnl value={summary.pnl} />} />
@@ -998,11 +1009,11 @@ function JournalCalendar({
           </div>
         </div>
       </div>
-      <div className="journal-scrollbar overflow-x-auto rounded-3xl border border-border bg-card">
+      <div className="journal-scrollbar card overflow-x-auto">
         <div className="min-w-[680px] p-2 sm:p-3">
-          <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="grid grid-cols-7 gap-1.5">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-              <div key={day} className="py-2">
+              <div key={day} className="cal-h">
                 {day}
               </div>
             ))}
@@ -1017,27 +1028,16 @@ function JournalCalendar({
               const losses = dailySummary.losses;
               const current = date.getMonth() === month.getMonth();
               const active = selectedDay === key;
-              const tone =
-                pnl > 0
-                  ? "border-bull/35 bg-bull/8"
-                  : pnl < 0
-                    ? "border-bear/35 bg-bear/8"
-                    : "border-border bg-background/40";
+              const tone = pnl > 0 ? "win" : pnl < 0 ? "loss" : "";
               return (
                 <button
                   key={key}
                   type="button"
                   onClick={() => onSelectDay(key)}
-                  className={`min-h-25 rounded-xl border p-2 text-left transition hover:border-gold/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${tone} ${!current ? "opacity-40" : ""} ${active ? "ring-2 ring-gold" : ""}`}
+                  className={`jday ${tone} ${!current ? "out" : ""} ${active ? "sel" : ""}`}
                 >
                   <div className="flex justify-between">
-                    <span
-                      className={
-                        key === todayKey
-                          ? "grid h-6 w-6 place-items-center rounded-full bg-gold text-primary-foreground"
-                          : ""
-                      }
-                    >
+                    <span className={key === todayKey ? "jday-n today" : "jday-n"}>
                       {date.getDate()}
                     </span>
                     {daily.length ? (
@@ -1062,7 +1062,7 @@ function JournalCalendar({
           </div>
         </div>
       </div>
-      {loading ? <div className="glass h-28 animate-pulse rounded-3xl" /> : null}
+      {loading ? <div className="card journal-skel" style={{ height: 112 }} /> : null}
       <Dialog open={Boolean(selectedDay)} onOpenChange={(open) => !open && onSelectDay(null)}>
         <DialogContent className="journal-scrollbar max-h-[88vh] max-w-2xl overflow-y-auto rounded-3xl bg-card">
           <DialogHeader>
@@ -1151,8 +1151,12 @@ function JournalCalendar({
 function CalendarMetric({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <div className="mt-0.5 text-sm font-semibold">{value}</div>
+      <p className="micro" style={{ fontSize: 10.5 }}>
+        {label}
+      </p>
+      <div className="mono" style={{ marginTop: 4, fontSize: 15, fontWeight: 700 }}>
+        {value}
+      </div>
     </div>
   );
 }

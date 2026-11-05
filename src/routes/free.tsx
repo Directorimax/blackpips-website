@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isFreeLessonsAvailable } from "@/lib/feature-access";
 import { formatLessonDuration } from "@/lib/learning-preview";
 import { createSeoHead } from "@/lib/seo";
+import { PageFrame } from "@/components/bp/PageFrame";
 
 export const Route = createFileRoute("/free")({
   head: () =>
@@ -18,15 +19,17 @@ export const Route = createFileRoute("/free")({
       noindex: true,
     }),
   component: () => (
-    <AuthenticatedRouteGuard>
-      <LearningFeatureGate
-        featureEnabled={isFreeLessonsAvailable()}
-        title="Free Lessons"
-        description="We’re preparing the BLACKPIPS learning experience. Free lessons will be available soon."
-      >
-        <FreeLessons />
-      </LearningFeatureGate>
-    </AuthenticatedRouteGuard>
+    <PageFrame>
+      <AuthenticatedRouteGuard>
+        <LearningFeatureGate
+          featureEnabled={isFreeLessonsAvailable()}
+          title="Free Lessons"
+          description="We’re preparing the BLACKPIPS learning experience. Free lessons will be available soon."
+        >
+          <FreeLessons />
+        </LearningFeatureGate>
+      </AuthenticatedRouteGuard>
+    </PageFrame>
   ),
 });
 

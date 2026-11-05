@@ -27,7 +27,6 @@ describe("homepage auth entry routing", () => {
   it("uses the official TradingView tape without hardcoded quotes or API secrets", () => {
     expect(homepage).not.toContain("2,384.10");
     expect(homepage).not.toContain("68,214");
-    expect(homepage).toContain("TradingViewTickerTape");
     expect(root).not.toContain("tv-ticker-tape.js");
     expect(ticker).toContain("embed-widget-ticker-tape.js");
     expect(ticker).not.toContain("TWELVE_DATA_API_KEY");
@@ -63,9 +62,8 @@ describe("homepage auth entry routing", () => {
 
   it("uses paired responsive spacing without viewport-height blank bands", () => {
     expect(homepage).not.toContain("min-h-[92svh]");
-    expect(homepage).toContain("pb-12 pt-28");
-    expect(homepage).toContain("pb-7 pt-12 sm:pb-8 sm:pt-16 lg:pb-10 lg:pt-20");
-    expect(homepage).toContain("px-4 py-7 sm:py-8 lg:py-10");
-    expect(homepage).toContain("pb-14 pt-7 sm:pb-16 sm:pt-8 lg:pb-20 lg:pt-10");
+    expect(homepage).not.toContain("100vh");
+    expect(homepage).toContain('className="home-hero"');
+    expect(homepage).toContain('className="section"');
   });
 });

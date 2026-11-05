@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { BLOG_POSTS } from "@/lib/site-data";
 import { createSeoHead } from "@/lib/seo";
+import { PageFrame } from "@/components/bp/PageFrame";
 
 export const Route = createFileRoute("/blog")({
   head: () =>
@@ -12,7 +13,11 @@ export const Route = createFileRoute("/blog")({
         "Read BLACKPIPS articles on market structure, liquidity, risk management, trading psychology and news analysis.",
       path: "/blog",
     }),
-  component: Blog,
+  component: () => (
+    <PageFrame>
+      <Blog />
+    </PageFrame>
+  ),
 });
 
 const CATS = [

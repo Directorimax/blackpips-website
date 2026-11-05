@@ -10,6 +10,31 @@ const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
 const glassControl =
   "border border-white/15 bg-black/20 text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_4px_16px_rgba(0,0,0,0.18)] backdrop-blur-md transition duration-150 hover:border-gold/45 hover:bg-black/40 hover:text-gold focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold";
 
+// Same rules as the app: R2 photos are signed by media id, a tip-level R2
+// video by tip id, and older files by their Supabase Storage path.
+async function signTipMedia(tipId: string, media: TradingTipMedia, token: string) {
+  const r2 = media.central_tip_id
+    ? { destination: "trading_tip", contentId: media.central_tip_id }
+    : !media.media_path && media.media_asset_id
+      ? { destination: "trading_tip_image", contentId: media.id }
+      : null;
+  if (!r2) {
+    const result = await getTradingTipMediaUrl({
+      data: { tipId, mediaId: media.id },
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return result.signedUrl;
+  }
+  const { data, error } = await supabase.functions.invoke(
+    `central-media/playback/${r2.destination}`,
+    { body: { content_id: r2.contentId } },
+  );
+  const descriptor = (data?.data ?? data) as { url?: string; content_id?: string } | null;
+  if (error || !descriptor?.url || descriptor.content_id !== r2.contentId)
+    throw new Error("Could not load tip media.");
+  return descriptor.url;
+}
+
 export function SecureTipVideo({ src, className }: { src: string; className?: string }) {
   const [unsupported, setUnsupported] = useState(false);
   return (
@@ -73,14 +98,11 @@ function SignedMedia({
       const token = data.session?.access_token;
       if (!token) return;
       try {
-        const result = await getTradingTipMediaUrl({
-          data: { tipId, mediaId: media.id },
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const signedUrl = await signTipMedia(tipId, media, token);
         if (alive) {
-          signedUrlCache.set(media.id, { url: result.signedUrl, expiresAt: Date.now() + 50_000 });
-          setUrl(result.signedUrl);
-          onReady({ media, url: result.signedUrl });
+          signedUrlCache.set(media.id, { url: signedUrl, expiresAt: Date.now() + 50_000 });
+          setUrl(signedUrl);
+          onReady({ media, url: signedUrl });
         }
       } catch {
         if (alive) setFailed(true);
@@ -122,6 +144,7 @@ function SignedMedia({
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
           onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
         />
       </span>
     </button>

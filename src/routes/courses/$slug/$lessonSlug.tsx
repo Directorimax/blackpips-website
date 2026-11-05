@@ -38,6 +38,11 @@ import {
   type LessonPlaybackDescriptor,
   parseLessonPlaybackDescriptor,
 } from "@/lib/lesson-playback";
+import {
+  centralMediaRenewalDelay,
+  parseCentralMediaPlayback,
+  privateR2TestEnabled,
+} from "@/lib/central-media-playback";
 
 export const Route = createFileRoute("/courses/$slug/$lessonSlug")({
   component: () => (
@@ -518,6 +523,31 @@ function useLessonPlayback({
       }, COURSE_MEDIA_REFRESH_AFTER_MS);
     };
 
+    const authorizePrivateR2 = async () => {
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        "central-media/playback",
+        { body: { lesson_id: lessonId, course_id: courseId, allow_private_r2: true } },
+      );
+      if (invokeError) throw new Error("Private R2 authorization was denied.");
+      const authorized = parseCentralMediaPlayback(data);
+      if (authorized.lessonId !== lessonId || authorized.source !== "private_r2") {
+        throw new Error("Private R2 playback is not enabled for this lesson.");
+      }
+      if (!active) return;
+      setVideoUrl(authorized.url);
+      setError(null);
+      const delay = centralMediaRenewalDelay(authorized);
+      if (delay != null) {
+        refreshTimer = window.setTimeout(async () => {
+          try {
+            await authorizePrivateR2();
+          } catch {
+            if (active) setError("The private video authorization expired. Try again to continue.");
+          }
+        }, delay);
+      }
+    };
+
     const load = async () => {
       setLoading(true);
       setError(null);
@@ -537,7 +567,12 @@ function useLessonPlayback({
       try {
         const nextDescriptor = parseLessonPlaybackDescriptor(data);
         setDescriptor(nextDescriptor);
-        if (nextDescriptor.mediaSource === "self_hosted") await signMedia(nextDescriptor);
+        if (privateR2TestEnabled(lessonId)) {
+          await authorizePrivateR2();
+          setDescriptor({ ...nextDescriptor, mediaSource: "self_hosted" });
+        } else if (nextDescriptor.mediaSource === "self_hosted") {
+          await signMedia(nextDescriptor);
+        }
       } catch {
         if (active) setError("The secure lesson video could not be prepared.");
       } finally {

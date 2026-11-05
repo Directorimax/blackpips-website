@@ -2,10 +2,9 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, Loader2, Lock, Mail, MailCheck } from "lucide-react";
+import { Eye, EyeOff, Loader2, MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
-import { sendNotification } from "@/services/email/notification.functions";
 import {
   DEFAULT_AUTH_DESTINATION,
   getAuthCallbackUrl,
@@ -16,6 +15,9 @@ import {
 import { createSeoHead } from "@/lib/seo";
 import { clearSessionLifecycleStorage } from "@/lib/session-lifecycle";
 import { Logo } from "@/components/Logo";
+import appSignInScreen from "@/assets/app-signin-screen.jpg";
+import appHomeScreen from "@/assets/app-home-screen.jpg";
+import { AppleIcon, PlayIcon } from "@/components/bp/StoreIcons";
 import {
   classifySignupException,
   classifySignupResult,
@@ -173,9 +175,6 @@ function AuthPage() {
         if (outcome.status === "signed-in") {
           const { data } = signupResult;
           if (!data.user) throw new Error("We could not create your account. Please try again.");
-          void sendNotification({ data: { type: "welcome", resourceId: data.user.id } }).catch(
-            (error) => console.error("Welcome notification could not be queued:", error),
-          );
           toast.success("Welcome to BLACKPIPS.");
           navigate({ to: destination });
         } else {
@@ -263,8 +262,9 @@ function AuthPage() {
 
   if (mode === "check-email" && pendingEmail) {
     return (
-      <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-16">
-        <div className="glass w-full rounded-3xl p-8 text-center shadow-elegant">
+      <div className="bp bp-page auth-simple">
+        <div className="page-bg" aria-hidden="true" />
+        <div className="card auth-simple-card center">
           <Logo className="justify-center" />
           <MailCheck className="mx-auto mt-6 h-9 w-9 text-gold" />
           <h1 className="mt-4 font-display text-3xl font-bold">Check your email</h1>
@@ -313,8 +313,9 @@ function AuthPage() {
   if (mode === "existing-account" || mode === "account-recovery") {
     const confirmedExistingAccount = mode === "existing-account";
     return (
-      <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-16">
-        <div className="glass w-full rounded-3xl p-8 text-center shadow-elegant">
+      <div className="bp bp-page auth-simple">
+        <div className="page-bg" aria-hidden="true" />
+        <div className="card auth-simple-card center">
           <Logo className="justify-center" />
           <h1 className="mt-6 font-display text-3xl font-bold">
             {confirmedExistingAccount ? "You’re already with BLACKPIPS" : "Continue with BLACKPIPS"}
@@ -365,167 +366,211 @@ function AuthPage() {
         : "Sign in to continue where you left off.";
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-16">
-      <div className="glass w-full rounded-3xl p-8 shadow-elegant">
-        <div className="text-center">
-          <Logo className="justify-center" />
-          <h1 className="mt-3 font-display text-3xl font-bold">{title}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{sub}</p>
-        </div>
-
-        {mode !== "forgot" && (
-          <>
-            <button
-              type="button"
-              onClick={handleGoogle}
-              disabled={busy || googleLoading}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold transition hover:bg-accent/50 disabled:opacity-60"
-            >
-              {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
-              {googleLoading ? "Connecting to Google…" : "Continue with Google"}
-            </button>
-            <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
-              <div className="h-px flex-1 bg-border" /> or <div className="h-px flex-1 bg-border" />
+    <div className="bp bp-page auth-page">
+      <div className="auth">
+        <aside className="auth-brand">
+          <div className="auth-intro">
+            <span className="auth-intro-tag">BLACKPIPS app</span>
+            <h2 className="auth-intro-title">
+              One account. <span className="gold-text">Web and app.</span>
+            </h2>
+            <p className="auth-intro-text">
+              Buy lessons and use the tools here. Watch your lessons and keep your streak in the
+              BLACKPIPS app.
+            </p>
+            <div className="auth-intro-store">
+              <a className="btn btn-gold" href="/#app">
+                <AppleIcon /> App Store
+              </a>
+              <a className="btn btn-ghost" href="/#app">
+                <PlayIcon /> Google Play
+              </a>
             </div>
-          </>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {mode === "signup" && (
-            <label className="block">
-              <span className="mb-1 block text-xs font-semibold text-muted-foreground">
-                Full name
-              </span>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={busy}
-                required
-                maxLength={80}
-                className="glass w-full rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-gold/40"
-                placeholder="Jane Trader"
-              />
-            </label>
-          )}
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-muted-foreground">Email</span>
-            <div className="glass flex items-center gap-2 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-gold/40">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={busy}
-                required
-                autoComplete="email"
-                className="w-full bg-transparent text-sm outline-none"
-                placeholder="you@email.com"
-              />
+          </div>
+          <div className="auth-show">
+            <div className="auth-shots">
+              <div className="auth-mock back" aria-hidden="true">
+                <img src={appHomeScreen} alt="" />
+              </div>
+              <div className="auth-mock front" aria-hidden="true">
+                <img src={appSignInScreen} alt="" />
+              </div>
+              <a className="auth-float auth-float-a" href="/#app">
+                <AppleIcon />
+                <span>
+                  <small>Download on the</small>App Store
+                </span>
+              </a>
+              <a className="auth-float auth-float-b" href="/#app">
+                <PlayIcon />
+                <span>
+                  <small>Get it on</small>Google Play
+                </span>
+              </a>
             </div>
-          </label>
-          {mode !== "forgot" && (
-            <label className="block">
-              <span className="mb-1 block text-xs font-semibold text-muted-foreground">
-                Password
-              </span>
-              <div className="glass flex items-center gap-2 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-gold/40">
-                <Lock className="h-4 w-4 text-muted-foreground" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={busy}
-                  required
-                  minLength={8}
-                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                  className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                  placeholder="At least 8 characters"
-                />
+          </div>
+        </aside>
+
+        <main className="auth-form">
+          <div className="formbox rise">
+            {mode !== "forgot" && (
+              <div
+                className="seg"
+                role="tablist"
+                aria-label="Account"
+                style={{ alignSelf: "flex-start" }}
+              >
                 <button
                   type="button"
-                  onClick={() => setShowPassword((visible) => !visible)}
+                  role="tab"
+                  aria-selected={mode === "signin"}
                   disabled={busy}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:text-gold focus:outline-none focus:ring-2 focus:ring-gold/50"
+                  className={`seg-btn ${mode === "signin" ? "on" : ""}`}
+                  onClick={() => switchAuthMode("signin")}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  Sign in
                 </button>
-              </div>
-            </label>
-          )}
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.02] disabled:opacity-60"
-          >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {busy
-              ? mode === "signup"
-                ? "Creating account…"
-                : mode === "forgot"
-                  ? "Sending reset link…"
-                  : "Signing in…"
-              : mode === "signup"
-                ? "Create account"
-                : mode === "forgot"
-                  ? "Send reset link"
-                  : "Sign in"}
-          </button>
-        </form>
-
-        <div className="mt-5 flex flex-col items-center gap-1 text-xs text-muted-foreground">
-          {mode === "signin" && (
-            <>
-              <button
-                disabled={busy}
-                onClick={() => switchAuthMode("forgot")}
-                className="hover:text-foreground disabled:opacity-60"
-              >
-                Forgot password?
-              </button>
-              <div>
-                New here?{" "}
                 <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === "signup"}
                   disabled={busy}
+                  className={`seg-btn ${mode === "signup" ? "on" : ""}`}
                   onClick={() => switchAuthMode("signup")}
-                  className="font-semibold text-gold hover:underline"
                 >
-                  Create an account
+                  Create account
                 </button>
               </div>
-            </>
-          )}
-          {mode === "signup" && (
+            )}
             <div>
-              Already have an account?{" "}
-              <button
-                disabled={busy}
-                onClick={() => switchAuthMode("signin")}
-                className="font-semibold text-gold hover:underline"
-              >
-                Sign in
-              </button>
+              <h1 className="h2" style={{ fontSize: "clamp(30px, 3vw, 38px)" }}>
+                {title}
+              </h1>
+              <p className="body" style={{ marginTop: 8 }}>
+                {sub}
+              </p>
             </div>
-          )}
-          {mode === "forgot" && (
-            <button
-              disabled={busy}
-              onClick={() => switchAuthMode("signin")}
-              className="hover:text-foreground disabled:opacity-60"
-            >
-              Back to sign in
-            </button>
-          )}
-        </div>
 
-        <p className="mt-6 text-center text-[11px] text-muted-foreground">
-          By continuing you agree to our{" "}
-          <Link to="/" className="underline">
-            terms
-          </Link>
-          .
-        </p>
+            {mode !== "forgot" && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  disabled={busy || googleLoading}
+                  className="social"
+                >
+                  {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                  {googleLoading ? "Connecting to Google…" : "Continue with Google"}
+                </button>
+                <div className="or">OR WITH EMAIL</div>
+              </>
+            )}
+
+            <form onSubmit={handleSubmit} className="stack" style={{ gap: 14 }}>
+              {mode === "signup" && (
+                <label className="field">
+                  <span className="label">Full name</span>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={busy}
+                    required
+                    maxLength={80}
+                    autoComplete="name"
+                    className="input"
+                    placeholder="Jane Trader"
+                  />
+                </label>
+              )}
+              <label className="field">
+                <span className="label">Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={busy}
+                  required
+                  autoComplete="email"
+                  className="input"
+                  placeholder="you@email.com"
+                />
+              </label>
+              {mode !== "forgot" && (
+                <label className="field">
+                  <span className="between">
+                    <span className="label">Password</span>
+                    {mode === "signin" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => switchAuthMode("forgot")}
+                        className="text-link"
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </span>
+                  <span className="pw">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={busy}
+                      required
+                      minLength={8}
+                      autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                      className="input"
+                      placeholder="At least 8 characters"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((visible) => !visible)}
+                      disabled={busy}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </button>
+                  </span>
+                </label>
+              )}
+
+              <button type="submit" disabled={busy} className="btn btn-gold btn-lg btn-block">
+                {busy && <Loader2 className="animate-spin" />}
+                {busy
+                  ? mode === "signup"
+                    ? "Creating account…"
+                    : mode === "forgot"
+                      ? "Sending reset link…"
+                      : "Signing in…"
+                  : mode === "signup"
+                    ? "Create account"
+                    : mode === "forgot"
+                      ? "Send reset link"
+                      : "Sign in"}
+              </button>
+            </form>
+
+            <p className="small center">
+              {mode === "forgot" && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => switchAuthMode("signin")}
+                  className="text-link"
+                >
+                  Back to sign in
+                </button>
+              )}
+            </p>
+            <p className="small center" style={{ fontSize: 12 }}>
+              By continuing you agree to our{" "}
+              <Link to="/privacy-policy" style={{ textDecoration: "underline" }}>
+                terms and privacy policy
+              </Link>
+              .
+            </p>
+          </div>
+        </main>
       </div>
     </div>
   );

@@ -58,7 +58,7 @@ type OverlapSnapshots = ReturnType<typeof getOverlapSnapshot>[];
 const MajorSessions = memo(function MajorSessions({ sessions }: { sessions: SessionSnapshots }) {
   return (
     <section
-      className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm sm:p-6"
+      className="card spot market-panel"
       aria-labelledby="major-sessions-heading"
       data-section="sessions"
     >
@@ -161,7 +161,7 @@ const SessionOverlaps = memo(function SessionOverlaps({
 }) {
   return (
     <section
-      className="overflow-hidden rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm sm:p-6"
+      className="card spot market-panel"
       aria-labelledby="session-overlaps-heading"
       data-section="overlaps"
     >
@@ -322,7 +322,7 @@ const SessionAlerts = memo(function SessionAlerts({ now, sessions, overlaps }: S
 
   return (
     <section
-      className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm sm:p-6"
+      className="card spot market-panel"
       aria-labelledby="session-alerts-heading"
       data-section="alerts"
     >

@@ -1,4 +1,8 @@
-import { BlackPipsEmailLayout, EmailBodyText } from "./components/BlackPipsEmailLayout";
+import {
+  BlackPipsEmailLayout,
+  EmailBodyText,
+  EmailListItem,
+} from "./components/BlackPipsEmailLayout";
 
 export function MentorshipApprovedEmail({
   studentName,
@@ -11,17 +15,19 @@ export function MentorshipApprovedEmail({
 }) {
   return (
     <BlackPipsEmailLayout
-      preview="Your mentorship application was approved"
-      title="Mentorship approved"
+      preview="Your mentorship application is approved"
+      title={`Welcome to mentorship, ${studentName}`}
       action={{ label: "Chat on WhatsApp", href: whatsappUrl }}
     >
       <EmailBodyText>
-        Hi {studentName}, your application for <strong>{packageName}</strong> has been approved.
+        Your application for <strong style={{ color: "#F8F5EE" }}>{packageName}</strong> has been{" "}
+        <strong style={{ color: "#F8F5EE" }}>approved</strong>. Your mentor will guide your trading
+        plan, journal reviews and live sessions.
       </EmailBodyText>
-      <EmailBodyText>
-        Use the WhatsApp button below to receive your onboarding instructions from the BlackPips
-        team.
-      </EmailBodyText>
+      <EmailListItem icon="1">Message us on WhatsApp for onboarding</EmailListItem>
+      <EmailListItem icon="2">Complete your trader profile in the app</EmailListItem>
+      <EmailListItem icon="3">Join your first session</EmailListItem>
+      <div style={{ height: "18px" }} />
     </BlackPipsEmailLayout>
   );
 }

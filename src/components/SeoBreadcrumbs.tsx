@@ -3,7 +3,7 @@ import { ChevronRight } from "lucide-react";
 
 export function SeoBreadcrumbs({ current }: { current: string }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-6 text-left text-xs text-muted-foreground">
+    <nav aria-label="Breadcrumb" className="mb-6 text-left text-sm text-muted-foreground">
       <ol className="flex flex-wrap items-center gap-1.5">
         <li>
           <Link to="/" className="hover:text-foreground">

@@ -27,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createSeoHead } from "@/lib/seo";
 import { AvailabilityAwareContactLink } from "@/components/contact/AvailabilityAwareContactLink";
 import { WelcomeGiftPanel } from "@/components/welcome-gift/WelcomeGiftPanel";
+import { LearningActivityCard } from "@/components/bp/LearningActivityCard";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   head: () =>
@@ -421,6 +422,21 @@ function Dashboard() {
   )[0];
   const continueLesson = recentLesson ?? firstIncompleteLesson;
   const continueCourseId = recentProgress?.course_id ?? firstIncompleteLesson?.course_id;
+  // Same rule as the app: the most recently watched course, else the first purchased one.
+  const resumeCourseId =
+    continueCourseId ?? (myCourses[0] ? courseIdBySlug[myCourses[0].slug] : undefined);
+  const resumeLessons = publishedLessons
+    .filter((lesson) => lesson.course_id === resumeCourseId)
+    .sort((a, b) => a.position - b.position);
+  const resumeCompleted = lessonProgress.filter(
+    (progress) =>
+      progress.course_id === resumeCourseId &&
+      progress.is_completed &&
+      resumeLessons.some((lesson) => lesson.id === progress.lesson_id),
+  ).length;
+  const resumeLessonNumber = continueLesson
+    ? resumeLessons.findIndex((lesson) => lesson.id === continueLesson.id) + 1
+    : 1;
 
   function continueLearning(courseId: string) {
     const courseSlug = databaseCourseSlugs[courseId];
@@ -428,393 +444,390 @@ function Dashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16">
-      <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-14 w-14 border border-gold/40 shadow-glow">
-            <AvatarImage src={avatarUrl ?? undefined} alt="Your profile photo" />
-            <AvatarFallback className="bg-gradient-gold font-display text-xl font-bold text-primary-foreground">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-gold">
-              Dashboard
+    <div className="bp bp-page">
+      <div className="page-bg" aria-hidden="true" />
+      <div className="wrap dash-wrap">
+        <header className="between dash-head rise">
+          <div className="flex items-center gap-4">
+            <Avatar className="dash-avatar">
+              <AvatarImage src={avatarUrl ?? undefined} alt="Your profile photo" />
+              <AvatarFallback className="bg-gradient-gold text-xl font-bold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="kicker">Dashboard</p>
+              <h1 className="h2" style={{ fontSize: "clamp(28px, 3.4vw, 40px)", marginTop: 4 }}>
+                Welcome{profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.
+              </h1>
+              <p className="small" style={{ marginTop: 2 }}>
+                {email}
+              </p>
             </div>
-            <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
-              Welcome{profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">{email}</p>
           </div>
-        </div>
-        <button
-          onClick={signOut}
-          className="glass inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold"
-        >
-          <LogOut className="h-4 w-4" /> Sign out
-        </button>
-      </header>
-
-      <nav className="glass mt-8 flex gap-1 overflow-x-auto rounded-full p-1">
-        {(
-          [
-            ["learning", "My Learning", Sparkles],
-            ["bookmarks", "Bookmarks", PlayCircle],
-            ["mentorship", "Mentorship", MessageCircle],
-            ["certificates", "Certificates", Award],
-            ["account", "Account", UserIcon],
-            ["billing", "Billing", CreditCard],
-            ["gifts", "Gifts", Gift],
-          ] as const
-        ).map(([id, label, Icon]) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${tab === id ? "bg-gradient-gold text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <Icon className="h-3.5 w-3.5" /> {label}
-            {id === "gifts" && giftUnread && (
-              <span className="size-1.5 rounded-full bg-current" aria-label="New gift" />
-            )}
+          <button type="button" onClick={signOut} className="btn btn-ghost btn-sm">
+            <LogOut aria-hidden="true" /> Sign out
           </button>
-        ))}
-      </nav>
+        </header>
 
-      <WelcomeGiftPanel showPanel={tab === "gifts"} onUnreadChange={setGiftUnread} />
+        <nav className="dtabs rise d1" aria-label="Dashboard sections">
+          {(
+            [
+              ["learning", "My Learning", Sparkles],
+              ["bookmarks", "Bookmarks", PlayCircle],
+              ["mentorship", "Mentorship", MessageCircle],
+              ["certificates", "Certificates", Award],
+              ["account", "Account", UserIcon],
+              ["billing", "Billing", CreditCard],
+              ["gifts", "Gifts", Gift],
+            ] as const
+          ).map(([id, label, Icon]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={tab === id}
+              onClick={() => setTab(id)}
+              className={`dtab ${tab === id ? "on" : ""}`}
+            >
+              <Icon aria-hidden="true" /> {label}
+              {id === "gifts" && giftUnread && (
+                <span className="size-1.5 rounded-full bg-current" aria-label="New gift" />
+              )}
+            </button>
+          ))}
+        </nav>
 
-      <section className="mt-8">
-        {tab === "learning" && (
-          <div>
-            <h2 className="font-display text-xl font-semibold">Continue learning</h2>
-            {learningLoading ? (
-              <div className="glass mt-4 grid min-h-36 place-items-center rounded-3xl text-sm text-muted-foreground">
-                Loading your learning progress…
-              </div>
-            ) : myCourses.length === 0 ? (
-              <EmptyState
-                title="No purchased courses yet"
-                body="Your premium lessons stay locked until an approved payment grants access."
-                ctaTo="/courses"
-                ctaLabel="Browse Premium Lessons"
-              />
-            ) : (
-              <>
-                {continueLesson && continueCourseId ? (
-                  <Link
-                    to="/courses/$slug/$lessonSlug"
-                    params={{
-                      slug: databaseCourseSlugs[continueCourseId],
-                      lessonSlug: continueLesson.slug,
-                    }}
-                    className="glass mt-4 flex flex-col gap-4 rounded-3xl p-6 transition hover:-translate-y-0.5 hover:shadow-elegant sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-widest text-gold">
-                        {recentLesson ? "Resume lesson" : "Start course"}
+        <WelcomeGiftPanel showPanel={tab === "gifts"} onUnreadChange={setGiftUnread} />
+
+        <section className="mt-8">
+          {tab === "learning" && (
+            <div>
+              {learningLoading ? (
+                <div className="glass mt-4 grid min-h-36 place-items-center rounded-3xl text-sm text-muted-foreground">
+                  Loading your learning progress…
+                </div>
+              ) : myCourses.length === 0 ? (
+                <EmptyState
+                  title="No purchased courses yet"
+                  body="Your premium lessons stay locked until an approved payment grants access."
+                  ctaTo="/courses"
+                  ctaLabel="Browse Premium Lessons"
+                />
+              ) : (
+                <>
+                  <div className="dgrid">
+                    {resumeCourseId ? (
+                      <ContinueCard
+                        courseTitle={
+                          databaseCourseTitles[resumeCourseId] ??
+                          myCourses[0]?.title ??
+                          "Premium course"
+                        }
+                        courseSlug={databaseCourseSlugs[resumeCourseId]}
+                        lessonTitle={continueLesson?.title}
+                        lessonNumber={resumeLessonNumber}
+                        totalLessons={resumeLessons.length}
+                        completed={resumeCompleted}
+                        started={Boolean(recentLesson)}
+                      />
+                    ) : (
+                      <div className="card continue-card">
+                        <p className="small">Start a premium lesson to resume it here.</p>
                       </div>
-                      <h3 className="mt-2 font-display text-xl font-semibold">
-                        {continueLesson.title}
-                      </h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {databaseCourseTitles[continueCourseId] ?? "Premium course"}
-                      </p>
-                    </div>
-                    <span className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow">
-                      <PlayCircle className="h-4 w-4" /> Continue Learning
-                    </span>
-                  </Link>
-                ) : (
-                  <div className="glass mt-4 rounded-3xl p-6 text-sm text-muted-foreground">
-                    Start a premium lesson to resume it here.
+                    )}
+                    <LearningActivityCard />
                   </div>
-                )}
 
-                <h3 className="mt-8 font-display text-xl font-semibold">Your courses</h3>
+                  <h3 className="h3" style={{ margin: "28px 0 14px" }}>
+                    Your courses
+                  </h3>
+                  <div className="grid-3">
+                    {myCourses.map((c) => {
+                      const courseId = courseIdBySlug[c.slug];
+                      const lessons = publishedLessons.filter(
+                        (lesson) => lesson.course_id === courseId,
+                      );
+                      const completedCount = lessonProgress.filter(
+                        (progress) =>
+                          progress.course_id === courseId &&
+                          progress.is_completed &&
+                          lessons.some((lesson) => lesson.id === progress.lesson_id),
+                      ).length;
+                      const percentage = lessons.length
+                        ? Math.round((completedCount / lessons.length) * 100)
+                        : 0;
+                      return (
+                        <article key={c.slug} className="card lift spot course-mini">
+                          <span className="micro gold">{c.level}</span>
+                          <h3 className="h4" style={{ fontSize: 17 }}>
+                            {c.title}
+                          </h3>
+                          <div className="bar">
+                            <i style={{ width: `${percentage}%` }} />
+                          </div>
+                          <div className="between small" style={{ fontSize: 12 }}>
+                            <span>{percentage}% complete</span>
+                            <span>
+                              {completedCount} / {lessons.length} lessons
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => courseId && continueLearning(courseId)}
+                            className="btn btn-ghost btn-sm"
+                            style={{ alignSelf: "flex-start" }}
+                          >
+                            View lessons
+                          </button>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {tab === "bookmarks" && (
+            <div>
+              <h2 className="font-display text-xl font-semibold">Saved lessons</h2>
+              {bookmarkedLessons.length === 0 ? (
+                <EmptyState
+                  title="No bookmarked lessons yet."
+                  body="Save a premium lesson to return to it from your dashboard."
+                  ctaTo="/courses"
+                  ctaLabel="Explore premium lessons"
+                />
+              ) : (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {myCourses.map((c) => {
-                    const courseId = courseIdBySlug[c.slug];
-                    const lessons = publishedLessons.filter(
-                      (lesson) => lesson.course_id === courseId,
+                  {bookmarkedLessons.map((l) => (
+                    <article
+                      key={l.id}
+                      className="overflow-hidden rounded-2xl border border-border bg-card"
+                    >
+                      <div className="relative aspect-video bg-gradient-to-br from-accent to-secondary">
+                        <div className="absolute inset-0 bg-hero-glow opacity-70" />
+                        {l.thumbnail ? (
+                          <img
+                            src={l.thumbnail}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className="absolute inset-0 h-full w-full object-cover object-center"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 grid place-items-center">
+                            <PlayCircle className="h-9 w-9 text-gold" aria-hidden="true" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-gold">
+                          {l.courseTitle}
+                        </span>
+                        <h3 className="mt-2 font-display text-base font-semibold">{l.title}</h3>
+                        <p className="mt-2 text-xs text-muted-foreground">{l.progressLabel}</p>
+                        <div className="mt-4 flex items-center justify-between gap-3">
+                          {l.source === "premium" ? (
+                            <Link
+                              to="/courses/$slug/$lessonSlug"
+                              params={{ slug: l.courseSlug, lessonSlug: l.slug }}
+                              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"
+                            >
+                              <PlayCircle className="h-3.5 w-3.5" /> Continue
+                            </Link>
+                          ) : (
+                            <Link
+                              to="/free"
+                              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"
+                            >
+                              <PlayCircle className="h-3.5 w-3.5" /> Continue
+                            </Link>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => void removeBookmark(l.id, l.source)}
+                            aria-label={`Remove ${l.title} from saved lessons`}
+                            className="inline-flex min-h-11 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <BookmarkX className="h-3.5 w-3.5" /> Remove
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "account" && (
+            <form onSubmit={saveProfile} className="glass max-w-xl rounded-3xl p-6">
+              <h2 className="font-display text-xl font-semibold">Profile</h2>
+              <div className="mt-4 grid gap-4">
+                <Field label="Full name">
+                  <input
+                    value={profile.full_name ?? ""}
+                    onChange={(e) => setProfile((p) => ({ ...p, full_name: e.target.value }))}
+                    maxLength={80}
+                    className="w-full bg-transparent outline-none"
+                  />
+                </Field>
+                <Field label="Country">
+                  <input
+                    value={profile.country ?? ""}
+                    onChange={(e) => setProfile((p) => ({ ...p, country: e.target.value }))}
+                    maxLength={80}
+                    className="w-full bg-transparent outline-none"
+                  />
+                </Field>
+                <Field label="Avatar URL">
+                  <input
+                    value={profile.avatar ?? ""}
+                    onChange={(e) => setProfile((p) => ({ ...p, avatar: e.target.value }))}
+                    maxLength={500}
+                    placeholder="https://…"
+                    className="w-full bg-transparent outline-none"
+                  />
+                </Field>
+                <Field label="Email">
+                  <input
+                    value={email}
+                    disabled
+                    className="w-full bg-transparent text-muted-foreground outline-none"
+                  />
+                </Field>
+              </div>
+              <button
+                disabled={savingProfile}
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
+              >
+                Save changes
+              </button>
+            </form>
+          )}
+
+          {tab === "mentorship" && (
+            <MentorshipStatus application={mentorshipApplication} loading={mentorshipLoading} />
+          )}
+
+          {tab === "certificates" && (
+            <CertificatesPanel
+              certificates={certificates}
+              loading={certificatesLoading}
+              error={certificatesError}
+              onRetry={() => void refreshCertificates()}
+            />
+          )}
+
+          {tab === "billing" && (
+            <div>
+              <h2 className="font-display text-xl font-semibold">Payment history</h2>
+              {paymentsLoading ? (
+                <div className="glass mt-4 grid max-w-3xl place-items-center rounded-3xl p-10 text-sm text-muted-foreground">
+                  Loading payment history…
+                </div>
+              ) : paymentsError ? (
+                <div className="glass mt-4 max-w-3xl rounded-3xl p-8 text-center">
+                  <h3 className="font-display text-lg font-semibold">
+                    Payment history unavailable
+                  </h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{paymentsError}</p>
+                  <button
+                    onClick={() => user && void refreshPaymentSubmissions(user.id)}
+                    className="mt-5 inline-flex rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : paymentSubmissions.length === 0 ? (
+                <EmptyState
+                  title="No payment submissions yet"
+                  body="Your course payment submissions and their verification status will appear here."
+                  ctaTo="/courses"
+                  ctaLabel="Browse Premium Lessons"
+                />
+              ) : (
+                <div className="glass mt-5 max-w-3xl divide-y divide-border overflow-hidden rounded-3xl">
+                  {paymentSubmissions.map((payment) => {
+                    const status = getPaymentStatusDetails(
+                      payment.status,
+                      payment.rejection_reason,
                     );
-                    const completedCount = lessonProgress.filter(
-                      (progress) =>
-                        progress.course_id === courseId &&
-                        progress.is_completed &&
-                        lessons.some((lesson) => lesson.id === progress.lesson_id),
-                    ).length;
-                    const percentage = lessons.length
-                      ? Math.round((completedCount / lessons.length) * 100)
-                      : 0;
+                    const courseSlug = databaseCourseSlugs[payment.course_id];
+                    const paymentMethod = [payment.payment_method, payment.provider]
+                      .filter(Boolean)
+                      .join(" · ");
                     return (
                       <article
-                        key={c.slug}
-                        className="group rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-1 hover:shadow-elegant"
+                        key={payment.id}
+                        className="flex flex-col gap-5 p-6 sm:flex-row sm:items-start sm:justify-between"
                       >
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-gold">
-                          {c.level}
-                        </span>
-                        <h3 className="mt-2 font-display text-base font-semibold">{c.title}</h3>
-                        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary">
-                          <div
-                            className="h-full bg-gradient-gold"
-                            style={{ width: `${percentage}%` }}
-                          />
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-display text-base font-semibold">
+                            {databaseCourseTitles[payment.course_id] ?? "Premium course"}
+                          </h3>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Submitted {formatPaymentTimestamp(payment.created_at)}
+                          </p>
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Transaction ID: {payment.transaction_id ?? "Not available"}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {paymentMethod || "Payment method not available"}
+                          </p>
+                          <p className={`mt-4 text-sm ${status.messageClass}`}>{status.message}</p>
+                          {status.isApproved && (
+                            <button
+                              onClick={() => continueLearning(payment.course_id)}
+                              className="mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-105"
+                            >
+                              Continue Learning
+                            </button>
+                          )}
+                          {status.isRejected && (
+                            <button
+                              disabled={!courseSlug}
+                              onClick={() =>
+                                courseSlug &&
+                                navigate({
+                                  to: "/payment/$slug",
+                                  params: { slug: courseSlug },
+                                })
+                              }
+                              className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold transition-colors hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" /> Submit New Payment
+                            </button>
+                          )}
                         </div>
-                        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{percentage}% complete</span>
-                          <span>
-                            {completedCount} / {lessons.length} lessons
+                        <div className="flex shrink-0 items-center justify-between gap-5 sm:flex-col sm:items-end sm:gap-3">
+                          <span className="font-display text-lg font-bold text-gradient-gold">
+                            {payment.currency === "TZS"
+                              ? formatTZS(payment.amount)
+                              : `${payment.currency} ${payment.amount.toLocaleString("en-US")}`}
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${status.badgeClass}`}
+                          >
+                            {status.isPending && (
+                              <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                            )}
+                            {status.isApproved && (
+                              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            )}
+                            {status.label}
                           </span>
                         </div>
-                        <button
-                          onClick={() => courseId && continueLearning(courseId)}
-                          className="mt-5 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 text-xs font-semibold text-gold hover:bg-gold/20"
-                        >
-                          View lessons
-                        </button>
                       </article>
                     );
                   })}
                 </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {tab === "bookmarks" && (
-          <div>
-            <h2 className="font-display text-xl font-semibold">Saved lessons</h2>
-            {bookmarkedLessons.length === 0 ? (
-              <EmptyState
-                title="No bookmarked lessons yet."
-                body="Save a premium lesson to return to it from your dashboard."
-                ctaTo="/courses"
-                ctaLabel="Explore premium lessons"
-              />
-            ) : (
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {bookmarkedLessons.map((l) => (
-                  <article
-                    key={l.id}
-                    className="overflow-hidden rounded-2xl border border-border bg-card"
-                  >
-                    <div className="relative aspect-video bg-gradient-to-br from-accent to-secondary">
-                      <div className="absolute inset-0 bg-hero-glow opacity-70" />
-                      {l.thumbnail ? (
-                        <img
-                          src={l.thumbnail}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="absolute inset-0 h-full w-full object-cover object-center"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 grid place-items-center">
-                          <PlayCircle className="h-9 w-9 text-gold" aria-hidden="true" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-5">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-gold">
-                        {l.courseTitle}
-                      </span>
-                      <h3 className="mt-2 font-display text-base font-semibold">{l.title}</h3>
-                      <p className="mt-2 text-xs text-muted-foreground">{l.progressLabel}</p>
-                      <div className="mt-4 flex items-center justify-between gap-3">
-                        {l.source === "premium" ? (
-                          <Link
-                            to="/courses/$slug/$lessonSlug"
-                            params={{ slug: l.courseSlug, lessonSlug: l.slug }}
-                            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"
-                          >
-                            <PlayCircle className="h-3.5 w-3.5" /> Continue
-                          </Link>
-                        ) : (
-                          <Link
-                            to="/free"
-                            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-xs font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-[1.03]"
-                          >
-                            <PlayCircle className="h-3.5 w-3.5" /> Continue
-                          </Link>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => void removeBookmark(l.id, l.source)}
-                          aria-label={`Remove ${l.title} from saved lessons`}
-                          className="inline-flex min-h-11 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          <BookmarkX className="h-3.5 w-3.5" /> Remove
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {tab === "account" && (
-          <form onSubmit={saveProfile} className="glass max-w-xl rounded-3xl p-6">
-            <h2 className="font-display text-xl font-semibold">Profile</h2>
-            <div className="mt-4 grid gap-4">
-              <Field label="Full name">
-                <input
-                  value={profile.full_name ?? ""}
-                  onChange={(e) => setProfile((p) => ({ ...p, full_name: e.target.value }))}
-                  maxLength={80}
-                  className="w-full bg-transparent outline-none"
-                />
-              </Field>
-              <Field label="Country">
-                <input
-                  value={profile.country ?? ""}
-                  onChange={(e) => setProfile((p) => ({ ...p, country: e.target.value }))}
-                  maxLength={80}
-                  className="w-full bg-transparent outline-none"
-                />
-              </Field>
-              <Field label="Avatar URL">
-                <input
-                  value={profile.avatar ?? ""}
-                  onChange={(e) => setProfile((p) => ({ ...p, avatar: e.target.value }))}
-                  maxLength={500}
-                  placeholder="https://…"
-                  className="w-full bg-transparent outline-none"
-                />
-              </Field>
-              <Field label="Email">
-                <input
-                  value={email}
-                  disabled
-                  className="w-full bg-transparent text-muted-foreground outline-none"
-                />
-              </Field>
+              )}
             </div>
-            <button
-              disabled={savingProfile}
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
-            >
-              Save changes
-            </button>
-          </form>
-        )}
-
-        {tab === "mentorship" && (
-          <MentorshipStatus application={mentorshipApplication} loading={mentorshipLoading} />
-        )}
-
-        {tab === "certificates" && (
-          <CertificatesPanel
-            certificates={certificates}
-            loading={certificatesLoading}
-            error={certificatesError}
-            onRetry={() => void refreshCertificates()}
-          />
-        )}
-
-        {tab === "billing" && (
-          <div>
-            <h2 className="font-display text-xl font-semibold">Payment history</h2>
-            {paymentsLoading ? (
-              <div className="glass mt-4 grid max-w-3xl place-items-center rounded-3xl p-10 text-sm text-muted-foreground">
-                Loading payment history…
-              </div>
-            ) : paymentsError ? (
-              <div className="glass mt-4 max-w-3xl rounded-3xl p-8 text-center">
-                <h3 className="font-display text-lg font-semibold">Payment history unavailable</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{paymentsError}</p>
-                <button
-                  onClick={() => user && void refreshPaymentSubmissions(user.id)}
-                  className="mt-5 inline-flex rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"
-                >
-                  Try again
-                </button>
-              </div>
-            ) : paymentSubmissions.length === 0 ? (
-              <EmptyState
-                title="No payment submissions yet"
-                body="Your course payment submissions and their verification status will appear here."
-                ctaTo="/courses"
-                ctaLabel="Browse Premium Lessons"
-              />
-            ) : (
-              <div className="glass mt-5 max-w-3xl divide-y divide-border overflow-hidden rounded-3xl">
-                {paymentSubmissions.map((payment) => {
-                  const status = getPaymentStatusDetails(payment.status, payment.rejection_reason);
-                  const courseSlug = databaseCourseSlugs[payment.course_id];
-                  const paymentMethod = [payment.payment_method, payment.provider]
-                    .filter(Boolean)
-                    .join(" · ");
-                  return (
-                    <article
-                      key={payment.id}
-                      className="flex flex-col gap-5 p-6 sm:flex-row sm:items-start sm:justify-between"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-display text-base font-semibold">
-                          {databaseCourseTitles[payment.course_id] ?? "Premium course"}
-                        </h3>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Submitted {formatPaymentTimestamp(payment.created_at)}
-                        </p>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Transaction ID: {payment.transaction_id ?? "Not available"}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {paymentMethod || "Payment method not available"}
-                        </p>
-                        <p className={`mt-4 text-sm ${status.messageClass}`}>{status.message}</p>
-                        {status.isApproved && (
-                          <button
-                            onClick={() => continueLearning(payment.course_id)}
-                            className="mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-105"
-                          >
-                            Continue Learning
-                          </button>
-                        )}
-                        {status.isRejected && (
-                          <button
-                            disabled={!courseSlug}
-                            onClick={() =>
-                              courseSlug &&
-                              navigate({
-                                to: "/payment/$slug",
-                                params: { slug: courseSlug },
-                              })
-                            }
-                            className="mt-4 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold transition-colors hover:bg-gold/20 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" /> Submit New Payment
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex shrink-0 items-center justify-between gap-5 sm:flex-col sm:items-end sm:gap-3">
-                        <span className="font-display text-lg font-bold text-gradient-gold">
-                          {payment.currency === "TZS"
-                            ? formatTZS(payment.amount)
-                            : `${payment.currency} ${payment.amount.toLocaleString("en-US")}`}
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${status.badgeClass}`}
-                        >
-                          {status.isPending && (
-                            <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-                          )}
-                          {status.isApproved && (
-                            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                          )}
-                          {status.label}
-                        </span>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
@@ -1067,6 +1080,85 @@ function EmptyState({
       >
         {ctaLabel}
       </Link>
+    </div>
+  );
+}
+
+/** The app's "Continue learning" card: course, current lesson, progress ring and module steps. */
+function ContinueCard({
+  courseTitle,
+  courseSlug,
+  lessonTitle,
+  lessonNumber,
+  totalLessons,
+  completed,
+  started,
+}: {
+  courseTitle: string;
+  courseSlug?: string;
+  lessonTitle?: string;
+  lessonNumber: number;
+  totalLessons: number;
+  completed: number;
+  started: boolean;
+}) {
+  const progress = totalLessons ? completed / totalLessons : 0;
+  const circumference = 2 * Math.PI * 26;
+  const segments = Math.min(Math.max(totalLessons, 1), 12);
+  const filled = totalLessons ? Math.round(progress * segments) : 0;
+  return (
+    <div className="orbit">
+      <div className="orbit-in continue-card">
+        <div className="between" style={{ alignItems: "flex-start", gap: 16 }}>
+          <div className="stack" style={{ gap: 6, minWidth: 0 }}>
+            <span className="chip chip-gold" style={{ alignSelf: "flex-start" }}>
+              <Sparkles aria-hidden="true" style={{ width: 12, height: 12 }} /> {courseTitle}
+            </span>
+            <p className="micro" style={{ marginTop: 6 }}>
+              {started ? "Continue where you left off" : "Your course is ready"}
+            </p>
+            <h2 className="h3" style={{ fontSize: "clamp(20px, 2.2vw, 26px)" }}>
+              {lessonTitle ?? courseTitle}
+            </h2>
+            <p className="small">
+              {totalLessons
+                ? `Lesson ${lessonNumber} of ${totalLessons}`
+                : "Lessons are in the app"}
+            </p>
+          </div>
+          <div className="cring" role="img" aria-label={`${Math.round(progress * 100)}% complete`}>
+            <svg viewBox="0 0 64 64" width="68" height="68" aria-hidden="true">
+              <circle cx="32" cy="32" r="26" fill="none" stroke="var(--fill2)" strokeWidth="6" />
+              <circle
+                cx="32"
+                cy="32"
+                r="26"
+                fill="none"
+                stroke="#FABE33"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference * (1 - progress)}
+                transform="rotate(-90 32 32)"
+              />
+            </svg>
+            <b>{Math.round(progress * 100)}%</b>
+          </div>
+        </div>
+        <div className="csegs" aria-hidden="true">
+          {Array.from({ length: segments }, (_, i) => (
+            <i key={i} className={i < filled ? "on" : ""} />
+          ))}
+        </div>
+        <div className="row-wrap stack-s" style={{ gap: 12 }}>
+          {courseSlug ? (
+            <Link to="/courses/$slug" params={{ slug: courseSlug }} className="btn btn-gold">
+              <PlayCircle aria-hidden="true" /> {started ? "Continue Learning" : "Start Learning"}
+            </Link>
+          ) : null}
+          <span className="small">Lessons play in the BLACKPIPS app</span>
+        </div>
+      </div>
     </div>
   );
 }

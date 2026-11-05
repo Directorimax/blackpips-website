@@ -830,6 +830,17 @@ export type Database = {
         Args: { p_course_id: string; p_lesson_id: string };
         Returns: Json;
       };
+      record_learning_activity: {
+        Args: {
+          p_event_id: string;
+          p_course_id: string;
+          p_lesson_id: string;
+          p_active_seconds: number;
+          p_timezone: string;
+          p_activity_date: string;
+        };
+        Returns: boolean;
+      };
       admin_reorder_trading_tip_media: {
         Args: { p_tip_id: string; p_media_ids: string[] };
         Returns: undefined;

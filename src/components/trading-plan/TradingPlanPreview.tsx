@@ -90,8 +90,8 @@ export function TradingPlanPreview({ draft }: { draft: TradingPlanDraft }) {
     });
 
   return (
-    <aside className="min-w-0 rounded-3xl shadow-elegant">
-      <div className="max-h-[calc(100vh-7rem)] min-w-0 overflow-y-auto rounded-[inherit] border border-border bg-card/85 p-5 sm:p-6">
+    <aside className="orbit min-w-0">
+      <div className="orbit-in plan-preview max-h-[calc(100vh-8rem)] min-w-0 overflow-y-auto">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-gold">
             <BookOpenCheck className="h-5 w-5 shrink-0" />
@@ -99,7 +99,7 @@ export function TradingPlanPreview({ draft }: { draft: TradingPlanDraft }) {
               My Trading Playbook
             </span>
           </div>
-          <h2 className="mt-4 break-words font-display text-2xl font-semibold [overflow-wrap:anywhere]">
+          <h2 className="h3 mt-4 break-words [overflow-wrap:anywhere]">
             {draft.trader_name?.trim() || "Your rules, clearly defined."}
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -115,14 +115,14 @@ export function TradingPlanPreview({ draft }: { draft: TradingPlanDraft }) {
                 key={section.id}
                 onMouseEnter={() => onSectionMouseEnter(section.id)}
                 onMouseLeave={onSectionMouseLeave}
-                className={`min-w-0 overflow-hidden rounded-xl border transition-colors duration-200 hover:border-gold/50 hover:shadow-[0_8px_20px_hsl(var(--gold)/0.08)] ${open ? "border-gold/50 bg-card/95 shadow-[0_8px_20px_hsl(var(--gold)/0.08)]" : "border-border/70 bg-background/20"}`}
+                className={`plan-prev-sec ${open ? "open" : ""}`}
               >
                 <button
                   type="button"
                   onClick={() => onSectionClick(section.id)}
                   aria-expanded={open}
                   aria-controls={contentId}
-                  className="flex w-full cursor-pointer items-center gap-3 px-3 py-3 text-left text-xs font-semibold uppercase tracking-widest outline-none transition-colors duration-200 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gold"
+                  className="plan-prev-h"
                 >
                   <span className="min-w-0 flex-1">{section.title}</span>
                   <motion.span

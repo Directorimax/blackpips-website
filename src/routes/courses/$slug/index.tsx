@@ -1,22 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  BookOpen,
-  CheckCircle2,
-  Clock3,
-  Lock,
-  PlayCircle,
-  Smartphone,
-} from "lucide-react";
+import { BookOpen, Check, CheckCircle2, Lock, PlayCircle, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/useAdmin";
+import { PageFrame } from "@/components/bp/PageFrame";
+import { COURSES, formatTZS } from "@/lib/site-data";
 
-export const Route = createFileRoute("/courses/$slug/")({ component: CourseAccess });
+export const Route = createFileRoute("/courses/$slug/")({
+  component: () => (
+    <PageFrame>
+      <CourseAccess />
+    </PageFrame>
+  ),
+});
 
-type Course = { id: string; slug: string; title: string };
+type Course = {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string | null;
+  price?: number;
+};
 type AccessState = "locked" | "pending" | "purchased";
 type Lesson = {
   id: string;
@@ -28,10 +34,7 @@ type Lesson = {
 function CourseAccess() {
   const { isAdmin, loading } = useAdmin();
 
-  if (loading)
-    return (
-      <div className="px-4 py-24 text-center text-sm text-muted-foreground">Verifying access…</div>
-    );
+  if (loading) return <CourseLoading label="Verifying access…" />;
   return isAdmin ? <AdminCourseLessons /> : <LearnerCourseAccess />;
 }
 
@@ -50,7 +53,7 @@ function LearnerCourseAccess() {
       setLoading(true);
       const { data: courseData, error: courseError } = await supabase
         .from("courses")
-        .select("id,slug,title")
+        .select("id,slug,title,description,price")
         .eq("slug", slug)
         .eq("access_type", "premium")
         .eq("published", true)
@@ -90,61 +93,170 @@ function LearnerCourseAccess() {
     };
   }, [slug, user]);
 
-  if (loading)
-    return (
-      <div className="px-4 py-24 text-center text-sm text-muted-foreground">Loading course…</div>
-    );
+  if (loading) return <CourseLoading label="Loading course…" />;
   if (!course)
     return <CourseMessage title="Course unavailable" body="Please return to Premium Lessons." />;
-  if (access === "locked")
-    return (
-      <CourseMessage
-        title="Course locked"
-        body="Purchase this Premium Course to submit your payment for approval."
-        slug={course.slug}
-      />
-    );
+
+  const info = COURSES.find((c) => c.slug === course.slug);
+  const price = course.price ?? info?.price;
+  const step = access === "purchased" ? 3 : access === "pending" ? 2 : 0;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16">
-      <Link
-        to="/courses"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-gold"
-      >
-        <ArrowLeft className="h-4 w-4" /> Premium Lessons
-      </Link>
-      <section className="glass mt-8 overflow-hidden rounded-3xl border border-gold/30">
-        <div className="bg-gradient-to-br from-gold/15 via-card to-card p-6 sm:p-10">
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gold/15 text-gold">
-            {access === "purchased" ? <Smartphone /> : <Clock3 />}
-          </div>
-          <p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-gold">
-            {access === "purchased" ? "Purchased · Lifetime Access" : "Payment under review"}
-          </p>
-          <h1 className="mt-3 break-words font-display text-3xl font-bold sm:text-4xl">
-            {course.title}
-          </h1>
-          {access === "purchased" ? (
-            <>
-              <p className="mt-4 max-w-2xl text-muted-foreground">
-                Your Premium Course is ready in the BLACKPIPS App. Open the app already installed on
-                your device and sign in with the same BLACKPIPS account to continue learning.
-              </p>
-              <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-4 py-2 text-sm font-semibold text-gold">
-                <CheckCircle2 className="h-4 w-4" /> Access approved
+    <section className="course-page">
+      <div className="wrap">
+        <nav className="row small crumbs" aria-label="Breadcrumb">
+          <Link to="/courses">Lessons</Link>
+          <span aria-hidden="true">/</span>
+          <span style={{ color: "var(--tx)" }}>{course.title}</span>
+        </nav>
+        <div className="clayout">
+          <div className="stack" style={{ gap: 28 }}>
+            <div className="stack rise" style={{ gap: 16 }}>
+              <div className="row-wrap" style={{ gap: 8 }}>
+                <span className="chip chip-gold">Premium</span>
+                {info && <span className="chip">{info.lessons} lessons</span>}
+                {info && <span className="chip">{info.duration}</span>}
+                <span className="chip">Lifetime access</span>
               </div>
-            </>
-          ) : (
-            <p className="mt-4 max-w-2xl text-muted-foreground">
-              Your payment is awaiting approval. Once approved, your Premium Course will be
-              available in the BLACKPIPS App.
-            </p>
-          )}
+              <h1 className="h1">{course.title}</h1>
+              <p className="lead">
+                {course.description || info?.description || "A BLACKPIPS Premium Course."}
+              </p>
+            </div>
+            <div className="card spot rise d1" style={{ padding: "clamp(22px, 3vw, 30px)" }}>
+              <h2 className="h3">How it works</h2>
+              <div className="grid-2" style={{ gap: "14px 24px", marginTop: 18 }}>
+                {HOW_IT_WORKS.map((line) => (
+                  <div className="learn" key={line}>
+                    <Check strokeWidth={2.4} aria-hidden="true" />
+                    {line}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div
+              className="card-flat row rise d2"
+              style={{ padding: "18px 20px", gap: 16, flexWrap: "wrap" }}
+            >
+              <span className="ico">
+                <ShieldCheck aria-hidden="true" />
+              </span>
+              <div style={{ flex: "1 1 280px" }}>
+                <p className="h4">Lessons play only in the BLACKPIPS app</p>
+                <p className="small" style={{ marginTop: 2 }}>
+                  This protects the content. Your purchase, progress and certificate are linked to
+                  your account.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <aside className="buy rise d2">
+            <div className="orbit">
+              <div
+                className="orbit-in"
+                style={{ padding: 26, display: "flex", flexDirection: "column", gap: 18 }}
+              >
+                <div className="pstep" aria-hidden="true">
+                  {PURCHASE_STEPS.map((label, i) => (
+                    <i key={label} className={i <= step ? "on" : ""} />
+                  ))}
+                </div>
+                <div className="pstep-labels" aria-hidden="true">
+                  {PURCHASE_STEPS.map((label, i) => (
+                    <span key={label} className={i <= step ? "on" : ""}>
+                      {label}
+                    </span>
+                  ))}
+                </div>
+
+                {access === "locked" && (
+                  <div className="stack" style={{ gap: 16 }}>
+                    <p className="micro">One-time payment</p>
+                    {price != null && (
+                      <p
+                        style={{
+                          fontSize: 44,
+                          fontWeight: 800,
+                          letterSpacing: "-.04em",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {formatTZS(price)}
+                      </p>
+                    )}
+                    <p className="small">
+                      Purchase this Premium Course to submit your payment for approval. Lifetime
+                      access in the BLACKPIPS app.
+                    </p>
+                    <Link
+                      to="/payment/$slug"
+                      params={{ slug: course.slug }}
+                      className="btn btn-gold btn-lg btn-block"
+                    >
+                      Buy course
+                    </Link>
+                    <p className="small center" style={{ fontSize: 12 }}>
+                      Pay with M-Pesa, Airtel Money or Mixx by Yas
+                    </p>
+                  </div>
+                )}
+
+                {access === "pending" && (
+                  <div
+                    className="stack rise"
+                    style={{ gap: 16, alignItems: "center", textAlign: "center" }}
+                  >
+                    <div className="spinner" aria-hidden="true" />
+                    <p className="micro">Payment under review</p>
+                    <p className="h3">Payment submitted</p>
+                    <p className="small">
+                      Your payment is awaiting approval. Once approved, your Premium Course will be
+                      available in the BLACKPIPS App.
+                    </p>
+                    <span className="chip chip-gold">Pending confirmation</span>
+                    <Link to="/dashboard" className="btn btn-ghost btn-sm">
+                      Go to dashboard
+                    </Link>
+                  </div>
+                )}
+
+                {access === "purchased" && (
+                  <div className="stack rise" style={{ gap: 16 }}>
+                    <span className="ico ico-solid course-ready-ico">
+                      <Check strokeWidth={2.6} aria-hidden="true" />
+                    </span>
+                    <p className="micro">Purchased · Lifetime Access</p>
+                    <p className="h3" style={{ fontSize: 22 }}>
+                      Your course is ready in the app.
+                    </p>
+                    <p className="small">
+                      Your Premium Course is ready in the BLACKPIPS App. Open the app already
+                      installed on your device and sign in with the same BLACKPIPS account to
+                      continue learning.
+                    </p>
+                    <span className="chip chip-gold" style={{ alignSelf: "flex-start" }}>
+                      <CheckCircle2 aria-hidden="true" style={{ width: 14, height: 14 }} /> Access
+                      approved
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
+
+const PURCHASE_STEPS = ["Buy", "Pay", "Review", "In app"];
+const HOW_IT_WORKS = [
+  "Buy the course on the website",
+  "Pay with mobile money and upload the receipt",
+  "The team confirms your payment",
+  "Learn in the BLACKPIPS app with the same account",
+];
 
 function AdminCourseLessons() {
   const { slug } = Route.useParams();
@@ -186,76 +298,86 @@ function AdminCourseLessons() {
     };
   }, [slug]);
 
-  if (loading)
-    return (
-      <div className="px-4 py-24 text-center text-sm text-muted-foreground">Loading course…</div>
-    );
+  if (loading) return <CourseLoading label="Loading course…" />;
   if (!course)
     return <CourseMessage title="Course unavailable" body="Please return to Premium Lessons." />;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16">
-      <Link
-        to="/courses"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-gold"
-      >
-        <ArrowLeft className="h-4 w-4" /> Premium Lessons
-      </Link>
-      <header className="mt-6">
-        <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gold">
-          <BookOpen className="h-4 w-4" /> Administrator course inspection
-        </div>
-        <h1 className="mt-3 break-words font-display text-3xl font-bold sm:text-4xl">
-          {course.title}
-        </h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Review the published Premium lessons and verify their playback quality.
-        </p>
-      </header>
-      {lessons.length === 0 ? (
-        <div className="glass mt-8 rounded-3xl p-10 text-center text-sm text-muted-foreground">
-          Lessons are being prepared.
-        </div>
-      ) : (
-        <div className="mt-8 space-y-3">
-          {lessons.map((lesson, index) => (
-            <Link
-              key={lesson.id}
-              to="/courses/$slug/$lessonSlug"
-              params={{ slug: course.slug, lessonSlug: lesson.slug }}
-              className="glass grid grid-cols-[2.5rem_minmax(0,1fr)_1.25rem] items-center gap-4 rounded-2xl p-5 transition hover:-translate-y-0.5 hover:shadow-elegant"
-            >
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-gold/10 text-sm font-semibold text-gold">
-                {index + 1}
-              </span>
-              <span className="min-w-0">
-                <span className="block font-display font-semibold">{lesson.title}</span>
-                <span className="mt-1 block line-clamp-2 text-sm text-muted-foreground">
-                  {lesson.description || "Premium lesson"}
+    <section className="course-page">
+      <div className="wrap" style={{ maxWidth: 920 }}>
+        <nav className="row small crumbs" aria-label="Breadcrumb">
+          <Link to="/courses">Lessons</Link>
+          <span aria-hidden="true">/</span>
+          <span style={{ color: "var(--tx)" }}>{course.title}</span>
+        </nav>
+        <header className="stack rise" style={{ gap: 12 }}>
+          <span className="eyebrow" style={{ alignSelf: "flex-start" }}>
+            <BookOpen aria-hidden="true" /> Administrator course inspection
+          </span>
+          <h1 className="h1">{course.title}</h1>
+          <p className="body">
+            Review the published Premium lessons and verify their playback quality.
+          </p>
+        </header>
+        {lessons.length === 0 ? (
+          <div className="card" style={{ marginTop: 28, padding: 40, textAlign: "center" }}>
+            <p className="small">Lessons are being prepared.</p>
+          </div>
+        ) : (
+          <div className="card rise d1" style={{ marginTop: 28, overflow: "hidden" }}>
+            <div className="between" style={{ padding: 20, borderBottom: "1px solid var(--line)" }}>
+              <h2 className="h3">Curriculum</h2>
+              <span className="small mono">{lessons.length} lessons</span>
+            </div>
+            {lessons.map((lesson, index) => (
+              <Link
+                key={lesson.id}
+                to="/courses/$slug/$lessonSlug"
+                params={{ slug: course.slug, lessonSlug: lesson.slug }}
+                className="les"
+              >
+                <span className="les-n">{String(index + 1).padStart(2, "0")}</span>
+                <span style={{ minWidth: 0 }}>
+                  <span className="h4" style={{ display: "block" }}>
+                    {lesson.title}
+                  </span>
+                  <span className="small line-clamp-2" style={{ display: "block", marginTop: 2 }}>
+                    {lesson.description || "Premium lesson"}
+                  </span>
                 </span>
-              </span>
-              <PlayCircle className="h-5 w-5 text-gold" aria-hidden="true" />
-            </Link>
-          ))}
-        </div>
-      )}
+                <PlayCircle aria-hidden="true" />
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function CourseLoading({ label }: { label: string }) {
+  return (
+    <div className="wrap center small" style={{ padding: "96px 24px" }}>
+      {label}
     </div>
   );
 }
 
-function CourseMessage({ title, body, slug }: { title: string; body: string; slug?: string }) {
+function CourseMessage({ title, body }: { title: string; body: string }) {
   return (
-    <div className="mx-auto max-w-xl px-4 py-24 text-center">
-      <Lock className="mx-auto h-7 w-7 text-gold" />
-      <h1 className="mt-4 font-display text-2xl font-bold">{title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{body}</p>
-      <Link
-        to={slug ? "/payment/$slug" : "/courses"}
-        params={slug ? { slug } : undefined}
-        className="mt-6 inline-flex rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow"
-      >
-        {slug ? "Buy now" : "View Premium Lessons"}
-      </Link>
-    </div>
+    <section className="course-page">
+      <div className="wrap">
+        <div className="card msg-card rise">
+          <span className="ico">
+            <Lock aria-hidden="true" />
+          </span>
+          <h1 className="h2">{title}</h1>
+          <p className="small">{body}</p>
+          <Link to="/courses" className="btn btn-gold">
+            View Premium Lessons
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }

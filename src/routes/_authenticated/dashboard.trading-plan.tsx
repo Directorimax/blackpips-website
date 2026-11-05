@@ -6,7 +6,6 @@ import { TradingPlanHeader } from "@/components/trading-plan/TradingPlanHeader";
 import { TradingPlanForm } from "@/components/trading-plan/TradingPlanForm";
 import { getPlanCompletion } from "@/components/trading-plan/completion";
 import type { TradingPlanDraft } from "@/components/trading-plan/types";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { tradingPlanSchema, type TradingPlan } from "@/lib/trading-plan";
 import {
@@ -15,6 +14,7 @@ import {
   updateTradingPlan,
 } from "@/services/trading-plan/trading-plan.functions";
 import { createSeoHead } from "@/lib/seo";
+import { PageFrame } from "@/components/bp/PageFrame";
 
 export const Route = createFileRoute("/_authenticated/dashboard/trading-plan")({
   head: () =>
@@ -24,7 +24,11 @@ export const Route = createFileRoute("/_authenticated/dashboard/trading-plan")({
       path: "/dashboard/trading-plan",
       noindex: true,
     }),
-  component: TradingPlanPage,
+  component: () => (
+    <PageFrame>
+      <TradingPlanPage />
+    </PageFrame>
+  ),
 });
 
 const blankPlan: TradingPlanDraft = {
@@ -189,12 +193,16 @@ function TradingPlanPage() {
 
   if (loadError) {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <Target className="mx-auto h-10 w-10 text-gold" />
-        <h1 className="mt-4 font-display text-3xl font-bold">Trading Plan unavailable</h1>
-        <p className="mt-3 text-muted-foreground">
-          We could not load your workspace. Please refresh the page and try again.
-        </p>
+      <main className="wrap plan-page">
+        <div className="card msg-card">
+          <span className="ico">
+            <Target aria-hidden="true" />
+          </span>
+          <h1 className="h2">Trading Plan unavailable</h1>
+          <p className="small">
+            We could not load your workspace. Please refresh the page and try again.
+          </p>
+        </div>
       </main>
     );
   }
@@ -226,7 +234,7 @@ function TradingPlanPage() {
         : "draft";
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-12 sm:py-16">
+    <main className="wrap-wide plan-page">
       <TradingPlanHeader
         draft={draft}
         percentage={percentage}
@@ -257,20 +265,19 @@ function TradingPlanPage() {
 
 function EmptyTradingPlan({ onCreate }: { onCreate: () => void }) {
   return (
-    <section className="glass mt-8 rounded-3xl px-6 py-14 text-center shadow-elegant sm:px-12">
-      <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gold/10 text-gold">
-        <Target className="h-7 w-7" />
+    <section className="orbit rise" style={{ marginTop: 24 }}>
+      <div className="orbit-in msg-card" style={{ padding: "56px 24px" }}>
+        <span className="ico ico-solid">
+          <Target aria-hidden="true" />
+        </span>
+        <h2 className="h2">Build your first Trading Plan</h2>
+        <p className="body" style={{ maxWidth: 520 }}>
+          Set your market preferences, risk limits and routine before your next trading session.
+        </p>
+        <button type="button" onClick={onCreate} className="btn btn-gold">
+          <Plus aria-hidden="true" /> Create trading plan
+        </button>
       </div>
-      <h2 className="mt-5 font-display text-2xl font-semibold">Build your first Trading Plan</h2>
-      <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-        Set your market preferences, risk limits and routine before your next trading session.
-      </p>
-      <Button
-        onClick={onCreate}
-        className="mt-6 bg-gradient-gold text-primary-foreground shadow-glow"
-      >
-        <Plus /> Create trading plan
-      </Button>
     </section>
   );
 }
@@ -278,14 +285,14 @@ function EmptyTradingPlan({ onCreate }: { onCreate: () => void }) {
 function TradingPlanSkeleton() {
   return (
     <main
-      className="mx-auto max-w-6xl space-y-5 px-4 py-16"
+      className="wrap-wide plan-page stack"
+      style={{ gap: 18 }}
       aria-busy="true"
       aria-label="Loading Trading Plan"
     >
-      <div className="h-7 w-40 animate-pulse rounded bg-muted" />
-      <div className="h-10 w-72 animate-pulse rounded bg-muted" />
-      <div className="glass h-56 animate-pulse rounded-3xl" />
-      <div className="glass h-48 animate-pulse rounded-3xl" />
+      <div className="card journal-skel" style={{ height: 240 }} />
+      <div className="card journal-skel" style={{ height: 120 }} />
+      <div className="card journal-skel" style={{ height: 120 }} />
     </main>
   );
 }

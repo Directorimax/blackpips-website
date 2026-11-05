@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Plus } from "lucide-react";
 import { FAQ_GROUPS } from "@/lib/site-data";
 
 export const Route = createFileRoute("/faq")({
@@ -20,50 +20,82 @@ export const Route = createFileRoute("/faq")({
 });
 
 function FaqPage() {
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-16">
-      <header className="text-center">
-        <div className="inline-flex rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold">
-          Help
-        </div>
-        <h1 className="mt-4 font-display text-4xl font-bold sm:text-5xl">
-          Frequently asked questions
-        </h1>
-      </header>
+  const [groupIndex, setGroupIndex] = useState(0);
+  const [open, setOpen] = useState<number | null>(0);
+  const group = FAQ_GROUPS[groupIndex];
 
-      <div className="mt-12 space-y-10">
-        {FAQ_GROUPS.map((group) => (
-          <section key={group.title}>
-            <h2 className="font-display text-2xl font-semibold">{group.title}</h2>
-            <div className="mt-4 space-y-3">
-              {group.items.map((item) => (
-                <FaqRow key={item.q} q={item.q} a={item.a} />
-              ))}
+  return (
+    <div className="bp bp-page">
+      <div className="page-bg" aria-hidden="true" />
+      <section style={{ padding: "32px 0 96px" }}>
+        <div className="wrap">
+          <div className="split faq-layout">
+            <div className="stack" style={{ gap: 18 }}>
+              <span className="eyebrow rise" style={{ alignSelf: "flex-start" }}>
+                <span className="tag">Help</span> FAQ
+              </span>
+              <h1 className="h1 rise d1">Frequently asked questions.</h1>
+              <p className="body rise d2">
+                Can't find it? Message us on WhatsApp — we usually reply the same day.
+              </p>
+              <div className="row-wrap rise d3" style={{ gap: 8, marginTop: 6 }} role="tablist">
+                {FAQ_GROUPS.map((item, i) => (
+                  <button
+                    key={item.title}
+                    type="button"
+                    role="tab"
+                    aria-selected={groupIndex === i}
+                    className={`pick ${groupIndex === i ? "on" : ""}`}
+                    onClick={() => {
+                      setGroupIndex(i);
+                      setOpen(0);
+                    }}
+                  >
+                    {item.title}
+                  </button>
+                ))}
+              </div>
+              <Link
+                to="/contact"
+                className="btn btn-ghost rise d4"
+                style={{ alignSelf: "flex-start" }}
+              >
+                Contact support
+              </Link>
             </div>
-          </section>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FaqRow({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="glass rounded-2xl">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between gap-4 p-5 text-left"
-      >
-        <span className="font-display text-base font-semibold">{q}</span>
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-gold transition-transform ${open ? "rotate-180" : ""}`}
-        />
-      </button>
-      {open && <div className="px-5 pb-5 text-sm text-muted-foreground">{a}</div>}
+            <div className="stack" style={{ gap: 10 }} key={group.title}>
+              {group.items.map((item, i) => {
+                const isOpen = open === i;
+                return (
+                  <div
+                    className={`card rise ${isOpen ? "faq-open" : ""}`}
+                    style={{ borderRadius: 16, animationDelay: `${i * 0.05}s` }}
+                    key={item.q}
+                  >
+                    <button
+                      type="button"
+                      className="faq-q"
+                      aria-expanded={isOpen}
+                      onClick={() => setOpen(isOpen ? null : i)}
+                    >
+                      {item.q}
+                      <Plus aria-hidden="true" />
+                    </button>
+                    {isOpen && (
+                      <p
+                        className="body rise"
+                        style={{ padding: "0 22px 20px", animationDuration: ".5s" }}
+                      >
+                        {item.a}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

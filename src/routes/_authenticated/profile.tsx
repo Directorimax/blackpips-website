@@ -23,12 +23,17 @@ import {
   PROFILE_IMAGE_BUCKET,
 } from "@/lib/profile-avatar";
 import { extensionForImageMime, validateImageFile } from "@/lib/upload-security";
+import { PageFrame } from "@/components/bp/PageFrame";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
     meta: [{ title: "Profile — BLACKPIPS" }, { name: "robots", content: "noindex" }],
   }),
-  component: ProfilePage,
+  component: () => (
+    <PageFrame>
+      <ProfilePage />
+    </PageFrame>
+  ),
 });
 
 const MAX_PROFILE_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -384,69 +389,73 @@ function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-5xl items-center px-4">
+      <div className="wrap profile-page">
         <ContentSkeleton className="w-full" lines={5} label="Loading your profile" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16">
-      <header className="glass rounded-3xl p-6 shadow-elegant sm:p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="relative shrink-0">
-            <Avatar className="h-28 w-28 border-2 border-gold/50 shadow-glow">
-              <AvatarImage src={avatarPreview ?? undefined} alt="Your profile photo" />
-              <AvatarFallback className="bg-gradient-gold font-display text-3xl font-bold text-primary-foreground">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              aria-label="Upload profile photo"
-              className="absolute -bottom-1 -right-1 grid h-10 w-10 place-items-center rounded-full border border-gold/40 bg-card text-gold shadow-elegant transition hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-xs font-semibold uppercase tracking-widest text-gold">
-              Your account
+    <div className="wrap profile-page">
+      <header className="orbit rise">
+        <div className="orbit-in" style={{ padding: "clamp(22px, 3vw, 32px)" }}>
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+            <div className="relative shrink-0">
+              <Avatar className="dash-avatar profile-avatar">
+                <AvatarImage src={avatarPreview ?? undefined} alt="Your profile photo" />
+                <AvatarFallback className="bg-gradient-gold text-3xl font-extrabold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                aria-label="Upload profile photo"
+                className="icon-btn profile-cam"
+              >
+                <Camera className="h-4 w-4" />
+              </button>
             </div>
-            <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
-              {profile.full_name || "BLACKPIPS learner"}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {profile.username ? `@${profile.username}` : "Choose a username below"}
-            </p>
-            <p className="mt-3 break-all text-sm text-muted-foreground">{user?.email}</p>
-          </div>
-          <div className="grid gap-2 text-sm text-muted-foreground sm:text-right">
-            <span>
-              Member since{" "}
-              {profile.created_at
-                ? new Date(profile.created_at).toLocaleDateString(undefined, {
-                    month: "short",
-                    year: "numeric",
-                  })
-                : "—"}
-            </span>
-            <PlanBadge userId={user?.id} />
+            <div className="min-w-0 flex-1">
+              <p className="kicker">Your account</p>
+              <h1 className="h2" style={{ marginTop: 8 }}>
+                {profile.full_name || "BLACKPIPS learner"}
+              </h1>
+              <p className="small" style={{ marginTop: 4 }}>
+                {profile.username ? `@${profile.username}` : "Choose a username below"}
+              </p>
+              <p className="small mono" style={{ marginTop: 10, overflowWrap: "anywhere" }}>
+                {user?.email}
+              </p>
+            </div>
+            <div className="grid gap-2 small sm:text-right">
+              <span>
+                Member since{" "}
+                {profile.created_at
+                  ? new Date(profile.created_at).toLocaleDateString(undefined, {
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "—"}
+              </span>
+              <PlanBadge userId={user?.id} />
+            </div>
           </div>
         </div>
       </header>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
-        <form onSubmit={saveProfile} className="glass rounded-3xl p-6 shadow-elegant sm:p-8">
+        <form onSubmit={saveProfile} className="card spot profile-card">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="font-display text-2xl font-bold">Account information</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h2 className="h3">Account information</h2>
+              <p className="small" style={{ marginTop: 4 }}>
                 Keep your BLACKPIPS profile up to date.
               </p>
             </div>
-            <UserRound className="h-5 w-5 text-gold" />
+            <span className="ico">
+              <UserRound aria-hidden="true" />
+            </span>
           </div>
           <input
             ref={inputRef}
@@ -460,7 +469,7 @@ function ProfilePage() {
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
-              className="glass inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold hover:text-gold disabled:opacity-60"
+              className="btn btn-ghost btn-sm"
             >
               <Upload className="h-4 w-4" />{" "}
               {uploading ? "Uploading photo…" : profile.avatar ? "Replace photo" : "Upload photo"}
@@ -470,7 +479,7 @@ function ProfilePage() {
                 type="button"
                 onClick={() => void removeAvatar()}
                 disabled={uploading}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-destructive/30 px-4 py-2 text-sm font-semibold text-destructive disabled:opacity-60"
+                className="btn btn-ghost btn-sm bear"
               >
                 {uploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -551,30 +560,28 @@ function ProfilePage() {
               type="button"
               disabled={!hasChanges || saving}
               onClick={() => setProfile(savedProfile)}
-              className="glass min-h-11 rounded-full px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
+              className="btn btn-ghost"
             >
               Cancel
             </button>
-            <button
-              disabled={!hasChanges || saving || uploading}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
-            >
+            <button disabled={!hasChanges || saving || uploading} className="btn btn-gold">
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {saving ? "Saving changes…" : "Save changes"}
             </button>
           </div>
         </form>
 
-        <form
-          onSubmit={changePassword}
-          className="glass h-fit rounded-3xl p-6 shadow-elegant sm:p-8"
-        >
+        <form onSubmit={changePassword} className="card spot profile-card h-fit">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="font-display text-2xl font-bold">Account security</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Use a strong, private password.</p>
+              <h2 className="h3">Account security</h2>
+              <p className="small" style={{ marginTop: 4 }}>
+                Use a strong, private password.
+              </p>
             </div>
-            <KeyRound className="h-5 w-5 text-gold" />
+            <span className="ico">
+              <KeyRound aria-hidden="true" />
+            </span>
           </div>
           <div className="mt-6 grid gap-4">
             <PasswordField
@@ -608,10 +615,7 @@ function ProfilePage() {
           {passwordsDoNotMatch && (
             <p className="mt-2 text-xs text-destructive">Passwords do not match.</p>
           )}
-          <button
-            disabled={!canChangePassword}
-            className="mt-7 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow disabled:opacity-60"
-          >
+          <button disabled={!canChangePassword} className="btn btn-gold btn-block mt-7">
             {changingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
             {changingPassword ? "Updating password…" : "Update password"}
           </button>
@@ -624,10 +628,10 @@ function ProfilePage() {
 function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>
-      <div className="glass rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-gold/40">
-        {children}
-      </div>
+      <span className="label" style={{ display: "block", marginBottom: 6 }}>
+        {label}
+      </span>
+      <div className="input profile-input">{children}</div>
     </label>
   );
 }
@@ -649,8 +653,10 @@ function PasswordField({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">{label}</span>
-      <div className="glass flex items-center gap-2 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-gold/40">
+      <span className="label" style={{ display: "block", marginBottom: 6 }}>
+        {label}
+      </span>
+      <div className="input profile-input flex items-center gap-2">
         <input
           required
           type={visible ? "text" : "password"}
@@ -663,7 +669,7 @@ function PasswordField({
           type="button"
           onClick={onToggle}
           aria-label={visible ? "Hide password" : "Show password"}
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          className="pw-eye"
         >
           {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
@@ -695,9 +701,5 @@ function PlanBadge({ userId }: { userId: string | undefined }) {
       active = false;
     };
   }, [userId]);
-  return (
-    <span className="justify-self-start rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-bold tracking-wide text-gold sm:justify-self-end">
-      {plan}
-    </span>
-  );
+  return <span className="chip chip-gold justify-self-start sm:justify-self-end">{plan}</span>;
 }

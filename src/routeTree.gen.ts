@@ -44,6 +44,7 @@ import { Route as AdminTradingTipsRouteImport } from './routes/admin/trading-tip
 import { Route as AdminStudentsRouteImport } from './routes/admin/students'
 import { Route as AdminPaymentsRouteImport } from './routes/admin/payments'
 import { Route as AdminMentorshipApplicationsRouteImport } from './routes/admin/mentorship-applications'
+import { Route as AdminMediaLibraryRouteImport } from './routes/admin/media-library'
 import { Route as AdminLessonsRouteImport } from './routes/admin/lessons'
 import { Route as AdminFeaturedVideosRouteImport } from './routes/admin/featured-videos'
 import { Route as AdminCertificatesRouteImport } from './routes/admin/certificates'
@@ -235,6 +236,11 @@ const AdminMentorshipApplicationsRoute =
     path: '/admin/mentorship-applications',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminMediaLibraryRoute = AdminMediaLibraryRouteImport.update({
+  id: '/admin/media-library',
+  path: '/admin/media-library',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminLessonsRoute = AdminLessonsRouteImport.update({
   id: '/admin/lessons',
   path: '/admin/lessons',
@@ -336,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/featured-videos': typeof AdminFeaturedVideosRoute
   '/admin/lessons': typeof AdminLessonsRoute
+  '/admin/media-library': typeof AdminMediaLibraryRoute
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
@@ -382,6 +389,7 @@ export interface FileRoutesByTo {
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/featured-videos': typeof AdminFeaturedVideosRoute
   '/admin/lessons': typeof AdminLessonsRoute
+  '/admin/media-library': typeof AdminMediaLibraryRoute
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
@@ -433,6 +441,7 @@ export interface FileRoutesById {
   '/admin/certificates': typeof AdminCertificatesRoute
   '/admin/featured-videos': typeof AdminFeaturedVideosRoute
   '/admin/lessons': typeof AdminLessonsRoute
+  '/admin/media-library': typeof AdminMediaLibraryRoute
   '/admin/mentorship-applications': typeof AdminMentorshipApplicationsRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/students': typeof AdminStudentsRouteWithChildren
@@ -485,6 +494,7 @@ export interface FileRouteTypes {
     | '/admin/certificates'
     | '/admin/featured-videos'
     | '/admin/lessons'
+    | '/admin/media-library'
     | '/admin/mentorship-applications'
     | '/admin/payments'
     | '/admin/students'
@@ -531,6 +541,7 @@ export interface FileRouteTypes {
     | '/admin/certificates'
     | '/admin/featured-videos'
     | '/admin/lessons'
+    | '/admin/media-library'
     | '/admin/mentorship-applications'
     | '/admin/payments'
     | '/admin/students'
@@ -581,6 +592,7 @@ export interface FileRouteTypes {
     | '/admin/certificates'
     | '/admin/featured-videos'
     | '/admin/lessons'
+    | '/admin/media-library'
     | '/admin/mentorship-applications'
     | '/admin/payments'
     | '/admin/students'
@@ -630,6 +642,7 @@ export interface RootRouteChildren {
   AdminCertificatesRoute: typeof AdminCertificatesRoute
   AdminFeaturedVideosRoute: typeof AdminFeaturedVideosRoute
   AdminLessonsRoute: typeof AdminLessonsRoute
+  AdminMediaLibraryRoute: typeof AdminMediaLibraryRoute
   AdminMentorshipApplicationsRoute: typeof AdminMentorshipApplicationsRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminStudentsRoute: typeof AdminStudentsRouteWithChildren
@@ -886,6 +899,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMentorshipApplicationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/media-library': {
+      id: '/admin/media-library'
+      path: '/admin/media-library'
+      fullPath: '/admin/media-library'
+      preLoaderRoute: typeof AdminMediaLibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/lessons': {
       id: '/admin/lessons'
       path: '/admin/lessons'
@@ -1116,6 +1136,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminCertificatesRoute: AdminCertificatesRoute,
   AdminFeaturedVideosRoute: AdminFeaturedVideosRoute,
   AdminLessonsRoute: AdminLessonsRoute,
+  AdminMediaLibraryRoute: AdminMediaLibraryRoute,
   AdminMentorshipApplicationsRoute: AdminMentorshipApplicationsRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminStudentsRoute: AdminStudentsRouteWithChildren,

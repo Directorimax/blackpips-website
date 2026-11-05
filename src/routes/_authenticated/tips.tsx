@@ -3,6 +3,7 @@ import { Clock3, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { withCentralTipVideo } from "@/lib/trading-tips";
 import {
   remainingTipTime,
   TIP_REACTIONS,
@@ -15,6 +16,8 @@ import {
   type ResolvedTipImage,
 } from "@/components/trading-tips/TipMedia";
 import { createSeoHead } from "@/lib/seo";
+import { PageFrame } from "@/components/bp/PageFrame";
+import { ReactionEmoji, type ReactionEmojiHandle } from "@/components/trading-tips/ReactionEmoji";
 
 export const Route = createFileRoute("/_authenticated/tips")({
   head: () =>
@@ -24,7 +27,11 @@ export const Route = createFileRoute("/_authenticated/tips")({
       path: "/tips",
       noindex: true,
     }),
-  component: TradingTipsFeed,
+  component: () => (
+    <PageFrame>
+      <TradingTipsFeed />
+    </PageFrame>
+  ),
 });
 
 function TradingTipsFeed() {
@@ -44,16 +51,14 @@ function TradingTipsFeed() {
     const { data, error } = await supabase
       .from("trading_tips")
       .select(
-        "id,title,caption,media_type,media_path,mime_type,created_at,expires_at,trading_tip_media(id,media_type,media_path,mime_type,sort_order)",
+        "id,title,caption,media_type,media_path,mime_type,created_at,expires_at,media_asset_id,trading_tip_media(id,media_type,media_path,mime_type,sort_order,media_asset_id)",
       )
       .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
       .order("created_at", { ascending: false });
     if (!error) {
-      const loaded = (data ?? []).map((tip) => ({
+      const loaded = ((data ?? []) as unknown as TradingTip[]).map((tip) => ({
         ...tip,
-        trading_tip_media: [
-          ...(((tip.trading_tip_media ?? []) as unknown as TradingTip["trading_tip_media"]) ?? []),
-        ].sort((a, b) => a.sort_order - b.sort_order),
+        trading_tip_media: withCentralTipVideo(tip),
       })) as unknown as TradingTip[];
       setTips(loaded);
       if (loaded.length) {
@@ -81,34 +86,33 @@ function TradingTipsFeed() {
     return () => window.clearInterval(interval);
   }, [load]);
   return (
-    <main className="mx-auto min-h-screen w-full max-w-6xl px-4 pb-16 pt-20 sm:px-6 sm:pt-28 lg:px-8">
-      <header className="mb-7 max-w-2xl sm:mb-9">
-        <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-gold">
-          <Sparkles className="h-3.5 w-3.5" /> Members feed
+    <main className="wrap tips-page">
+      <header className="stack rise" style={{ gap: 14, maxWidth: 680, marginBottom: 32 }}>
+        <span className="eyebrow" style={{ alignSelf: "flex-start" }}>
+          <Sparkles aria-hidden="true" /> Members feed
         </span>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Trading intelligence</h1>
-        <p className="mt-2 text-muted-foreground sm:text-lg">
-          Fresh educational insights from the BlackPips desk.
-        </p>
+        <h1 className="h1" style={{ fontSize: "clamp(32px, 4.4vw, 52px)" }}>
+          Trading intelligence
+        </h1>
+        <p className="lead">Fresh educational insights from the BlackPips desk.</p>
       </header>
       {loading ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="h-[31rem] animate-pulse rounded-3xl bg-muted" />
-          <div className="h-[31rem] animate-pulse rounded-3xl bg-muted" />
+          <div className="card journal-skel" style={{ height: 496 }} />
+          <div className="card journal-skel" style={{ height: 496 }} />
         </div>
       ) : tips.length === 0 ? (
-        <section className="rounded-3xl border border-gold/20 bg-card p-10 text-center shadow-elegant">
-          <Clock3 className="mx-auto h-9 w-9 text-gold" />
-          <h2 className="mt-4 text-xl font-semibold">No active tips right now.</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Check back soon.</p>
+        <section className="card spot msg-card" style={{ maxWidth: "none" }}>
+          <span className="ico">
+            <Clock3 aria-hidden="true" />
+          </span>
+          <h2 className="h3">No active tips right now.</h2>
+          <p className="small">Check back soon.</p>
         </section>
       ) : (
         <div className="grid items-start gap-6 md:grid-cols-2">
           {tips.map((tip) => (
-            <article
-              key={tip.id}
-              className="group overflow-hidden rounded-3xl border border-border/80 bg-card shadow-elegant transition duration-300 hover:-translate-y-1 hover:border-gold/35 hover:shadow-[0_16px_45px_hsl(var(--gold)/0.12)]"
-            >
+            <article key={tip.id} className="card lift spot tip-card group">
               <TipMedia
                 tipId={tip.id}
                 media={tip.trading_tip_media ?? []}
@@ -117,11 +121,9 @@ function TradingTipsFeed() {
                 priority={tips.indexOf(tip) < 2}
               />
               <div className="p-5 sm:p-6">
-                {tip.title && <h2 className="text-xl font-bold tracking-tight">{tip.title}</h2>}
-                <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground sm:text-base">
-                  {tip.caption}
-                </p>
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border/70 pt-4 text-xs text-muted-foreground">
+                {tip.title && <h2 className="h3">{tip.title}</h2>}
+                <p className="body mt-2 whitespace-pre-wrap break-words">{tip.caption}</p>
+                <div className="tip-meta">
                   <time dateTime={tip.created_at}>
                     Published{" "}
                     {new Intl.DateTimeFormat(undefined, {
@@ -129,9 +131,7 @@ function TradingTipsFeed() {
                       timeStyle: "short",
                     }).format(new Date(tip.created_at))}
                   </time>
-                  <span className="rounded-full border border-gold/20 bg-gold/10 px-2.5 py-1 font-semibold text-gold">
-                    {remainingTipTime(tip.expires_at)}
-                  </span>
+                  <span className="chip chip-gold">{remainingTipTime(tip.expires_at)}</span>
                 </div>
                 <ReactionBar
                   tipId={tip.id}
@@ -171,7 +171,6 @@ function ReactionBar({
 }) {
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
-  const [popped, setPopped] = useState<TipReaction | null>(null);
   async function react(emoji: TipReaction) {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -186,8 +185,6 @@ function ReactionBar({
       if (previous) optimisticCounts[previous] = Math.max(0, (optimisticCounts[previous] ?? 0) - 1);
       optimisticCounts[emoji] = (optimisticCounts[emoji] ?? 0) + 1;
       onChange({ counts: optimisticCounts, selected: emoji });
-      setPopped(emoji);
-      window.setTimeout(() => setPopped(null), 420);
     }
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -217,27 +214,52 @@ function ReactionBar({
   return (
     <div className="mt-4 flex flex-wrap gap-2" aria-label="Tip reactions">
       {TIP_REACTIONS.map((emoji) => (
-        <button
+        <ReactionButton
           key={emoji}
-          type="button"
+          emoji={emoji}
+          count={value.counts[emoji] ?? 0}
+          selected={value.selected === emoji}
           disabled={busy}
-          aria-label={`React ${emoji}${value.counts[emoji] ? `, ${value.counts[emoji]} reactions` : ""}`}
-          aria-pressed={value.selected === emoji}
-          onClick={() => void react(emoji)}
-          className={`relative min-h-9 rounded-full border px-2.5 text-sm transition-colors ${value.selected === emoji ? "border-gold bg-gold/15 text-gold" : "border-border/80 bg-muted/30 hover:border-gold/30 hover:bg-gold/5"}`}
-        >
-          {emoji}
-          {popped === emoji && (
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute -top-3 left-1/2 -translate-x-1/2 animate-[bounce_400ms_ease-out] text-base"
-            >
-              {emoji}
-            </span>
-          )}
-          {value.counts[emoji] ? <span className="ml-1">{value.counts[emoji]}</span> : null}
-        </button>
+          onPick={() => void react(emoji)}
+        />
       ))}
     </div>
+  );
+}
+
+function ReactionButton({
+  emoji,
+  count,
+  selected,
+  disabled,
+  onPick,
+}: {
+  emoji: TipReaction;
+  count: number;
+  selected: boolean;
+  disabled: boolean;
+  onPick: () => void;
+}) {
+  const player = useRef<ReactionEmojiHandle>(null);
+  const [glow, setGlow] = useState(0);
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-label={`React ${emoji}${count ? `, ${count} reactions` : ""}`}
+      aria-pressed={selected}
+      onClick={() => {
+        if (!selected) {
+          player.current?.celebrate();
+          setGlow((n) => n + 1);
+        }
+        onPick();
+      }}
+      className={`pick tip-react relative ${selected ? "on" : ""}`}
+    >
+      {glow > 0 && <span key={glow} className="tip-react-glow" aria-hidden="true" />}
+      <ReactionEmoji ref={player} emoji={emoji} />
+      {count ? <span className="tip-react-count">{count}</span> : null}
+    </button>
   );
 }

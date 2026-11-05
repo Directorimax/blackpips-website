@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Mail, ShieldCheck } from "lucide-react";
 import { createSeoHead } from "@/lib/seo";
 import { SITE } from "@/lib/site-data";
+import { PageFrame } from "@/components/bp/PageFrame";
 
 const deletionEmail = `mailto:${SITE.email}?subject=${encodeURIComponent(
   "BLACK PIPS Account Deletion Request",
@@ -20,7 +21,11 @@ export const Route = createFileRoute("/delete-account")({
       description: "How to request deletion of your BLACK PIPS account and eligible personal data.",
       path: "/delete-account",
     }),
-  component: DeleteAccountPage,
+  component: () => (
+    <PageFrame>
+      <DeleteAccountPage />
+    </PageFrame>
+  ),
 });
 
 function DeleteAccountPage() {

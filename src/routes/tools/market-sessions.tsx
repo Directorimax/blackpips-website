@@ -21,9 +21,12 @@ export const Route = createFileRoute("/tools/market-sessions")({
 
 function MarketSessionsPage() {
   return (
-    <main className="mx-auto max-w-[1440px] px-4 py-16">
-      <SeoBreadcrumbs current="Market Sessions" />
-      <MarketSessions />
-    </main>
+    <div className="bp bp-page">
+      <div className="page-bg" aria-hidden="true" />
+      <div className="wrap-wide" style={{ padding: "32px 24px 104px" }}>
+        <SeoBreadcrumbs current="Market Sessions" />
+        <MarketSessions />
+      </div>
+    </div>
   );
 }

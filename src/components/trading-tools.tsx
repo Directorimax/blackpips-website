@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Calculator, Check, ChevronDown, Minus, Plus, Search } from "lucide-react";
 import {
@@ -29,20 +30,46 @@ const ACCOUNT_CURRENCIES = [
   { code: "GBP", symbol: "£" },
 ] as const;
 
+/** Shows instruments as plain pairs, for example EURUSD → EUR/USD. */
+export function formatInstrumentSymbol(symbol: string) {
+  return /^[A-Z]{6}$/.test(symbol) ? `${symbol.slice(0, 3)}/${symbol.slice(3)}` : symbol;
+}
+
+type CalculatorMode = "pip" | "risk";
+
+type CalculationResult =
+  | { mode: "pip"; value: number | null; perUnit: number | null; lots: number; move: number }
+  | {
+      mode: "risk";
+      riskAmount: number;
+      size: number | null;
+      profit: number | null;
+      riskReward: number;
+      breakeven: number;
+      stop: number;
+    };
+
 export function PipCalculator() {
+  const [mode, setMode] = useState<CalculatorMode>("pip");
   const [symbol, setSymbol] = useState("EURUSD");
   const instrument = INSTRUMENTS.find((item) => item.symbol === symbol) ?? INSTRUMENTS[0];
   const [lots, setLots] = useState<number | null>(instrument.defaultLotSize);
   const [move, setMove] = useState(20);
+  const [balance, setBalance] = useState("1000");
+  const [riskPercent, setRiskPercent] = useState("1");
+  const [stopMove, setStopMove] = useState<number | null>(20);
+  const [targetMove, setTargetMove] = useState<number | null>(60);
   const [accountCurrency, setAccountCurrency] = useState<(typeof ACCOUNT_CURRENCIES)[number]>(
     ACCOUNT_CURRENCIES[0],
   );
   const [rates, setRates] = useState<FxReferenceRates | null>(null);
   const [ratesLoading, setRatesLoading] = useState(true);
+  const [result, setResult] = useState<CalculationResult | null>(null);
 
   useEffect(() => {
     setLots(instrument.defaultLotSize);
     setMove(Math.max(20, instrument.minMove));
+    setResult(null);
   }, [instrument]);
 
   useEffect(() => {
@@ -57,24 +84,15 @@ export function PipCalculator() {
     };
   }, []);
 
-  const quoteValue = useMemo(
-    () => (lots === null ? null : calculateEstimatedValue(instrument, lots, move)),
-    [instrument, lots, move],
-  );
-  const estimatedValue = useMemo(
-    () =>
-      quoteValue === null
-        ? null
-        : convertReferenceCurrency(
-            quoteValue,
-            instrument.quoteCurrency,
-            accountCurrency.code,
-            rates?.unitsPerEur ?? {},
-          ),
-    [accountCurrency.code, instrument.quoteCurrency, quoteValue, rates],
-  );
+  const toAccount = (quoteAmount: number) =>
+    convertReferenceCurrency(
+      quoteAmount,
+      instrument.quoteCurrency,
+      accountCurrency.code,
+      rates?.unitsPerEur ?? {},
+    );
   const requiresConversion = instrument.quoteCurrency !== accountCurrency.code;
-  const moveLabel =
+  const unitLabel =
     instrument.calculationType === "pip"
       ? "Pips"
       : instrument.calculationType === "tick"
@@ -82,40 +100,107 @@ export function PipCalculator() {
         : "Points";
   const valueLabel =
     instrument.calculationType === "pip"
-      ? "Estimated Pip Value"
+      ? "Estimated pip value"
       : instrument.calculationType === "tick"
-        ? "Estimated Tick Value"
-        : "Estimated Point Value";
+        ? "Estimated tick value"
+        : "Estimated point value";
+  const money = (value: number | null) =>
+    value === null ? "—" : `${accountCurrency.symbol}${formatMoney(value)}`;
+
+  function calculate() {
+    if (mode === "pip") {
+      if (lots === null) return;
+      setResult({
+        mode: "pip",
+        value: toAccount(calculateEstimatedValue(instrument, lots, move)),
+        perUnit: toAccount(calculateEstimatedValue(instrument, lots, 1)),
+        lots,
+        move,
+      });
+      return;
+    }
+    const balanceValue = Number(balance);
+    const riskValue = Number(riskPercent);
+    if (!(balanceValue > 0) || !(riskValue > 0) || !stopMove || !targetMove) return;
+    const riskAmount = (balanceValue * riskValue) / 100;
+    const perLotPerUnit = toAccount(calculateEstimatedValue(instrument, 1, 1));
+    const rawSize = perLotPerUnit ? riskAmount / (stopMove * perLotPerUnit) : null;
+    const size =
+      rawSize === null
+        ? null
+        : Math.floor(rawSize / instrument.lotStep + 1e-9) * instrument.lotStep;
+    const riskReward = targetMove / stopMove;
+    setResult({
+      mode: "risk",
+      riskAmount,
+      size,
+      profit: size !== null && perLotPerUnit ? size * targetMove * perLotPerUnit : null,
+      riskReward,
+      breakeven: 100 / (1 + riskReward),
+      stop: stopMove,
+    });
+  }
+
+  const pipResult = result?.mode === "pip" ? result : null;
+  const riskResult = result?.mode === "risk" ? result : null;
 
   return (
-    <div className="glass relative rounded-3xl p-5 sm:p-8">
-      <div className="flex items-center gap-2 text-foreground dark:text-gold">
-        <Calculator className="h-5 w-5" />
-        <span className="text-xs font-semibold uppercase tracking-wide">Pip Value Calculator</span>
+    <section className="card calc spot rise">
+      <div className="between" style={{ flexWrap: "wrap", alignItems: "flex-start" }}>
+        <div>
+          <p className="kicker row" style={{ gap: 8 }}>
+            <Calculator style={{ width: 16, height: 16 }} aria-hidden="true" />
+            {mode === "pip" ? "Pip value calculator" : "Risk calculator"}
+          </p>
+          <h1 className="h2" style={{ fontSize: "clamp(24px, 3vw, 32px)", marginTop: 10 }}>
+            {mode === "pip" ? "Estimate your move value" : "Size your position from your risk"}
+          </h1>
+          <p className="small" style={{ marginTop: 6 }}>
+            Use configured estimates for planning. Your broker&apos;s contract specifications can
+            vary.
+          </p>
+        </div>
+        <div className="seg" role="tablist" aria-label="Calculator">
+          {(
+            [
+              ["pip", "Pip Value"],
+              ["risk", "Risk Calculator"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={mode === id}
+              className={`seg-btn ${mode === id ? "on" : ""}`}
+              onClick={() => {
+                setMode(id);
+                setResult(null);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
-      <h1 className="mt-2 font-display text-2xl font-bold">Estimate your move value</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Use configured estimates for planning. Your broker&apos;s contract specifications can vary.
-      </p>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <div className="sm:col-span-2">
-          <span className="text-xs font-medium text-muted-foreground">Instrument</span>
+      <div className="cgrid">
+        <div className="field">
+          <span className="label">Instrument</span>
           <InstrumentSelect value={symbol} onValueChange={setSymbol} />
         </div>
-        <label>
-          <span className="text-xs font-medium text-muted-foreground">
-            Account / result currency
-          </span>
+        <label className="field">
+          <span className="label">Account / result currency</span>
           <select
+            className="input"
             value={accountCurrency.code}
-            onChange={(event) =>
+            onChange={(event) => {
               setAccountCurrency(
                 ACCOUNT_CURRENCIES.find((currency) => currency.code === event.target.value) ??
                   ACCOUNT_CURRENCIES[0],
-              )
-            }
-            className="mt-1.5 w-full rounded-xl border border-gold/45 bg-card px-4 py-3 text-sm text-card-foreground"
+              );
+              setResult(null);
+            }}
           >
             {ACCOUNT_CURRENCIES.map((currency) => (
               <option key={currency.code} value={currency.code}>
@@ -124,73 +209,197 @@ export function PipCalculator() {
             ))}
           </select>
         </label>
-        {requiresConversion && (
-          <p className="sm:col-span-3 text-xs text-muted-foreground" aria-live="polite">
-            {ratesLoading
-              ? "Loading ECB reference rates…"
-              : rates
-                ? `FX conversion based on ECB reference rates · ${formatReferenceDate(rates.referenceDate)}`
-                : "ECB reference rate unavailable. No conversion has been estimated."}
-          </p>
-        )}
-        <NumberStepper
-          label="Lot size"
-          value={lots}
-          onValueChange={setLots}
-          min={instrument.minLotSize}
-          max={100}
-          step={instrument.lotStep}
-          validate={(value) => isValidLotSize(instrument, value)}
-          defaultValue={instrument.defaultLotSize}
-          resetKey={instrument.symbol}
-        />
-        <NumberStepper
-          label={moveLabel}
-          value={move}
-          onValueChange={(value) => {
-            if (value !== null) setMove(value);
-          }}
-          min={instrument.minMove}
-          max={100_000}
-          step={instrument.moveStep}
-          defaultValue={Math.max(20, instrument.minMove)}
-          resetKey={instrument.symbol}
-        />
-        <div className="rounded-2xl border border-border bg-card px-4 py-3 text-card-foreground shadow-sm">
-          <div className="text-xs font-medium text-muted-foreground">Contract basis</div>
-          <div className="mt-1 font-display text-sm font-semibold">
-            {instrument.contractBasis ?? `${instrument.contractSize.toLocaleString()} units / lot`}
-          </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
-            {instrument.contractBasis
-              ? instrument.supportingText
-              : `${instrument.quoteCurrency} quote currency`}
-          </div>
-        </div>
       </div>
-
-      <div className="mt-6 rounded-2xl border border-gold/30 bg-gold/5 p-5 text-center shadow-glow">
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {valueLabel}
-        </div>
-        <div
-          className={`mt-1 font-display text-4xl font-black ${estimatedValue === null ? "text-muted-foreground" : "text-gradient-gold"}`}
-        >
-          {estimatedValue === null
-            ? "—"
-            : `${accountCurrency.symbol}${formatMoney(estimatedValue)}`}
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {lots === null
-            ? "Enter a complete valid lot size to see an estimate."
-            : `Estimated value for ${move} ${moveLabel.toLowerCase()} at ${lots} lot${lots === 1 ? "" : "s"}.`}
+      {requiresConversion && (
+        <p className="small" style={{ fontSize: 12 }} aria-live="polite">
+          {ratesLoading
+            ? "Loading ECB reference rates…"
+            : rates
+              ? `FX conversion based on ECB reference rates · ${formatReferenceDate(rates.referenceDate)}`
+              : "ECB reference rate unavailable. No conversion has been estimated."}
         </p>
+      )}
+
+      {mode === "pip" ? (
+        <>
+          <div className="cgrid" style={{ alignItems: "stretch" }}>
+            <div className="grid-2" style={{ gap: 16 }}>
+              <NumberStepper
+                label="Lot size"
+                value={lots}
+                onValueChange={setLots}
+                min={instrument.minLotSize}
+                max={100}
+                step={instrument.lotStep}
+                validate={(value) => isValidLotSize(instrument, value)}
+                defaultValue={instrument.defaultLotSize}
+                resetKey={instrument.symbol}
+              />
+              <NumberStepper
+                label={unitLabel}
+                value={move}
+                onValueChange={(value) => {
+                  if (value !== null) setMove(value);
+                }}
+                min={instrument.minMove}
+                max={100_000}
+                step={instrument.moveStep}
+                defaultValue={Math.max(20, instrument.minMove)}
+                resetKey={instrument.symbol}
+              />
+            </div>
+            <div className="basis">
+              <span className="small" style={{ fontSize: 12 }}>
+                Contract basis
+              </span>
+              <span className="h4">
+                {instrument.contractBasis ??
+                  `${instrument.contractSize.toLocaleString()} units / lot`}
+              </span>
+              <span className="small" style={{ fontSize: 12 }}>
+                {instrument.contractBasis
+                  ? instrument.supportingText
+                  : `${instrument.quoteCurrency} quote currency`}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-gold btn-lg btn-block"
+            onClick={calculate}
+            disabled={lots === null}
+          >
+            Calculate
+          </button>
+          {pipResult ? (
+            <div className="result rise" style={{ animationDuration: ".6s" }} aria-live="polite">
+              <p className="micro">{valueLabel}</p>
+              <p className={`v ${pipResult.value === null ? "" : "gold-text"}`}>
+                {money(pipResult.value)}
+              </p>
+              <p className="small" style={{ marginTop: 8 }}>
+                Estimated value for {pipResult.move} {unitLabel.toLowerCase()} at {pipResult.lots}{" "}
+                lot
+                {pipResult.lots === 1 ? "" : "s"} · {money(pipResult.perUnit)} per{" "}
+                {unitLabel.toLowerCase().replace(/s$/, "")}
+              </p>
+            </div>
+          ) : (
+            <div className="result is-empty">
+              <p className="micro">{valueLabel}</p>
+              <p className="v">—</p>
+              <p className="small" style={{ marginTop: 8 }}>
+                Enter your lot size and {unitLabel.toLowerCase()}, then press Calculate.
+              </p>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="grid-4 keep-2" style={{ gap: 14 }}>
+            <label className="field">
+              <span className="label">Account balance ({accountCurrency.code})</span>
+              <input
+                className="input mono"
+                inputMode="decimal"
+                value={balance}
+                onChange={(event) => setBalance(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span className="label">Risk %</span>
+              <input
+                className="input mono"
+                inputMode="decimal"
+                value={riskPercent}
+                onChange={(event) => setRiskPercent(event.target.value)}
+              />
+            </label>
+            <NumberStepper
+              label={`Stop loss ${unitLabel.toLowerCase()}`}
+              value={stopMove}
+              onValueChange={setStopMove}
+              min={instrument.minMove}
+              max={100_000}
+              step={instrument.moveStep}
+              defaultValue={Math.max(20, instrument.minMove)}
+              resetKey={`${instrument.symbol}-sl`}
+            />
+            <NumberStepper
+              label={`Take profit ${unitLabel.toLowerCase()}`}
+              value={targetMove}
+              onValueChange={setTargetMove}
+              min={instrument.minMove}
+              max={100_000}
+              step={instrument.moveStep}
+              defaultValue={Math.max(60, instrument.minMove)}
+              resetKey={`${instrument.symbol}-tp`}
+            />
+          </div>
+          <button type="button" className="btn btn-gold btn-lg btn-block" onClick={calculate}>
+            Calculate
+          </button>
+          {riskResult ? (
+            <div
+              className="stack rise"
+              style={{ gap: 14, animationDuration: ".6s" }}
+              aria-live="polite"
+            >
+              <div className="result">
+                <p className="micro">Recommended position size</p>
+                <p className="v gold-text">
+                  {riskResult.size === null ? "—" : `${riskResult.size.toFixed(2)} lots`}
+                </p>
+                <p className="small" style={{ marginTop: 8 }}>
+                  Risking {money(riskResult.riskAmount)} on {riskResult.stop}{" "}
+                  {unitLabel.toLowerCase()} · {formatInstrumentSymbol(instrument.symbol)}
+                </p>
+              </div>
+              <div className="grid-4 keep-2" style={{ gap: 12 }}>
+                <div className="mini">
+                  <span className="micro">Risk amount</span>
+                  <b className="bear">{money(riskResult.riskAmount)}</b>
+                </div>
+                <div className="mini">
+                  <span className="micro">Potential profit</span>
+                  <b className="bull">{money(riskResult.profit)}</b>
+                </div>
+                <div className="mini">
+                  <span className="micro">Risk / reward</span>
+                  <b>1 : {riskResult.riskReward.toFixed(1)}</b>
+                </div>
+                <div className="mini">
+                  <span className="micro">Breakeven win rate</span>
+                  <b>{riskResult.breakeven.toFixed(1)}%</b>
+                </div>
+              </div>
+              <div className="rr" aria-hidden="true">
+                <i style={{ width: `${riskResult.breakeven}%`, background: "var(--bear)" }} />
+                <i style={{ width: `${100 - riskResult.breakeven}%`, background: "var(--bull)" }} />
+              </div>
+            </div>
+          ) : (
+            <div className="result is-empty">
+              <p className="micro">Recommended position size</p>
+              <p className="v">—</p>
+              <p className="small" style={{ marginTop: 8 }}>
+                Enter your balance, risk and stop loss, then press Calculate.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="between" style={{ flexWrap: "wrap" }}>
+        <p className="small" style={{ fontSize: 12, maxWidth: 520 }}>
+          {instrument.disclaimer ??
+            "This uses ECB reference conversion data with the configured instrument value. Verify tick size and contract size with your broker before trading."}
+        </p>
+        <Link to="/tools/trading-journal" className="btn btn-gold">
+          Add to Journal
+        </Link>
       </div>
-      <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-        {instrument.disclaimer ??
-          "This uses ECB reference conversion data with the configured instrument value. Verify tick size and contract size with your broker before trading."}
-      </p>
-    </div>
+    </section>
   );
 }
 
@@ -266,7 +475,7 @@ function InstrumentSelect({
   };
 
   return (
-    <div ref={rootRef} className="relative mt-1.5">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         aria-haspopup="listbox"
@@ -284,13 +493,10 @@ function InstrumentSelect({
           }
           setOpen((current) => !current);
         }}
-        className="flex w-full items-center justify-between rounded-xl border border-gold/45 bg-card px-4 py-3 text-left text-sm text-card-foreground shadow-[0_8px_20px_rgb(31_27_17_/_0.08)] transition hover:border-gold/70 hover:bg-accent/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 dark:shadow-[0_8px_20px_rgb(0_0_0_/_0.24)]"
+        className="input inst-trigger"
       >
-        <span className="min-w-0">
-          <span className="font-display font-semibold text-card-foreground">{selected.symbol}</span>
-          <span className="ml-2 truncate text-xs text-muted-foreground">
-            {selected.displayName}
-          </span>
+        <span className="min-w-0 font-semibold text-card-foreground">
+          {formatInstrumentSymbol(selected.symbol)}
         </span>
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-foreground transition-transform dark:text-gold ${open ? "rotate-180" : ""}`}
@@ -362,15 +568,15 @@ function InstrumentSelect({
                           onClick={() => select(instrument)}
                           className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${index === activeIndex ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/70 hover:text-accent-foreground"}`}
                         >
-                          <span className="font-medium">{instrument.symbol}</span>
+                          <span className="font-medium">
+                            {formatInstrumentSymbol(instrument.symbol)}
+                          </span>
                           {isSelected ? (
                             <Check
                               className="h-4 w-4 text-foreground dark:text-gold"
                               aria-label="Selected"
                             />
-                          ) : (
-                            <span className="text-xs">{instrument.displayName}</span>
-                          )}
+                          ) : null}
                         </button>
                       );
                     })}
@@ -497,15 +703,15 @@ function NumberStepper({
 
   const isAtMinimum = value !== null && value <= min;
   return (
-    <label className="block">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <span className="mt-1.5 flex overflow-hidden rounded-xl border border-input bg-card text-card-foreground shadow-sm transition focus-within:border-gold/70 focus-within:ring-2 focus-within:ring-gold/30">
+    <label className="field">
+      <span className="label">{label}</span>
+      <span className="stepper">
         <button
           type="button"
           onClick={() => updateFromButton(-1)}
           disabled={isAtMinimum}
           aria-label={`Decrease ${label}`}
-          className="grid h-11 w-11 shrink-0 place-items-center border-r border-border text-foreground transition hover:bg-gold/15 hover:text-gold disabled:cursor-not-allowed disabled:text-muted-foreground disabled:opacity-60 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold dark:text-gold"
+          className="step-btn"
         >
           <Minus className="h-4 w-4" aria-hidden="true" />
         </button>
@@ -522,14 +728,14 @@ function NumberStepper({
           onBlur={() => commitValue(inputValue, "blur")}
           onKeyDown={handleKeyDown}
           aria-label={label}
-          className="min-w-0 flex-1 bg-transparent px-2 text-center text-sm font-semibold text-card-foreground outline-none"
+          className="step-input"
         />
         <button
           type="button"
           onClick={() => updateFromButton(1)}
           disabled={value !== null && value >= max}
           aria-label={`Increase ${label}`}
-          className="grid h-11 w-11 shrink-0 place-items-center border-l border-border text-foreground transition hover:bg-gold/15 hover:text-gold disabled:cursor-not-allowed disabled:text-muted-foreground disabled:opacity-60 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold dark:text-gold"
+          className="step-btn"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
         </button>

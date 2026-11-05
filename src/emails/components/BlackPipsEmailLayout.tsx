@@ -5,6 +5,7 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Preview,
   Section,
   Text,
@@ -28,17 +29,25 @@ export function BlackPipsEmailLayout({
 
   return (
     <Html>
-      <Head />
+      <Head>
+        <meta name="color-scheme" content="dark" />
+        <meta name="supported-color-schemes" content="dark" />
+        {/* Gmail's app inverts colours in dark mode; these wrappers undo it. */}
+        <style>{`u + .body .gmail-screen { background:#000; mix-blend-mode:screen; }
+u + .body .gmail-difference { background:#000; mix-blend-mode:difference; }`}</style>
+      </Head>
       <Preview>{preview}</Preview>
-      <Body style={body}>
+      <Body className="body" style={body}>
         <Container style={container}>
           <Section style={brandSection}>
-            <Text style={brand}>BLACKPIPS</Text>
-            <Text style={brandRule}>ACADEMY</Text>
+            <Img src={LOGO_URL} width="139" height="24" alt="BLACKPIPS" style={brand} />
           </Section>
           <Section style={content}>
-            <Heading style={heading}>{title}</Heading>
-            {children}
+            <GmailKeepColours>
+              <Heading style={heading}>{title}</Heading>
+              {children}
+            </GmailKeepColours>
+            {/* Outside the Gmail fix: it only keeps white and grey, and would turn gold blue. */}
             {action ? (
               <Button href={action.href} style={button}>
                 {action.label}
@@ -46,16 +55,16 @@ export function BlackPipsEmailLayout({
             ) : null}
           </Section>
           <Section style={footer}>
-            <Text style={footerText}>
-              Need help? Contact{" "}
-              <a href={`mailto:${supportEmail}`} style={footerLink}>
-                {supportEmail}
-              </a>
-              .
-            </Text>
-            <Text style={footerText}>
-              © {new Date().getFullYear()} BlackPips Academy. All rights reserved.
-            </Text>
+            <GmailKeepColours>
+              <Text style={footerText}>
+                Need help? Contact{" "}
+                <a href={`mailto:${supportEmail}`} style={footerLink}>
+                  {supportEmail}
+                </a>
+                .
+              </Text>
+              <Text style={footerText}>© {new Date().getFullYear()} BLACKPIPS · blackpips.com</Text>
+            </GmailKeepColours>
           </Section>
         </Container>
       </Body>
@@ -63,81 +72,125 @@ export function BlackPipsEmailLayout({
   );
 }
 
+const LOGO_URL =
+  "https://supabase.blackpips.com/storage/v1/object/public/email-assets/blackpips-wordmark.png";
+
+/** Content inside keeps its real colours in the Gmail app's dark mode. */
+function GmailKeepColours({ children }: { children: ReactNode }) {
+  return (
+    <div className="gmail-screen">
+      <div className="gmail-difference">{children}</div>
+    </div>
+  );
+}
+
 export function EmailBodyText({ children }: { children: ReactNode }) {
   return <Text style={emailText}>{children}</Text>;
 }
 
+/** Icon list row, e.g. "▶ Watch at your own pace". */
+export function EmailListItem({ icon, children }: { icon: string; children: ReactNode }) {
+  return (
+    <table role="presentation" width="100%" cellPadding={0} cellSpacing={0} style={listRow}>
+      <tbody>
+        <tr>
+          <td style={listIcon}>{icon}</td>
+          <td style={listText}>{children}</td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+/** Small grey box for receipts and safety notes. */
+export function EmailNote({ children }: { children: ReactNode }) {
+  return <Text style={note}>{children}</Text>;
+}
+
 const emailText = {
-  color: "#f7f1df",
+  color: "#A9A396",
   fontFamily: "Arial, Helvetica, sans-serif",
-  fontSize: "16px",
-  lineHeight: "1.65",
+  fontSize: "15px",
+  lineHeight: "1.6",
   margin: "0 0 18px",
 } as const;
+const listRow = { borderBottom: "1px solid #181b21", margin: "0" } as const;
+const listIcon = {
+  backgroundColor: "#1A1C21",
+  borderRadius: "8px",
+  color: "#F8F5EE",
+  fontSize: "13px",
+  height: "28px",
+  textAlign: "center" as const,
+  width: "28px",
+};
+const listText = {
+  color: "#D8D2C4",
+  fontFamily: "Arial, Helvetica, sans-serif",
+  fontSize: "14px",
+  padding: "9px 0 9px 12px",
+} as const;
+const note = {
+  backgroundColor: "#101317",
+  border: "1px solid #1d2026",
+  borderRadius: "12px",
+  color: "#8f8a80",
+  fontFamily: "Arial, Helvetica, sans-serif",
+  fontSize: "13px",
+  lineHeight: "1.5",
+  margin: "18px 0 0",
+  padding: "12px 14px",
+} as const;
 const body = {
-  backgroundColor: "#090909",
-  color: "#f7f1df",
+  backgroundColor: "#000000",
+  backgroundImage: "linear-gradient(#000000, #000000)",
+  color: "#EDE8DC",
   margin: "0",
-  padding: "32px 12px",
+  padding: "28px 14px",
 } as const;
 const container = {
-  backgroundColor: "#111111",
-  border: "1px solid #c9a44c",
+  backgroundColor: "#0B0D11",
+  backgroundImage: "linear-gradient(#0B0D11, #0B0D11)",
   borderRadius: "18px",
   margin: "0 auto",
-  maxWidth: "600px",
+  maxWidth: "560px",
   overflow: "hidden",
 } as const;
 const brandSection = {
-  backgroundColor: "#090909",
-  borderBottom: "1px solid #5e4a20",
-  padding: "28px 40px 24px",
-  textAlign: "center" as const,
+  backgroundColor: "#07090D",
+  backgroundImage:
+    "radial-gradient(circle at 85% -10%, rgba(240,187,59,.28), rgba(240,187,59,0) 55%), linear-gradient(#07090D, #07090D)",
+  padding: "22px 28px 18px",
 };
-const brand = {
-  color: "#e3c675",
-  fontFamily: "Georgia, serif",
-  fontSize: "28px",
-  fontWeight: "700",
-  letterSpacing: "3px",
-  margin: "0",
-} as const;
-const brandRule = {
-  color: "#a89d80",
-  fontFamily: "Arial, Helvetica, sans-serif",
-  fontSize: "10px",
-  fontWeight: "700",
-  letterSpacing: "4px",
-  margin: "7px 0 0",
-} as const;
-const content = { padding: "38px 40px 32px" } as const;
+const brand = { border: "0", display: "block", height: "24px", width: "139px" } as const;
+const content = { padding: "28px" } as const;
 const heading = {
-  color: "#f7f1df",
-  fontFamily: "Georgia, serif",
-  fontSize: "30px",
+  color: "#F8F5EE",
+  fontFamily: "Arial, Helvetica, sans-serif",
+  fontSize: "22px",
   fontWeight: "700",
-  lineHeight: "1.25",
-  margin: "0 0 22px",
+  lineHeight: "1.3",
+  margin: "0 0 10px",
 } as const;
 const button = {
-  backgroundColor: "#c9a44c",
+  backgroundColor: "#D9971F",
+  backgroundImage: "linear-gradient(135deg, #ECB23A, #B97500)",
   borderRadius: "999px",
-  color: "#090909",
+  color: "#FFFFFF",
   display: "inline-block",
   fontFamily: "Arial, Helvetica, sans-serif",
-  fontSize: "14px",
+  fontSize: "15px",
   fontWeight: "700",
   margin: "8px 0 4px",
-  padding: "14px 22px",
+  padding: "14px 26px",
   textDecoration: "none",
 } as const;
-const footer = { borderTop: "1px solid #2d2a21", padding: "22px 40px 28px" } as const;
+const footer = { padding: "16px 28px" } as const;
 const footerText = {
-  color: "#a89d80",
+  color: "#6f6a60",
   fontFamily: "Arial, Helvetica, sans-serif",
   fontSize: "12px",
-  lineHeight: "1.55",
-  margin: "0 0 6px",
-  textAlign: "center" as const,
+  lineHeight: "1.5",
+  margin: "0 0 4px",
 };
-const footerLink = { color: "#e3c675", textDecoration: "underline" } as const;
+const footerLink = { color: "#D8D2C4", textDecoration: "underline" } as const;

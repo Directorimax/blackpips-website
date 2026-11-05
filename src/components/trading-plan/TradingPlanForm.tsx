@@ -169,7 +169,7 @@ function MultiSelectField({
     );
   };
   return (
-    <fieldset className="min-w-0 rounded-xl border border-border/80 p-3">
+    <fieldset className="min-w-0 plan-fieldset">
       <legend className="px-1 text-sm font-medium">
         {label}{" "}
         <span className="text-gold" aria-hidden="true">
@@ -210,7 +210,7 @@ function MultiSelectField({
               type="button"
               aria-pressed={active}
               onClick={() => toggle(option)}
-              className={`rounded-full border px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${active ? "border-gold/60 bg-gold/15 text-gold" : "border-border bg-background/40 text-muted-foreground hover:border-gold/40 hover:text-foreground"}`}
+              className={`pick ${active ? "on" : ""}`}
             >
               {option}
             </button>
@@ -253,11 +253,7 @@ function PsychologyRuleBuilder({
             One clear rule per line. Blank rules are not saved.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={addRule}
-          className="inline-flex items-center gap-1 rounded-full border border-gold/40 px-3 py-1.5 text-sm font-semibold text-gold transition hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
+        <button type="button" onClick={addRule} className="btn btn-ghost btn-sm">
           <Plus className="h-4 w-4" /> Add Rule
         </button>
       </div>
@@ -269,9 +265,7 @@ function PsychologyRuleBuilder({
         ) : (
           rules.map((rule, index) => (
             <div key={index} className="flex min-w-0 items-start gap-2 sm:items-center">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-                {index + 1}
-              </span>
+              <span className="plan-rule-n">{index + 1}</span>
               <Input
                 ref={(element) => {
                   inputRefs.current[index] = element;
@@ -376,7 +370,7 @@ export function TradingPlanForm({
 
   return (
     <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
-      <div className="grid gap-3">
+      <div className="grid gap-4">
         <TradingPlanSection
           title="Trader Profile"
           description="Define the market environment and style your plan is designed for."
@@ -444,7 +438,7 @@ export function TradingPlanForm({
                     type="button"
                     aria-pressed={selected}
                     onClick={() => toggleTimeframe(timeframe)}
-                    className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${selected ? "border-gold/60 bg-gold/15 text-gold" : "border-border bg-background/40 text-muted-foreground hover:border-gold/40 hover:text-foreground"}`}
+                    className={`pick mono ${selected ? "on" : ""}`}
                   >
                     {timeframe}
                   </button>
@@ -585,7 +579,7 @@ export function TradingPlanForm({
           onSave={onSave}
         />
       </div>
-      <div className="min-w-0 xl:sticky xl:top-24">
+      <div className="min-w-0 xl:sticky xl:top-28">
         <TradingPlanPreview draft={draft} />
       </div>
     </div>

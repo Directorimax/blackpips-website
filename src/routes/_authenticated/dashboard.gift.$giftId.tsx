@@ -9,6 +9,7 @@ import {
   getWelcomeGiftPdfUrl,
   markWelcomeGiftViewed,
 } from "@/services/welcome-gift/welcome-gift.functions";
+import { PageFrame } from "@/components/bp/PageFrame";
 
 export const Route = createFileRoute("/_authenticated/dashboard/gift/$giftId")({
   head: () =>
@@ -18,7 +19,11 @@ export const Route = createFileRoute("/_authenticated/dashboard/gift/$giftId")({
       path: `/dashboard/gift/${WELCOME_GIFT.id}`,
       noindex: true,
     }),
-  component: WelcomeGiftPdfViewer,
+  component: () => (
+    <PageFrame>
+      <WelcomeGiftPdfViewer />
+    </PageFrame>
+  ),
 });
 
 function WelcomeGiftPdfViewer() {

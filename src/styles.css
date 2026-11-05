@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "./styles/blackpips.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -12,8 +13,9 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
 
-  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -36,6 +38,8 @@
   --color-ring: var(--ring);
   --color-gold: var(--gold);
   --color-gold-soft: var(--gold-soft);
+  --color-gold-ink: var(--gold-ink);
+  --color-gold-foreground: var(--gold-foreground);
   --color-bull: var(--bull);
   --color-bear: var(--bear);
 
@@ -46,81 +50,86 @@
 :root {
   --radius: 0.875rem;
 
-  /* Light — ivory + obsidian ink + royal gold */
-  --background: oklch(0.985 0.005 90);
-  --foreground: oklch(0.18 0.02 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 260);
-  --primary: oklch(0.18 0.02 260);
-  --primary-foreground: oklch(0.985 0.005 90);
-  --secondary: oklch(0.95 0.01 90);
-  --secondary-foreground: oklch(0.18 0.02 260);
-  --muted: oklch(0.95 0.01 90);
-  --muted-foreground: oklch(0.48 0.02 260);
-  --accent: oklch(0.92 0.06 85);
-  --accent-foreground: oklch(0.18 0.02 260);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.9 0.01 90);
-  --input: oklch(0.9 0.01 90);
-  --ring: oklch(0.78 0.14 85);
+  /* Light — ivory + obsidian ink + the app's molten gold */
+  --background: #f7f5ef;
+  --foreground: #111318;
+  --card: #ffffff;
+  --card-foreground: #111318;
+  --popover: #ffffff;
+  --popover-foreground: #111318;
+  --primary: #111318;
+  --primary-foreground: #f7f5ef;
+  --secondary: #f1eee6;
+  --secondary-foreground: #111318;
+  --muted: #f1eee6;
+  --muted-foreground: #57534a;
+  --accent: color-mix(in oklab, #fabe33 18%, #f7f5ef);
+  --accent-foreground: #111318;
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --border: rgba(17, 19, 24, 0.09);
+  --input: rgba(17, 19, 24, 0.16);
+  --ring: #fabe33;
 
-  --gold: oklch(0.78 0.14 85);
-  --gold-soft: oklch(0.88 0.09 88);
-  --bull: oklch(0.7 0.17 155);
-  --bear: oklch(0.62 0.22 25);
+  --gold: #fabe33;
+  --gold-soft: #e08e00;
+  --gold-ink: #8a5d00;
+  --gold-foreground: #05070b;
+  --bull: #22c55e;
+  --bear: #ef4444;
 
-  --gradient-gold: linear-gradient(135deg, oklch(0.85 0.13 90), oklch(0.72 0.16 75));
+  --gradient-gold: linear-gradient(135deg, #ffd54a, #fabe33 48%, #e08e00);
   --gradient-hero: radial-gradient(
     ellipse at top,
     color-mix(in oklab, var(--gold) 18%, transparent),
     transparent 60%
   );
-  --glass-bg: color-mix(in oklab, white 65%, transparent);
-  --glass-border: color-mix(in oklab, var(--gold) 20%, transparent);
+  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(247, 245, 239, 0.72));
+  --glass-border: rgba(17, 19, 24, 0.16);
 }
 
 .dark {
-  /* Dark — obsidian black + molten gold */
-  --background: oklch(0.13 0.01 260);
-  --foreground: oklch(0.97 0.01 90);
-  --card: oklch(0.17 0.012 260);
-  --card-foreground: oklch(0.97 0.01 90);
-  --popover: oklch(0.17 0.012 260);
-  --popover-foreground: oklch(0.97 0.01 90);
-  --primary: oklch(0.82 0.15 85);
-  --primary-foreground: oklch(0.13 0.01 260);
-  --secondary: oklch(0.22 0.015 260);
-  --secondary-foreground: oklch(0.97 0.01 90);
-  --muted: oklch(0.22 0.015 260);
-  --muted-foreground: oklch(0.68 0.02 90);
-  --accent: oklch(0.28 0.04 85);
-  --accent-foreground: oklch(0.97 0.01 90);
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.97 0.01 90);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.82 0.15 85);
+  /* Dark — the app's obsidian + molten gold */
+  --background: #05070b;
+  --foreground: #f8f5ee;
+  --card: #0c1015;
+  --card-foreground: #f8f5ee;
+  --popover: #0c1015;
+  --popover-foreground: #f8f5ee;
+  --primary: #fabe33;
+  --primary-foreground: #05070b;
+  --secondary: #171b22;
+  --secondary-foreground: #f8f5ee;
+  --muted: #171b22;
+  --muted-foreground: #a39e91;
+  --accent: #322710;
+  --accent-foreground: #f8f5ee;
+  --destructive: #ef4444;
+  --destructive-foreground: #f8f5ee;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #fabe33;
 
-  --gold: oklch(0.82 0.15 85);
-  --gold-soft: oklch(0.7 0.12 82);
-  --bull: oklch(0.75 0.19 155);
-  --bear: oklch(0.68 0.22 25);
+  --gold: #fabe33;
+  --gold-soft: #e08e00;
+  --gold-ink: #fabe33;
+  --gold-foreground: #05070b;
+  --bull: #22c55e;
+  --bear: #ef4444;
 
-  --gradient-gold: linear-gradient(135deg, oklch(0.88 0.14 88), oklch(0.68 0.15 70));
+  --gradient-gold: linear-gradient(135deg, #ffd54a, #fabe33 48%, #e08e00);
   --gradient-hero: radial-gradient(
     ellipse at top,
     color-mix(in oklab, var(--gold) 22%, transparent),
     transparent 65%
   );
-  --glass-bg: color-mix(in oklab, black 55%, transparent);
-  --glass-border: color-mix(in oklab, var(--gold) 25%, transparent);
+  --glass-bg: linear-gradient(135deg, rgba(23, 27, 34, 0.78), rgba(5, 7, 11, 0.6));
+  --glass-border: rgba(255, 255, 255, 0.14);
 }
 
 @utility glass {
   background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
   backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid var(--glass-border);
 }
@@ -647,4 +656,9 @@
 
 .market-session-tooltip[data-align="end"] {
   right: 0;
+}
+
+/* Gold surfaces always carry dark text, in light and dark themes alike. */
+.bg-gradient-gold {
+  color: var(--gold-foreground);
 }

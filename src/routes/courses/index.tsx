@@ -1,7 +1,17 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Lock, Smartphone, Star, Clock, BookOpen, ShieldCheck } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+  ArrowRight,
+  Award,
+  BookOpen,
+  Clock,
+  CreditCard,
+  GraduationCap,
+  Lock,
+  ShieldCheck,
+  Smartphone,
+} from "lucide-react";
 import { useEffect, useState } from "react";
-import { COURSES, formatTZS } from "@/lib/site-data";
+import { COURSES, FREE_LESSONS, formatTZS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
 import { createSeoHead } from "@/lib/seo";
@@ -33,7 +43,41 @@ function Courses() {
   );
 }
 
+const TABS = [
+  { id: "premium", label: "Premium" },
+  { id: "free", label: "Free lessons" },
+  { id: "alc", label: "ALC Access" },
+] as const;
+
+const FLOW = [
+  {
+    title: "Choose a programme",
+    body: "Compare lessons, level and price on the web.",
+    icon: GraduationCap,
+  },
+  {
+    title: "Pay with mobile money",
+    body: "Submit your payment — the team confirms it.",
+    icon: CreditCard,
+  },
+  {
+    title: "Watch in the app",
+    body: "Sign in with the same account. Your course is waiting.",
+    icon: Smartphone,
+  },
+];
+
+const ALC_STEPS = [
+  { t: "Send your request", d: "Use the email you trained with if you can." },
+  { t: "The team verifies you", d: "Your name, programme and proof of enrolment." },
+  { t: "Access unlocks in the app", d: "The ALC library opens on your phone." },
+];
+
+const LEVEL_LABELS = ["Foundation", "Advanced", "Master", "Specialized"];
+const COVER_MARKS = ["REG", "ADV", "MSTR", "T1–T8"];
+
 function CoursesCatalog() {
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("premium");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
@@ -87,149 +131,254 @@ function CoursesCatalog() {
   }, [user]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-16">
-      <header className="mx-auto max-w-3xl text-center">
-        <div className="inline-flex rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold">
-          Premium
+    <div className="bp bp-page">
+      <div className="page-bg soft" aria-hidden="true" />
+      <section className="lessons-hero">
+        <div className="wrap split" style={{ gap: 56 }}>
+          <div className="stack" style={{ gap: 20 }}>
+            <span className="eyebrow rise" style={{ alignSelf: "flex-start" }}>
+              <span className="tag">Lessons</span> Premium ALC programmes
+            </span>
+            <h1 className="h1 rise d1">
+              Buy on the web. <span className="gold-text">Learn in the app.</span>
+            </h1>
+            <p className="lead rise d2">
+              Every premium lesson plays securely inside the BLACKPIPS app. Choose your programme
+              here, pay with mobile money, and open it on your phone with the same account.
+            </p>
+            <div className="row-wrap rise d3 stack-s" style={{ marginTop: 8 }}>
+              <a className="btn btn-gold btn-lg" href="#catalog">
+                Browse programmes
+              </a>
+              <Link to="/" hash="app" className="btn btn-ghost btn-lg">
+                Get the app
+              </Link>
+            </div>
+          </div>
+          <div className="card spot rise d3" style={{ padding: 26 }}>
+            <div className="flow">
+              {FLOW.map((step, i) => (
+                <div className="fstep" key={step.title}>
+                  <span className="fdot" style={{ animationDelay: `${0.5 + i * 0.7}s` }}>
+                    <step.icon aria-hidden="true" />
+                  </span>
+                  <span className="stack" style={{ gap: 3 }}>
+                    <span className="micro">Step {i + 1}</span>
+                    <span className="h4">{step.title}</span>
+                    <span className="small">{step.body}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <h1 className="mt-4 font-display text-4xl font-bold sm:text-5xl">
-          Courses built to be traded
-        </h1>
-        <p className="mt-3 text-muted-foreground">
-          Every course is unlocked after payment. Lifetime access. All future updates included.
-        </p>
-      </header>
-      <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {COURSES.map((course) => {
-          const access = courseAccess.get(course.slug);
-          const purchased = access === "purchased";
-          const pending = access === "pending";
-          const available = isPremiumCourseAvailable(course.slug) || isAdmin;
-          return (
-            <article
-              key={course.slug}
-              className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-elegant"
-            >
-              <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-accent to-secondary">
-                <div className="absolute inset-0 bg-hero-glow opacity-70" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-gradient-gold font-display text-6xl font-black opacity-40">
-                    {course.level}
-                  </div>
-                </div>
-                <div
-                  className="absolute right-3 top-3 glass rounded-full p-2"
-                  aria-label={
-                    isAdmin
-                      ? "Administrator course access"
-                      : purchased
-                        ? "Course unlocked"
-                        : "Course locked"
-                  }
-                  role="img"
+      </section>
+
+      <section id="catalog" style={{ padding: "0 0 104px" }}>
+        <div className="wrap">
+          <div className="between" style={{ flexWrap: "wrap", marginBottom: 28 }}>
+            <div className="seg" role="tablist" aria-label="Lesson library">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === t.id}
+                  className={`seg-btn ${tab === t.id ? "on" : ""}`}
+                  onClick={() => setTab(t.id)}
                 >
-                  {isAdmin ? (
-                    <ShieldCheck className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
-                  ) : available && purchased ? (
-                    <Smartphone className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
-                  ) : (
-                    <Lock className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
-                  )}
-                </div>
-                <span className="absolute left-3 top-3 rounded-full bg-background/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide backdrop-blur">
-                  {course.level}
-                </span>
-              </div>
-              <div className="flex flex-1 flex-col p-6">
-                <h2 className="font-display text-xl font-semibold">{course.title}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">by {course.instructor}</p>
-                <p className="mt-3 text-sm text-muted-foreground">{course.description}</p>
-                <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
-                    <BookOpen className="h-3.5 w-3.5" /> {course.lessons} lessons
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <span className="small row" style={{ gap: 8 }}>
+              <Smartphone className="gold" style={{ width: 16, height: 16 }} aria-hidden="true" />
+              Videos play in the BLACKPIPS app
+            </span>
+          </div>
+
+          {tab === "premium" && (
+            <div className="grid-2" style={{ gap: 22 }}>
+              {COURSES.map((course, i) => {
+                const access = courseAccess.get(course.slug);
+                const purchased = access === "purchased";
+                const pending = access === "pending";
+                const available = isPremiumCourseAvailable(course.slug) || isAdmin;
+                const status = isAdmin
+                  ? "Administrator access"
+                  : !available
+                    ? "Coming soon"
+                    : purchased
+                      ? "Purchased · lifetime access"
+                      : pending
+                        ? "Awaiting approval"
+                        : null;
+                return (
+                  <article
+                    key={course.slug}
+                    className="card lift spot rise course-card"
+                    style={{ animationDelay: `${0.05 + i * 0.07}s` }}
+                  >
+                    <div className="cover">
+                      <span className="spark" />
+                      <span className="chip chip-gold lvl">{LEVEL_LABELS[i] ?? course.level}</span>
+                      <span className="chip inapp">
+                        {isAdmin ? (
+                          <ShieldCheck aria-hidden="true" />
+                        ) : purchased ? (
+                          <Smartphone aria-hidden="true" />
+                        ) : (
+                          <Lock aria-hidden="true" />
+                        )}
+                        Plays in app
+                      </span>
+                      <span className="mk gold-text" aria-hidden="true">
+                        {COVER_MARKS[i] ?? course.level}
+                      </span>
+                    </div>
+                    <div className="course-body">
+                      <div className="between" style={{ alignItems: "flex-start" }}>
+                        <h2 className="h3" style={{ fontSize: 22 }}>
+                          {course.title}
+                        </h2>
+                        {status ? (
+                          <span className="chip chip-gold">{status}</span>
+                        ) : (
+                          <span className="course-price">{formatTZS(course.price)}</span>
+                        )}
+                      </div>
+                      <p className="small">{course.description}</p>
+                      <div className="meta">
+                        <span>
+                          <BookOpen aria-hidden="true" /> {course.lessons} lessons
+                        </span>
+                        <span>
+                          <Clock aria-hidden="true" /> {course.duration}
+                        </span>
+                        <span>
+                          <Award aria-hidden="true" /> Certificate
+                        </span>
+                      </div>
+                      <div className="between course-foot">
+                        <span className="small">{course.instructor}</span>
+                        {isAdmin || purchased || pending ? (
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() =>
+                              navigate({ to: "/courses/$slug", params: { slug: course.slug } })
+                            }
+                          >
+                            {isAdmin ? (
+                              "View Course"
+                            ) : (
+                              <>{purchased ? "Continue in BLACKPIPS App" : "View status"}</>
+                            )}
+                          </button>
+                        ) : !available ? (
+                          <button type="button" className="btn btn-ghost btn-sm" disabled>
+                            Coming soon
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-gold btn-sm"
+                            disabled={purchasesLoading || adminLoading}
+                            onClick={() =>
+                              navigate({ to: "/payment/$slug", params: { slug: course.slug } })
+                            }
+                          >
+                            Buy now <ArrowRight className="arrow" aria-hidden="true" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+
+          {tab === "free" && (
+            <div className="split rise" style={{ alignItems: "start", gap: 28 }}>
+              <div className="orbit">
+                <div className="orbit-in" style={{ padding: "clamp(24px, 4vw, 40px)" }}>
+                  <span className="ico ico-solid">
+                    <Smartphone aria-hidden="true" />
                   </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" /> {course.duration}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-gold">
-                    <Star className="h-3.5 w-3.5 fill-current" /> {course.rating}
-                  </span>
-                </div>
-                <div className="mt-6 flex items-center justify-between border-t border-border pt-5">
-                  <div>
-                    {isAdmin ? (
-                      <>
-                        <div className="text-xs font-semibold text-gold">Administrator access</div>
-                        <div className="text-sm text-muted-foreground">Course inspection</div>
-                      </>
-                    ) : !available ? (
-                      <>
-                        <div className="text-xs font-semibold text-muted-foreground">
-                          Coming Soon
-                        </div>
-                        <div className="text-sm text-muted-foreground">In preparation</div>
-                      </>
-                    ) : purchased ? (
-                      <>
-                        <div className="text-xs font-semibold text-gold">Purchased</div>
-                        <div className="text-sm text-muted-foreground">Lifetime access</div>
-                      </>
-                    ) : pending ? (
-                      <>
-                        <div className="text-xs font-semibold text-gold">Awaiting approval</div>
-                        <div className="text-sm text-muted-foreground">Payment under review</div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="text-xs text-muted-foreground">One-time</div>
-                        <div className="text-gradient-gold font-display text-2xl font-bold">
-                          {formatTZS(course.price)}
-                        </div>
-                      </>
-                    )}
+                  <h2 className="h2" style={{ fontSize: "clamp(26px, 3vw, 36px)", marginTop: 20 }}>
+                    Free lessons live in the app.
+                  </h2>
+                  <p className="body" style={{ marginTop: 12 }}>
+                    Download BLACKPIPS and sign in with your account to watch the free library —
+                    from what forex is to top-down analysis.
+                  </p>
+                  <div className="row-wrap stack-s" style={{ marginTop: 26 }}>
+                    <Link to="/" hash="app" className="btn btn-dark">
+                      App Store
+                    </Link>
+                    <Link to="/" hash="app" className="btn btn-ghost">
+                      Google Play
+                    </Link>
                   </div>
-                  {isAdmin ? (
-                    <button
-                      onClick={() =>
-                        navigate({ to: "/courses/$slug", params: { slug: course.slug } })
-                      }
-                      className="rounded-full border border-gold/40 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold transition-colors hover:bg-gold/20"
-                    >
-                      View Course
-                    </button>
-                  ) : !available ? (
-                    <button
-                      disabled
-                      className="cursor-not-allowed rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-muted-foreground opacity-70"
-                    >
-                      Coming Soon
-                    </button>
-                  ) : purchased || pending ? (
-                    <button
-                      onClick={() =>
-                        navigate({ to: "/courses/$slug", params: { slug: course.slug } })
-                      }
-                      className="rounded-full border border-gold/40 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold transition-colors hover:bg-gold/20"
-                    >
-                      {purchased ? "Continue in BLACKPIPS App" : "View status"}
-                    </button>
-                  ) : (
-                    <button
-                      disabled={purchasesLoading || adminLoading}
-                      onClick={() =>
-                        navigate({ to: "/payment/$slug", params: { slug: course.slug } })
-                      }
-                      className="rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:scale-105 disabled:cursor-wait disabled:opacity-60"
-                    >
-                      Buy now
-                    </button>
-                  )}
                 </div>
               </div>
-            </article>
-          );
-        })}
-      </div>
+              <div className="card" style={{ padding: 10 }}>
+                {FREE_LESSONS.map((lesson, i) => (
+                  <div className="frow" key={lesson.id}>
+                    <span className="fnum">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="stack" style={{ gap: 3, minWidth: 0 }}>
+                      <span className="h4" style={{ fontSize: 15 }}>
+                        {lesson.title}
+                      </span>
+                      <span className="small">{lesson.level}</span>
+                    </span>
+                    <span className="chip">In app</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tab === "alc" && (
+            <div className="orbit rise">
+              <div
+                className="orbit-in split"
+                style={{ padding: "clamp(24px, 5vw, 56px)", gap: 40 }}
+              >
+                <div className="stack" style={{ gap: 16 }}>
+                  <p className="kicker">ALC Access</p>
+                  <h2 className="h2" style={{ fontSize: "clamp(28px, 3.4vw, 42px)" }}>
+                    Former student? Request your access.
+                  </h2>
+                  <p className="lead">
+                    If you trained with BLACKPIPS before, send a request. Once the team approves it,
+                    the ALC library opens in your app.
+                  </p>
+                  <Link
+                    to="/alc-access"
+                    className="btn btn-gold btn-lg"
+                    style={{ alignSelf: "flex-start" }}
+                  >
+                    Request access <ArrowRight className="arrow" aria-hidden="true" />
+                  </Link>
+                </div>
+                <div className="stack" style={{ gap: 12 }}>
+                  {ALC_STEPS.map((step, i) => (
+                    <div className="card-flat row" style={{ padding: 18, gap: 16 }} key={step.t}>
+                      <span className="fnum">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="stack" style={{ gap: 2 }}>
+                        <span className="h4">{step.t}</span>
+                        <span className="small">{step.d}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

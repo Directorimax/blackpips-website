@@ -59,14 +59,6 @@ export const supabaseSessionMiddleware = createMiddleware().server(async ({ next
         };
       }
     },
-    afterVerification: async (userId) => {
-      try {
-        const { sendNotification } = await import("@/services/email/email.service.server");
-        await sendNotification({ type: "welcome", resourceId: userId, actorId: userId });
-      } catch (error) {
-        console.error("[auth] Welcome notification request failed", error);
-      }
-    },
   });
 
   if (emailConfirmationResponse) {
@@ -111,14 +103,6 @@ export const supabaseSessionMiddleware = createMiddleware().server(async ({ next
             : null,
         userId: data.user?.id,
       };
-    },
-    afterExchange: async (userId) => {
-      try {
-        const { sendNotification } = await import("@/services/email/email.service.server");
-        await sendNotification({ type: "welcome", resourceId: userId, actorId: userId });
-      } catch (error) {
-        console.error("[auth] Welcome notification request failed", error);
-      }
     },
   });
 

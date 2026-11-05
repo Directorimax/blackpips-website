@@ -1,9 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Mail, MessageCircle, Instagram } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Instagram, Lock, Mail, MessageCircle, Send } from "lucide-react";
+import type { ReactNode } from "react";
 import { SITE } from "@/lib/site-data";
 import { createSeoHead } from "@/lib/seo";
 import { AvailabilityAwareContactLink } from "@/components/contact/AvailabilityAwareContactLink";
 import { ContactAvailabilityPanel } from "@/components/contact/ContactAvailabilityPanel";
+import { useContactAvailability } from "@/hooks/useContactAvailability";
 
 export const Route = createFileRoute("/contact")({
   head: () =>
@@ -17,65 +19,111 @@ export const Route = createFileRoute("/contact")({
 });
 
 function Contact() {
+  const availability = useContactAvailability();
+  const closed = availability.isReady && !availability.isOpen;
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16">
-      <header className="mx-auto max-w-3xl text-center">
-        <div className="inline-flex rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold">
-          Contact
+    <div className="bp bp-page">
+      <div className="page-bg" aria-hidden="true" />
+      <section style={{ padding: "32px 0 96px" }}>
+        <div className="wrap">
+          <div className="orbit rise">
+            <div className="orbit-in split contact-grid">
+              <div className="stack" style={{ gap: 16 }}>
+                <span className="eyebrow" style={{ alignSelf: "flex-start" }}>
+                  <span className="tag">Contact</span> Talk to the desk
+                </span>
+                <h1 className="h1" style={{ fontSize: "clamp(34px, 4.6vw, 56px)" }}>
+                  Talk to the BLACKPIPS team.
+                </h1>
+                <p className="lead">
+                  We reply within one business day. For instant answers, WhatsApp is fastest.
+                </p>
+                <p className="small">
+                  Questions about lessons, payments, ALC Access or mentorship — we're here. Looking
+                  for quick answers?{" "}
+                  <Link to="/faq" className="gold">
+                    Read the FAQ
+                  </Link>
+                  .
+                </p>
+              </div>
+              <div className="stack" style={{ gap: 12 }}>
+                {closed && (
+                  <div className="contact-closed" role="status">
+                    <Lock aria-hidden="true" />
+                    <span>
+                      <b>The desk is closed right now.</b> {availability.transitionLabel}.
+                    </span>
+                  </div>
+                )}
+                <Channel
+                  href={SITE.whatsapp}
+                  title="WhatsApp"
+                  body="Fastest reply"
+                  solid
+                  closedNote={closed ? availability.transitionLabel : undefined}
+                >
+                  <MessageCircle aria-hidden="true" />
+                </Channel>
+                <Channel
+                  href={`mailto:${SITE.email}`}
+                  title="Email"
+                  body={SITE.email}
+                  closedNote={closed ? availability.transitionLabel : undefined}
+                >
+                  <Mail aria-hidden="true" />
+                </Channel>
+                <Channel
+                  href={SITE.instagram}
+                  title="Instagram"
+                  body="@blackpips"
+                  closedNote={closed ? availability.transitionLabel : undefined}
+                >
+                  <Instagram aria-hidden="true" />
+                </Channel>
+                <Channel
+                  href={SITE.telegram}
+                  title="Telegram"
+                  body="t.me/blackpips"
+                  closedNote={closed ? availability.transitionLabel : undefined}
+                >
+                  <Send aria-hidden="true" />
+                </Channel>
+              </div>
+            </div>
+          </div>
+          <ContactAvailabilityPanel />
         </div>
-        <h1 className="mt-4 font-display text-4xl font-bold sm:text-5xl">Talk to the desk</h1>
-        <p className="mt-3 text-muted-foreground">
-          We reply within one business day. For instant answers, WhatsApp is fastest.
-        </p>
-      </header>
-
-      <div className="mx-auto mt-12 grid max-w-4xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <AvailabilityAwareContactLink
-          href={SITE.whatsapp}
-          className="glass flex items-center gap-3 rounded-2xl p-4 transition hover:-translate-y-0.5 sm:min-h-24"
-        >
-          <IconChip>
-            <MessageCircle className="h-4 w-4" />
-          </IconChip>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold">WhatsApp</div>
-            <div className="text-xs text-muted-foreground">Fastest reply</div>
-          </div>
-        </AvailabilityAwareContactLink>
-        <AvailabilityAwareContactLink
-          href={`mailto:${SITE.email}`}
-          className="glass flex items-center gap-3 rounded-2xl p-4 transition hover:-translate-y-0.5 sm:min-h-24"
-        >
-          <IconChip>
-            <Mail className="h-4 w-4" />
-          </IconChip>
-          <div className="min-w-0">
-            <div className="text-sm font-semibold">Email</div>
-            <div className="break-words text-xs text-muted-foreground">{SITE.email}</div>
-          </div>
-        </AvailabilityAwareContactLink>
-        <AvailabilityAwareContactLink
-          href={SITE.instagram}
-          className="glass flex items-center gap-3 rounded-2xl p-4 transition hover:-translate-y-0.5 sm:col-span-2 sm:min-h-24 sm:w-[calc(50%-0.5rem)] sm:justify-self-center lg:col-span-1 lg:w-full"
-        >
-          <IconChip>
-            <Instagram className="h-4 w-4" />
-          </IconChip>
-          <div>
-            <div className="text-sm font-semibold">Instagram</div>
-            <div className="text-xs text-muted-foreground">@blackpips</div>
-          </div>
-        </AvailabilityAwareContactLink>
-      </div>
-      <ContactAvailabilityPanel />
+      </section>
     </div>
   );
 }
 
-function IconChip({ children }: { children: React.ReactNode }) {
+function Channel({
+  href,
+  title,
+  body,
+  solid = false,
+  closedNote,
+  children,
+}: {
+  href: string;
+  title: string;
+  body: string;
+  solid?: boolean;
+  closedNote?: string;
+  children: ReactNode;
+}) {
   return (
-    <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-gold text-primary-foreground shadow-glow">
-      {children}
-    </span>
+    <AvailabilityAwareContactLink href={href} className="channel">
+      <span className={`ico ${solid ? "ico-solid" : ""}`}>{children}</span>
+      <span className="stack" style={{ flex: 1, minWidth: 0 }}>
+        <span className="h4">{title}</span>
+        <span className="small" style={{ overflowWrap: "anywhere" }}>
+          {closedNote ?? body}
+        </span>
+      </span>
+      {closedNote && <Lock className="channel-lock" aria-hidden="true" />}
+    </AvailabilityAwareContactLink>
   );
 }
