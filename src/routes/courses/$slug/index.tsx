@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/useAdmin";
+import { OpenAppButton } from "@/components/bp/StoreBadges";
 import { PageFrame } from "@/components/bp/PageFrame";
 import { COURSES, formatTZS } from "@/lib/site-data";
 
@@ -239,6 +240,7 @@ function LearnerCourseAccess() {
                       <CheckCircle2 aria-hidden="true" style={{ width: 14, height: 14 }} /> Access
                       approved
                     </span>
+                    <OpenAppButton />
                   </div>
                 )}
               </div>

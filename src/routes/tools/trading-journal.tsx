@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+
 import { AnimatePresence } from "framer-motion";
 import {
+  CalendarRange,
+  ChartNoAxesCombined,
   ChevronLeft,
   ChevronRight,
   Image,
@@ -55,6 +58,11 @@ import {
   type JournalResult,
   type TradingJournalEntry,
 } from "@/lib/trading-journal";
+import {
+  JournalAnalytics,
+  JournalWeeklyReview,
+  type FetchJournalRange,
+} from "@/components/trading-journal/JournalInsights";
 import {
   journalColumns,
   journalGridTemplateColumns,
@@ -147,6 +155,9 @@ const defaultFilters: Filters = {
   sort: "newest",
 };
 
+const JOURNAL_VIEWS = ["calendar", "list", "analytics", "weekly"] as const;
+type JournalView = (typeof JOURNAL_VIEWS)[number];
+
 function TradingJournalPage() {
   const { user, loading } = useAuth();
   const [entries, setEntries] = useState<TradingJournalEntry[]>([]);
@@ -158,12 +169,11 @@ function TradingJournalPage() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<TradingJournalEntry | null | undefined>(undefined);
   const [viewing, setViewing] = useState<TradingJournalEntry | null>(null);
-  const [view, setView] = useState<"calendar" | "list">(() =>
-    typeof window === "undefined"
-      ? "calendar"
-      : (window.sessionStorage.getItem("blackpips-journal-view") as "calendar" | "list") ||
-        "calendar",
-  );
+  const [view, setView] = useState<JournalView>(() => {
+    if (typeof window === "undefined") return "calendar";
+    const saved = window.sessionStorage.getItem("blackpips-journal-view") as JournalView | null;
+    return saved && JOURNAL_VIEWS.includes(saved) ? saved : "calendar";
+  });
   const [calendarMonth, setCalendarMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
@@ -273,6 +283,20 @@ function TradingJournalPage() {
   useEffect(() => {
     void loadMonth();
   }, [loadMonth]);
+  const fetchRange = useCallback<FetchJournalRange>(
+    async (start, end) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!user || !token) throw new Error("Not signed in");
+      return getTradingJournalMonth({
+        data: { start_date: start.toISOString(), end_date: end.toISOString() },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    },
+    // Re-fetch after trades change so insights stay current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, total, monthEntries],
+  );
   const summary = useMemo(() => {
     const totals = summarizeJournalEntries(entries);
     return {
@@ -361,6 +385,24 @@ function TradingJournalPage() {
               onClick={() => setView("list")}
             >
               List
+            </button>
+          </div>
+          <div className="seg" role="group" aria-label="Journal insights">
+            <button
+              type="button"
+              aria-pressed={view === "analytics"}
+              className={`seg-btn ${view === "analytics" ? "on" : ""}`}
+              onClick={() => setView("analytics")}
+            >
+              <ChartNoAxesCombined className="h-4 w-4" aria-hidden="true" /> Advanced Analytics
+            </button>
+            <button
+              type="button"
+              aria-pressed={view === "weekly"}
+              className={`seg-btn ${view === "weekly" ? "on" : ""}`}
+              onClick={() => setView("weekly")}
+            >
+              <CalendarRange className="h-4 w-4" aria-hidden="true" /> Weekly Review
             </button>
           </div>
           <button type="button" onClick={() => setEditing(null)} className="btn btn-gold">
@@ -496,6 +538,10 @@ function TradingJournalPage() {
             Try again
           </button>
         </div>
+      ) : view === "analytics" ? (
+        <JournalAnalytics fetchRange={fetchRange} />
+      ) : view === "weekly" ? (
+        <JournalWeeklyReview fetchRange={fetchRange} />
       ) : view === "calendar" ? (
         <JournalCalendar
           month={calendarMonth}
@@ -667,7 +713,7 @@ function TradeList({
   return (
     <section className="mt-6 space-y-3">
       <div className="journal-scrollbar card journal-table hidden overflow-x-auto md:block">
-        <div className="min-w-[1320px]">
+        <div className="w-max min-w-full">
           <div className="jt-head" style={{ gridTemplateColumns: journalGridTemplateColumns }}>
             {journalColumns.map((column) => (
               <span key={column.key}>{column.heading}</span>
@@ -857,7 +903,7 @@ function DesktopTradeRow({
       <span>{new Date(entry.trade_at).toLocaleDateString()}</span>
       <Badge value={entry.direction} />
       <span className="capitalize">{entry.session.replaceAll("_", " ")}</span>
-      <span className="truncate">{entry.strategy || "—"}</span>
+      <span className="jt-wrap">{entry.strategy || "—"}</span>
       <span>{entry.entry_price ?? "—"}</span>
       <span>{entry.stop_loss ?? "—"}</span>
       <span>{entry.take_profit ?? "—"}</span>

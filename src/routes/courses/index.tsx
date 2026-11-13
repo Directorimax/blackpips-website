@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { AppStoreBadge, GooglePlayBadge } from "@/components/bp/StoreBadges";
+import { AppStoreBadge, GooglePlayBadge, OpenAppButton } from "@/components/bp/StoreBadges";
 import {
   ArrowRight,
   Award,
@@ -76,6 +76,8 @@ const ALC_STEPS = [
 
 const LEVEL_LABELS = ["Foundation", "Advanced", "Master", "Specialized"];
 const COVER_MARKS = ["REG", "ADV", "MSTR", "T1–T8"];
+// Full word that drifts softly behind each cover.
+const COVER_WORDS = ["REGULAR", "ADVANCED", "MASTER", "SPECIALIZED"];
 
 function CoursesCatalog() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("premium");
@@ -220,10 +222,19 @@ function CoursesCatalog() {
                     className="card lift spot rise course-card"
                     style={{ animationDelay: `${0.05 + i * 0.07}s` }}
                   >
+                    <span className="course-ring" aria-hidden="true">
+                      <i />
+                    </span>
                     <div className="cover">
-                      <span className="spark" />
+                      <span className="cover-word" aria-hidden="true">
+                        <span>
+                          {Array.from({ length: 6 }, (_, n) => (
+                            <b key={n}>{COVER_WORDS[i] ?? course.level}</b>
+                          ))}
+                        </span>
+                      </span>
                       <span className="chip chip-gold lvl">{LEVEL_LABELS[i] ?? course.level}</span>
-                      <span className="chip inapp">
+                      <span className="chip chip-gold inapp">
                         {isAdmin ? (
                           <ShieldCheck aria-hidden="true" />
                         ) : purchased ? (
@@ -262,7 +273,9 @@ function CoursesCatalog() {
                       </div>
                       <div className="between course-foot">
                         <span className="small">{course.instructor}</span>
-                        {isAdmin || purchased || pending ? (
+                        {purchased && !isAdmin ? (
+                          <OpenAppButton className="btn btn-gold btn-sm" />
+                        ) : isAdmin || pending ? (
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
@@ -270,11 +283,7 @@ function CoursesCatalog() {
                               navigate({ to: "/courses/$slug", params: { slug: course.slug } })
                             }
                           >
-                            {isAdmin ? (
-                              "View Course"
-                            ) : (
-                              <>{purchased ? "Continue in BLACKPIPS App" : "View status"}</>
-                            )}
+                            {isAdmin ? "View Course" : "View status"}
                           </button>
                         ) : !available ? (
                           <button type="button" className="btn btn-ghost btn-sm" disabled>

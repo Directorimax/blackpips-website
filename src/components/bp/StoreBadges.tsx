@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=com.blackpips.app";
 
 function PlayLogo() {
@@ -49,5 +51,39 @@ export function AppStoreBadge() {
         Coming soon
       </span>
     </span>
+  );
+}
+
+// The app already handles blackpips://auth-callback, and ignores it when it
+// carries no sign-in response, so it is a safe way to just open the app.
+const ANDROID_OPEN_APP_URL =
+  "intent://auth-callback#Intent;scheme=blackpips;package=com.blackpips.app;" +
+  `S.browser_fallback_url=${encodeURIComponent(GOOGLE_PLAY_URL)};end`;
+
+/**
+ * On Android it opens the BLACKPIPS app if installed, otherwise Chrome sends the
+ * student to Google Play. Elsewhere it opens Google Play, the only live store.
+ */
+export function OpenAppButton({
+  className = "btn btn-gold",
+  children = "Continue in BLACKPIPS App",
+}: {
+  className?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <a
+      className={className}
+      href={GOOGLE_PLAY_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(event) => {
+        if (!/Android/i.test(navigator.userAgent)) return;
+        event.preventDefault();
+        window.location.href = ANDROID_OPEN_APP_URL;
+      }}
+    >
+      {children}
+    </a>
   );
 }

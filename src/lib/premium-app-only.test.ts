@@ -23,7 +23,7 @@ describe("Premium purchases on web with learning in the app", () => {
   it("preserves buying and distinguishes pending from purchased access", () => {
     expect(catalog).toContain('to: "/payment/$slug"');
     expect(catalog).toContain('eq("status", "pending")');
-    expect(catalog).toContain("Continue in BLACKPIPS App");
+    expect(catalog).toContain("<OpenAppButton");
     expect(course).toContain("Your payment is awaiting approval");
     expect(course).toContain("Purchased · Lifetime Access");
   });
@@ -31,7 +31,8 @@ describe("Premium purchases on web with learning in the app", () => {
   it("keeps the learner course branch app-only", () => {
     expect(course).toContain("return isAdmin ? <AdminCourseLessons /> : <LearnerCourseAccess />");
     expect(course).toContain("Your Premium Course is ready in the BLACKPIPS App");
-    expect(catalog).toContain('{purchased ? "Continue in BLACKPIPS App" : "View status"}');
+    expect(catalog).toContain('{purchased && !isAdmin ? (');
+    expect(catalog).toContain('{isAdmin ? "View Course" : "View status"}');
   });
 
   it("offers View Course only after the existing admin check succeeds", () => {

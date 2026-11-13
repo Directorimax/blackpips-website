@@ -441,7 +441,7 @@ function TraderTools() {
               return (
                 <Link
                   key={destination.to}
-                  to={destination.to}
+                  to={destination.open}
                   className="card lift spot reveal bento-tip"
                 >
                   <span className="ico">
@@ -460,7 +460,7 @@ function TraderTools() {
             return (
               <Link
                 key={destination.to}
-                to={destination.to}
+                to={destination.open}
                 className="card lift spot span-2 reveal"
                 style={{ padding: 24 }}
               >
@@ -529,7 +529,7 @@ function Journey() {
             See the lessons
           </Link>
         </div>
-        <div className="journey">
+        <div className="journey reveal">
           <div className="jline" aria-hidden="true">
             <i />
           </div>

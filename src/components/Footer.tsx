@@ -45,7 +45,7 @@ export function Footer() {
             <div>
               <p className="foot-h">Trading Tools</p>
               {PRIORITY_DESTINATIONS.map((destination) => (
-                <Link key={destination.to} to={destination.to} className="foot-a">
+                <Link key={destination.to} to={destination.open} className="foot-a">
                   {destination.label}
                 </Link>
               ))}

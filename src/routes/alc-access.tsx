@@ -12,6 +12,7 @@ import {
 } from "@/lib/alc-access";
 import { isAlcAccessAvailable } from "@/lib/feature-access";
 import { LearningFeatureGate } from "@/components/LearningFeatureGate";
+import { OpenAppButton } from "@/components/bp/StoreBadges";
 import { PageFrame } from "@/components/bp/PageFrame";
 
 export const Route = createFileRoute("/alc-access")({
@@ -415,6 +416,7 @@ function Library() {
             Open the BLACKPIPS app already installed on your device and sign in with this same
             account. Your approved ALC lessons are waiting there.
           </p>
+          <OpenAppButton className="btn btn-gold" />
           <div className="stack" style={{ gap: 10, marginTop: 4 }}>
             {ALC_APP_POINTS.map((point) => (
               <div className="learn" key={point}>
