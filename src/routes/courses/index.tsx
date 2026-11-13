@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { AppStoreBadge, GooglePlayBadge } from "@/components/bp/StoreBadges";
 import {
   ArrowRight,
   Award,
@@ -313,13 +314,9 @@ function CoursesCatalog() {
                     Download BLACKPIPS and sign in with your account to watch the free library —
                     from what forex is to top-down analysis.
                   </p>
-                  <div className="row-wrap stack-s" style={{ marginTop: 26 }}>
-                    <Link to="/" hash="app" className="btn btn-dark">
-                      App Store
-                    </Link>
-                    <Link to="/" hash="app" className="btn btn-ghost">
-                      Google Play
-                    </Link>
+                  <div className="store-badges" style={{ marginTop: 26 }}>
+                    <GooglePlayBadge />
+                    <AppStoreBadge />
                   </div>
                 </div>
               </div>

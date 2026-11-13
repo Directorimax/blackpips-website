@@ -17,7 +17,7 @@ import { clearSessionLifecycleStorage } from "@/lib/session-lifecycle";
 import { Logo } from "@/components/Logo";
 import appSignInScreen from "@/assets/app-signin-screen.jpg";
 import appHomeScreen from "@/assets/app-home-screen.jpg";
-import { AppleIcon, PlayIcon } from "@/components/bp/StoreIcons";
+import { AppStoreBadge, GooglePlayBadge } from "@/components/bp/StoreBadges";
 import {
   classifySignupException,
   classifySignupResult,
@@ -378,13 +378,9 @@ function AuthPage() {
               Buy lessons and use the tools here. Watch your lessons and keep your streak in the
               BLACKPIPS app.
             </p>
-            <div className="auth-intro-store">
-              <a className="btn btn-gold" href="/#app">
-                <AppleIcon /> App Store
-              </a>
-              <a className="btn btn-ghost" href="/#app">
-                <PlayIcon /> Google Play
-              </a>
+            <div className="auth-intro-store store-badges">
+              <GooglePlayBadge />
+              <AppStoreBadge />
             </div>
           </div>
           <div className="auth-show">
@@ -395,18 +391,12 @@ function AuthPage() {
               <div className="auth-mock front" aria-hidden="true">
                 <img src={appSignInScreen} alt="" />
               </div>
-              <a className="auth-float auth-float-a" href="/#app">
-                <AppleIcon />
-                <span>
-                  <small>Download on the</small>App Store
-                </span>
-              </a>
-              <a className="auth-float auth-float-b" href="/#app">
-                <PlayIcon />
-                <span>
-                  <small>Get it on</small>Google Play
-                </span>
-              </a>
+              <div className="auth-float auth-float-a store-float">
+                <AppStoreBadge />
+              </div>
+              <div className="auth-float auth-float-b store-float">
+                <GooglePlayBadge />
+              </div>
             </div>
           </div>
         </aside>

@@ -26,7 +26,7 @@ import { createSeoHead } from "@/lib/seo";
 import { useAuth } from "@/contexts/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AppleIcon, PlayIcon } from "@/components/bp/StoreIcons";
+import { AppStoreBadge, GooglePlayBadge } from "@/components/bp/StoreBadges";
 import appHomeScreen from "@/assets/app-home-screen.jpg";
 
 export const Route = createFileRoute("/")({
@@ -578,13 +578,9 @@ function AppSection() {
               </div>
             ))}
           </div>
-          <div className="row-wrap stack-s" style={{ marginTop: 32 }}>
-            <a className="btn btn-dark" href="#app">
-              <AppleIcon /> App Store
-            </a>
-            <a className="btn btn-ghost" href="#app">
-              <PlayIcon /> Google Play
-            </a>
+          <div className="store-badges" style={{ marginTop: 32 }}>
+            <GooglePlayBadge />
+            <AppStoreBadge />
           </div>
         </div>
         <div className="reveal app-stage">
