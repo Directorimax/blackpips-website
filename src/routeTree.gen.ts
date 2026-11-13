@@ -9,135 +9,64 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TradingTipsRouteImport } from './routes/trading-tips'
-import { Route as TradingPlanRouteImport } from './routes/trading-plan'
-import { Route as ToolsRouteImport } from './routes/tools'
-import { Route as TestimonialsRouteImport } from './routes/testimonials'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
-import { Route as MentorshipRouteImport } from './routes/mentorship'
-import { Route as FreeRouteImport } from './routes/free'
-import { Route as FaqRouteImport } from './routes/faq'
-import { Route as DeleteAccountRouteImport } from './routes/delete-account'
-import { Route as CoursesRouteImport } from './routes/courses'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as BlogRouteImport } from './routes/blog'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AlcAccessRouteImport } from './routes/alc-access'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ToolsIndexRouteImport } from './routes/tools.index'
-import { Route as CoursesIndexRouteImport } from './routes/courses/index'
-import { Route as AuthIndexRouteImport } from './routes/auth.index'
-import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as ToolsTradingJournalRouteImport } from './routes/tools/trading-journal'
-import { Route as ToolsPipCalculatorRouteImport } from './routes/tools/pip-calculator'
-import { Route as ToolsMarketSessionsRouteImport } from './routes/tools/market-sessions'
-import { Route as PaymentSlugRouteImport } from './routes/payment/$slug'
-import { Route as CoursesSlugRouteImport } from './routes/courses/$slug'
-import { Route as CertificatesCertificateIdRouteImport } from './routes/certificates/$certificateId'
-import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
-import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
-import { Route as AdminTradingTipsRouteImport } from './routes/admin/trading-tips'
-import { Route as AdminStudentsRouteImport } from './routes/admin/students'
-import { Route as AdminPaymentsRouteImport } from './routes/admin/payments'
-import { Route as AdminMentorshipApplicationsRouteImport } from './routes/admin/mentorship-applications'
-import { Route as AdminMediaLibraryRouteImport } from './routes/admin/media-library'
-import { Route as AdminLessonsRouteImport } from './routes/admin/lessons'
-import { Route as AdminFeaturedVideosRouteImport } from './routes/admin/featured-videos'
-import { Route as AdminCertificatesRouteImport } from './routes/admin/certificates'
-import { Route as AdminAlcLibraryRouteImport } from './routes/admin/alc-library'
-import { Route as AdminAlcAccessRouteImport } from './routes/admin/alc-access'
-import { Route as AuthenticatedTipsRouteImport } from './routes/_authenticated/tips'
-import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AlcAccessRouteImport } from './routes/alc-access'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BlogRouteImport } from './routes/blog'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CoursesRouteImport } from './routes/courses'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as FreeRouteImport } from './routes/free'
+import { Route as MentorshipRouteImport } from './routes/mentorship'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TestimonialsRouteImport } from './routes/testimonials'
+import { Route as ToolsRouteImport } from './routes/tools'
+import { Route as TradingPlanRouteImport } from './routes/trading-plan'
+import { Route as TradingTipsRouteImport } from './routes/trading-tips'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as CoursesSlugIndexRouteImport } from './routes/courses/$slug/index'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedTipsRouteImport } from './routes/_authenticated/tips'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminAlcAccessRouteImport } from './routes/admin/alc-access'
+import { Route as AdminAlcLibraryRouteImport } from './routes/admin/alc-library'
+import { Route as AdminCertificatesRouteImport } from './routes/admin/certificates'
+import { Route as AdminFeaturedVideosRouteImport } from './routes/admin/featured-videos'
+import { Route as AdminLessonsRouteImport } from './routes/admin/lessons'
+import { Route as AdminMediaLibraryRouteImport } from './routes/admin/media-library'
+import { Route as AdminMentorshipApplicationsRouteImport } from './routes/admin/mentorship-applications'
+import { Route as AdminPaymentsRouteImport } from './routes/admin/payments'
+import { Route as AdminStudentsRouteImport } from './routes/admin/students'
+import { Route as AdminTradingTipsRouteImport } from './routes/admin/trading-tips'
+import { Route as AuthIndexRouteImport } from './routes/auth.index'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AuthConfirmRouteImport } from './routes/auth/confirm'
+import { Route as CertificatesCertificateIdRouteImport } from './routes/certificates/$certificateId'
+import { Route as CoursesIndexRouteImport } from './routes/courses/index'
+import { Route as CoursesSlugRouteImport } from './routes/courses/$slug'
+import { Route as PaymentSlugRouteImport } from './routes/payment/$slug'
+import { Route as ToolsIndexRouteImport } from './routes/tools.index'
+import { Route as ToolsMarketSessionsRouteImport } from './routes/tools/market-sessions'
+import { Route as ToolsPipCalculatorRouteImport } from './routes/tools/pip-calculator'
+import { Route as ToolsTradingJournalRouteImport } from './routes/tools/trading-journal'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
-import { Route as CoursesSlugLessonSlugRouteImport } from './routes/courses/$slug/$lessonSlug'
-import { Route as AdminStudentsStudentIdRouteImport } from './routes/admin/students/$studentId'
 import { Route as AuthenticatedDashboardTradingPlanRouteImport } from './routes/_authenticated/dashboard.trading-plan'
+import { Route as AdminStudentsStudentIdRouteImport } from './routes/admin/students/$studentId'
+import { Route as CoursesSlugIndexRouteImport } from './routes/courses/$slug/index'
+import { Route as CoursesSlugLessonSlugRouteImport } from './routes/courses/$slug/$lessonSlug'
 import { Route as AuthenticatedDashboardGiftGiftIdRouteImport } from './routes/_authenticated/dashboard.gift.$giftId'
 
-const TradingTipsRoute = TradingTipsRouteImport.update({
-  id: '/trading-tips',
-  path: '/trading-tips',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TradingPlanRoute = TradingPlanRouteImport.update({
-  id: '/trading-plan',
-  path: '/trading-plan',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ToolsRoute = ToolsRouteImport.update({
-  id: '/tools',
-  path: '/tools',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TestimonialsRoute = TestimonialsRouteImport.update({
-  id: '/testimonials',
-  path: '/testimonials',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
-  id: '/privacy-policy',
-  path: '/privacy-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MentorshipRoute = MentorshipRouteImport.update({
-  id: '/mentorship',
-  path: '/mentorship',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FreeRoute = FreeRouteImport.update({
-  id: '/free',
-  path: '/free',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FaqRoute = FaqRouteImport.update({
-  id: '/faq',
-  path: '/faq',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DeleteAccountRoute = DeleteAccountRouteImport.update({
-  id: '/delete-account',
-  path: '/delete-account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CoursesRoute = CoursesRouteImport.update({
-  id: '/courses',
-  path: '/courses',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogRoute = BlogRouteImport.update({
-  id: '/blog',
-  path: '/blog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AlcAccessRoute = AlcAccessRouteImport.update({
-  id: '/alc-access',
-  path: '/alc-access',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -145,89 +74,134 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const AlcAccessRoute = AlcAccessRouteImport.update({
+  id: '/alc-access',
+  path: '/alc-access',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ToolsIndexRoute = ToolsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ToolsRoute,
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const CoursesIndexRoute = CoursesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CoursesRoute,
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthIndexRoute = AuthIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthRoute,
+const CoursesRoute = CoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FreeRoute = FreeRouteImport.update({
+  id: '/free',
+  path: '/free',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MentorshipRoute = MentorshipRouteImport.update({
+  id: '/mentorship',
+  path: '/mentorship',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TestimonialsRoute = TestimonialsRouteImport.update({
+  id: '/testimonials',
+  path: '/testimonials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsRoute = ToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TradingPlanRoute = TradingPlanRouteImport.update({
+  id: '/trading-plan',
+  path: '/trading-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TradingTipsRoute = TradingTipsRouteImport.update({
+  id: '/trading-tips',
+  path: '/trading-tips',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTipsRoute = AuthenticatedTipsRouteImport.update({
+  id: '/tips',
+  path: '/tips',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ToolsTradingJournalRoute = ToolsTradingJournalRouteImport.update({
-  id: '/trading-journal',
-  path: '/trading-journal',
-  getParentRoute: () => ToolsRoute,
-} as any)
-const ToolsPipCalculatorRoute = ToolsPipCalculatorRouteImport.update({
-  id: '/pip-calculator',
-  path: '/pip-calculator',
-  getParentRoute: () => ToolsRoute,
-} as any)
-const ToolsMarketSessionsRoute = ToolsMarketSessionsRouteImport.update({
-  id: '/market-sessions',
-  path: '/market-sessions',
-  getParentRoute: () => ToolsRoute,
-} as any)
-const PaymentSlugRoute = PaymentSlugRouteImport.update({
-  id: '/payment/$slug',
-  path: '/payment/$slug',
+const AdminAlcAccessRoute = AdminAlcAccessRouteImport.update({
+  id: '/admin/alc-access',
+  path: '/admin/alc-access',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CoursesSlugRoute = CoursesSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => CoursesRoute,
-} as any)
-const CertificatesCertificateIdRoute =
-  CertificatesCertificateIdRouteImport.update({
-    id: '/certificates/$certificateId',
-    path: '/certificates/$certificateId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AuthConfirmRoute = AuthConfirmRouteImport.update({
-  id: '/confirm',
-  path: '/confirm',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/callback',
-  path: '/callback',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AdminTradingTipsRoute = AdminTradingTipsRouteImport.update({
-  id: '/admin/trading-tips',
-  path: '/admin/trading-tips',
+const AdminAlcLibraryRoute = AdminAlcLibraryRouteImport.update({
+  id: '/admin/alc-library',
+  path: '/admin/alc-library',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminStudentsRoute = AdminStudentsRouteImport.update({
-  id: '/admin/students',
-  path: '/admin/students',
+const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
+  id: '/admin/certificates',
+  path: '/admin/certificates',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
-  id: '/admin/payments',
-  path: '/admin/payments',
+const AdminFeaturedVideosRoute = AdminFeaturedVideosRouteImport.update({
+  id: '/admin/featured-videos',
+  path: '/admin/featured-videos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLessonsRoute = AdminLessonsRouteImport.update({
+  id: '/admin/lessons',
+  path: '/admin/lessons',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminMediaLibraryRoute = AdminMediaLibraryRouteImport.update({
+  id: '/admin/media-library',
+  path: '/admin/media-library',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminMentorshipApplicationsRoute =
@@ -236,55 +210,76 @@ const AdminMentorshipApplicationsRoute =
     path: '/admin/mentorship-applications',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AdminMediaLibraryRoute = AdminMediaLibraryRouteImport.update({
-  id: '/admin/media-library',
-  path: '/admin/media-library',
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/admin/payments',
+  path: '/admin/payments',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminLessonsRoute = AdminLessonsRouteImport.update({
-  id: '/admin/lessons',
-  path: '/admin/lessons',
+const AdminStudentsRoute = AdminStudentsRouteImport.update({
+  id: '/admin/students',
+  path: '/admin/students',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminFeaturedVideosRoute = AdminFeaturedVideosRouteImport.update({
-  id: '/admin/featured-videos',
-  path: '/admin/featured-videos',
+const AdminTradingTipsRoute = AdminTradingTipsRouteImport.update({
+  id: '/admin/trading-tips',
+  path: '/admin/trading-tips',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminCertificatesRoute = AdminCertificatesRouteImport.update({
-  id: '/admin/certificates',
-  path: '/admin/certificates',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminAlcLibraryRoute = AdminAlcLibraryRouteImport.update({
-  id: '/admin/alc-library',
-  path: '/admin/alc-library',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminAlcAccessRoute = AdminAlcAccessRouteImport.update({
-  id: '/admin/alc-access',
-  path: '/admin/alc-access',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedTipsRoute = AuthenticatedTipsRouteImport.update({
-  id: '/tips',
-  path: '/tips',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const CoursesSlugIndexRoute = CoursesSlugIndexRouteImport.update({
+const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => CoursesSlugRoute,
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthConfirmRoute = AuthConfirmRouteImport.update({
+  id: '/confirm',
+  path: '/confirm',
+  getParentRoute: () => AuthRoute,
+} as any)
+const CertificatesCertificateIdRoute =
+  CertificatesCertificateIdRouteImport.update({
+    id: '/certificates/$certificateId',
+    path: '/certificates/$certificateId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const CoursesIndexRoute = CoursesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CoursesRoute,
+} as any)
+const CoursesSlugRoute = CoursesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CoursesRoute,
+} as any)
+const PaymentSlugRoute = PaymentSlugRouteImport.update({
+  id: '/payment/$slug',
+  path: '/payment/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsIndexRoute = ToolsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ToolsRoute,
+} as any)
+const ToolsMarketSessionsRoute = ToolsMarketSessionsRouteImport.update({
+  id: '/market-sessions',
+  path: '/market-sessions',
+  getParentRoute: () => ToolsRoute,
+} as any)
+const ToolsPipCalculatorRoute = ToolsPipCalculatorRouteImport.update({
+  id: '/pip-calculator',
+  path: '/pip-calculator',
+  getParentRoute: () => ToolsRoute,
+} as any)
+const ToolsTradingJournalRoute = ToolsTradingJournalRouteImport.update({
+  id: '/trading-journal',
+  path: '/trading-journal',
+  getParentRoute: () => ToolsRoute,
 } as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
@@ -292,22 +287,27 @@ const AuthenticatedDashboardIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
-const CoursesSlugLessonSlugRoute = CoursesSlugLessonSlugRouteImport.update({
-  id: '/$lessonSlug',
-  path: '/$lessonSlug',
-  getParentRoute: () => CoursesSlugRoute,
-} as any)
-const AdminStudentsStudentIdRoute = AdminStudentsStudentIdRouteImport.update({
-  id: '/$studentId',
-  path: '/$studentId',
-  getParentRoute: () => AdminStudentsRoute,
-} as any)
 const AuthenticatedDashboardTradingPlanRoute =
   AuthenticatedDashboardTradingPlanRouteImport.update({
     id: '/trading-plan',
     path: '/trading-plan',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AdminStudentsStudentIdRoute = AdminStudentsStudentIdRouteImport.update({
+  id: '/$studentId',
+  path: '/$studentId',
+  getParentRoute: () => AdminStudentsRoute,
+} as any)
+const CoursesSlugIndexRoute = CoursesSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CoursesSlugRoute,
+} as any)
+const CoursesSlugLessonSlugRoute = CoursesSlugLessonSlugRouteImport.update({
+  id: '/$lessonSlug',
+  path: '/$lessonSlug',
+  getParentRoute: () => CoursesSlugRoute,
+} as any)
 const AuthenticatedDashboardGiftGiftIdRoute =
   AuthenticatedDashboardGiftGiftIdRouteImport.update({
     id: '/gift/$giftId',
@@ -654,123 +654,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/trading-tips': {
-      id: '/trading-tips'
-      path: '/trading-tips'
-      fullPath: '/trading-tips'
-      preLoaderRoute: typeof TradingTipsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/trading-plan': {
-      id: '/trading-plan'
-      path: '/trading-plan'
-      fullPath: '/trading-plan'
-      preLoaderRoute: typeof TradingPlanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tools': {
-      id: '/tools'
-      path: '/tools'
-      fullPath: '/tools'
-      preLoaderRoute: typeof ToolsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/testimonials': {
-      id: '/testimonials'
-      path: '/testimonials'
-      fullPath: '/testimonials'
-      preLoaderRoute: typeof TestimonialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy-policy': {
-      id: '/privacy-policy'
-      path: '/privacy-policy'
-      fullPath: '/privacy-policy'
-      preLoaderRoute: typeof PrivacyPolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mentorship': {
-      id: '/mentorship'
-      path: '/mentorship'
-      fullPath: '/mentorship'
-      preLoaderRoute: typeof MentorshipRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/free': {
-      id: '/free'
-      path: '/free'
-      fullPath: '/free'
-      preLoaderRoute: typeof FreeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/faq': {
-      id: '/faq'
-      path: '/faq'
-      fullPath: '/faq'
-      preLoaderRoute: typeof FaqRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/delete-account': {
-      id: '/delete-account'
-      path: '/delete-account'
-      fullPath: '/delete-account'
-      preLoaderRoute: typeof DeleteAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/courses': {
-      id: '/courses'
-      path: '/courses'
-      fullPath: '/courses'
-      preLoaderRoute: typeof CoursesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blog': {
-      id: '/blog'
-      path: '/blog'
-      fullPath: '/blog'
-      preLoaderRoute: typeof BlogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/alc-access': {
-      id: '/alc-access'
-      path: '/alc-access'
-      fullPath: '/alc-access'
-      preLoaderRoute: typeof AlcAccessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -780,172 +668,130 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/': {
-      id: '/tools/'
-      path: '/'
-      fullPath: '/tools/'
-      preLoaderRoute: typeof ToolsIndexRouteImport
-      parentRoute: typeof ToolsRoute
-    }
-    '/courses/': {
-      id: '/courses/'
-      path: '/'
-      fullPath: '/courses/'
-      preLoaderRoute: typeof CoursesIndexRouteImport
-      parentRoute: typeof CoursesRoute
-    }
-    '/auth/': {
-      id: '/auth/'
-      path: '/'
-      fullPath: '/auth/'
-      preLoaderRoute: typeof AuthIndexRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/admin/': {
-      id: '/admin/'
-      path: '/admin'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
+    '/alc-access': {
+      id: '/alc-access'
+      path: '/alc-access'
+      fullPath: '/alc-access'
+      preLoaderRoute: typeof AlcAccessRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tools/trading-journal': {
-      id: '/tools/trading-journal'
-      path: '/trading-journal'
-      fullPath: '/tools/trading-journal'
-      preLoaderRoute: typeof ToolsTradingJournalRouteImport
-      parentRoute: typeof ToolsRoute
-    }
-    '/tools/pip-calculator': {
-      id: '/tools/pip-calculator'
-      path: '/pip-calculator'
-      fullPath: '/tools/pip-calculator'
-      preLoaderRoute: typeof ToolsPipCalculatorRouteImport
-      parentRoute: typeof ToolsRoute
-    }
-    '/tools/market-sessions': {
-      id: '/tools/market-sessions'
-      path: '/market-sessions'
-      fullPath: '/tools/market-sessions'
-      preLoaderRoute: typeof ToolsMarketSessionsRouteImport
-      parentRoute: typeof ToolsRoute
-    }
-    '/payment/$slug': {
-      id: '/payment/$slug'
-      path: '/payment/$slug'
-      fullPath: '/payment/$slug'
-      preLoaderRoute: typeof PaymentSlugRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/courses/$slug': {
-      id: '/courses/$slug'
-      path: '/$slug'
-      fullPath: '/courses/$slug'
-      preLoaderRoute: typeof CoursesSlugRouteImport
-      parentRoute: typeof CoursesRoute
-    }
-    '/certificates/$certificateId': {
-      id: '/certificates/$certificateId'
-      path: '/certificates/$certificateId'
-      fullPath: '/certificates/$certificateId'
-      preLoaderRoute: typeof CertificatesCertificateIdRouteImport
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/confirm': {
-      id: '/auth/confirm'
-      path: '/confirm'
-      fullPath: '/auth/confirm'
-      preLoaderRoute: typeof AuthConfirmRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/admin/trading-tips': {
-      id: '/admin/trading-tips'
-      path: '/admin/trading-tips'
-      fullPath: '/admin/trading-tips'
-      preLoaderRoute: typeof AdminTradingTipsRouteImport
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/students': {
-      id: '/admin/students'
-      path: '/admin/students'
-      fullPath: '/admin/students'
-      preLoaderRoute: typeof AdminStudentsRouteImport
+    '/courses': {
+      id: '/courses'
+      path: '/courses'
+      fullPath: '/courses'
+      preLoaderRoute: typeof CoursesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/payments': {
-      id: '/admin/payments'
-      path: '/admin/payments'
-      fullPath: '/admin/payments'
-      preLoaderRoute: typeof AdminPaymentsRouteImport
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/mentorship-applications': {
-      id: '/admin/mentorship-applications'
-      path: '/admin/mentorship-applications'
-      fullPath: '/admin/mentorship-applications'
-      preLoaderRoute: typeof AdminMentorshipApplicationsRouteImport
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/media-library': {
-      id: '/admin/media-library'
-      path: '/admin/media-library'
-      fullPath: '/admin/media-library'
-      preLoaderRoute: typeof AdminMediaLibraryRouteImport
+    '/free': {
+      id: '/free'
+      path: '/free'
+      fullPath: '/free'
+      preLoaderRoute: typeof FreeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/lessons': {
-      id: '/admin/lessons'
-      path: '/admin/lessons'
-      fullPath: '/admin/lessons'
-      preLoaderRoute: typeof AdminLessonsRouteImport
+    '/mentorship': {
+      id: '/mentorship'
+      path: '/mentorship'
+      fullPath: '/mentorship'
+      preLoaderRoute: typeof MentorshipRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/featured-videos': {
-      id: '/admin/featured-videos'
-      path: '/admin/featured-videos'
-      fullPath: '/admin/featured-videos'
-      preLoaderRoute: typeof AdminFeaturedVideosRouteImport
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/certificates': {
-      id: '/admin/certificates'
-      path: '/admin/certificates'
-      fullPath: '/admin/certificates'
-      preLoaderRoute: typeof AdminCertificatesRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/alc-library': {
-      id: '/admin/alc-library'
-      path: '/admin/alc-library'
-      fullPath: '/admin/alc-library'
-      preLoaderRoute: typeof AdminAlcLibraryRouteImport
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/alc-access': {
-      id: '/admin/alc-access'
-      path: '/admin/alc-access'
-      fullPath: '/admin/alc-access'
-      preLoaderRoute: typeof AdminAlcAccessRouteImport
+    '/testimonials': {
+      id: '/testimonials'
+      path: '/testimonials'
+      fullPath: '/testimonials'
+      preLoaderRoute: typeof TestimonialsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/tips': {
-      id: '/_authenticated/tips'
-      path: '/tips'
-      fullPath: '/tips'
-      preLoaderRoute: typeof AuthenticatedTipsRouteImport
+    '/tools': {
+      id: '/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof ToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trading-plan': {
+      id: '/trading-plan'
+      path: '/trading-plan'
+      fullPath: '/trading-plan'
+      preLoaderRoute: typeof TradingPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trading-tips': {
+      id: '/trading-tips'
+      path: '/trading-tips'
+      fullPath: '/trading-tips'
+      preLoaderRoute: typeof TradingTipsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile': {
@@ -955,19 +801,166 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+    '/_authenticated/tips': {
+      id: '/_authenticated/tips'
+      path: '/tips'
+      fullPath: '/tips'
+      preLoaderRoute: typeof AuthenticatedTipsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/courses/$slug/': {
-      id: '/courses/$slug/'
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/alc-access': {
+      id: '/admin/alc-access'
+      path: '/admin/alc-access'
+      fullPath: '/admin/alc-access'
+      preLoaderRoute: typeof AdminAlcAccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/alc-library': {
+      id: '/admin/alc-library'
+      path: '/admin/alc-library'
+      fullPath: '/admin/alc-library'
+      preLoaderRoute: typeof AdminAlcLibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/certificates': {
+      id: '/admin/certificates'
+      path: '/admin/certificates'
+      fullPath: '/admin/certificates'
+      preLoaderRoute: typeof AdminCertificatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/featured-videos': {
+      id: '/admin/featured-videos'
+      path: '/admin/featured-videos'
+      fullPath: '/admin/featured-videos'
+      preLoaderRoute: typeof AdminFeaturedVideosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/lessons': {
+      id: '/admin/lessons'
+      path: '/admin/lessons'
+      fullPath: '/admin/lessons'
+      preLoaderRoute: typeof AdminLessonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/media-library': {
+      id: '/admin/media-library'
+      path: '/admin/media-library'
+      fullPath: '/admin/media-library'
+      preLoaderRoute: typeof AdminMediaLibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/mentorship-applications': {
+      id: '/admin/mentorship-applications'
+      path: '/admin/mentorship-applications'
+      fullPath: '/admin/mentorship-applications'
+      preLoaderRoute: typeof AdminMentorshipApplicationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/admin/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/students': {
+      id: '/admin/students'
+      path: '/admin/students'
+      fullPath: '/admin/students'
+      preLoaderRoute: typeof AdminStudentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/trading-tips': {
+      id: '/admin/trading-tips'
+      path: '/admin/trading-tips'
+      fullPath: '/admin/trading-tips'
+      preLoaderRoute: typeof AdminTradingTipsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/': {
+      id: '/auth/'
       path: '/'
-      fullPath: '/courses/$slug/'
-      preLoaderRoute: typeof CoursesSlugIndexRouteImport
-      parentRoute: typeof CoursesSlugRoute
+      fullPath: '/auth/'
+      preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/confirm': {
+      id: '/auth/confirm'
+      path: '/confirm'
+      fullPath: '/auth/confirm'
+      preLoaderRoute: typeof AuthConfirmRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/certificates/$certificateId': {
+      id: '/certificates/$certificateId'
+      path: '/certificates/$certificateId'
+      fullPath: '/certificates/$certificateId'
+      preLoaderRoute: typeof CertificatesCertificateIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/': {
+      id: '/courses/'
+      path: '/'
+      fullPath: '/courses/'
+      preLoaderRoute: typeof CoursesIndexRouteImport
+      parentRoute: typeof CoursesRoute
+    }
+    '/courses/$slug': {
+      id: '/courses/$slug'
+      path: '/$slug'
+      fullPath: '/courses/$slug'
+      preLoaderRoute: typeof CoursesSlugRouteImport
+      parentRoute: typeof CoursesRoute
+    }
+    '/payment/$slug': {
+      id: '/payment/$slug'
+      path: '/payment/$slug'
+      fullPath: '/payment/$slug'
+      preLoaderRoute: typeof PaymentSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/': {
+      id: '/tools/'
+      path: '/'
+      fullPath: '/tools/'
+      preLoaderRoute: typeof ToolsIndexRouteImport
+      parentRoute: typeof ToolsRoute
+    }
+    '/tools/market-sessions': {
+      id: '/tools/market-sessions'
+      path: '/market-sessions'
+      fullPath: '/tools/market-sessions'
+      preLoaderRoute: typeof ToolsMarketSessionsRouteImport
+      parentRoute: typeof ToolsRoute
+    }
+    '/tools/pip-calculator': {
+      id: '/tools/pip-calculator'
+      path: '/pip-calculator'
+      fullPath: '/tools/pip-calculator'
+      preLoaderRoute: typeof ToolsPipCalculatorRouteImport
+      parentRoute: typeof ToolsRoute
+    }
+    '/tools/trading-journal': {
+      id: '/tools/trading-journal'
+      path: '/trading-journal'
+      fullPath: '/tools/trading-journal'
+      preLoaderRoute: typeof ToolsTradingJournalRouteImport
+      parentRoute: typeof ToolsRoute
     }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
@@ -976,12 +969,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
-    '/courses/$slug/$lessonSlug': {
-      id: '/courses/$slug/$lessonSlug'
-      path: '/$lessonSlug'
-      fullPath: '/courses/$slug/$lessonSlug'
-      preLoaderRoute: typeof CoursesSlugLessonSlugRouteImport
-      parentRoute: typeof CoursesSlugRoute
+    '/_authenticated/dashboard/trading-plan': {
+      id: '/_authenticated/dashboard/trading-plan'
+      path: '/trading-plan'
+      fullPath: '/dashboard/trading-plan'
+      preLoaderRoute: typeof AuthenticatedDashboardTradingPlanRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
     }
     '/admin/students/$studentId': {
       id: '/admin/students/$studentId'
@@ -990,12 +983,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStudentsStudentIdRouteImport
       parentRoute: typeof AdminStudentsRoute
     }
-    '/_authenticated/dashboard/trading-plan': {
-      id: '/_authenticated/dashboard/trading-plan'
-      path: '/trading-plan'
-      fullPath: '/dashboard/trading-plan'
-      preLoaderRoute: typeof AuthenticatedDashboardTradingPlanRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+    '/courses/$slug/': {
+      id: '/courses/$slug/'
+      path: '/'
+      fullPath: '/courses/$slug/'
+      preLoaderRoute: typeof CoursesSlugIndexRouteImport
+      parentRoute: typeof CoursesSlugRoute
+    }
+    '/courses/$slug/$lessonSlug': {
+      id: '/courses/$slug/$lessonSlug'
+      path: '/$lessonSlug'
+      fullPath: '/courses/$slug/$lessonSlug'
+      preLoaderRoute: typeof CoursesSlugLessonSlugRouteImport
+      parentRoute: typeof CoursesSlugRoute
     }
     '/_authenticated/dashboard/gift/$giftId': {
       id: '/_authenticated/dashboard/gift/$giftId'
