@@ -15,7 +15,7 @@ describe("Premium purchases on web with learning in the app", () => {
     expect(FEATURE_ACCESS).toEqual({
       freeLessonsEnabled: false,
       premiumLessonsEnabled: true,
-      alcAccessEnabled: false,
+      alcAccessEnabled: true,
       mentorshipEnabled: true,
     });
   });

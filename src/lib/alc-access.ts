@@ -3,19 +3,30 @@ import { z } from "zod";
 // eslint-disable-next-line no-control-regex -- removes unsafe control characters from submitted text.
 const clean = (value: string) => value.replace(/[\u0000-\u001F\u007F]/g, "").trim();
 
-export const ALC_PROGRAMS = [
-  "Regular Class",
-  "Advanced Class",
-  "Master Class",
-  "Live Classes",
-  "Online Classes",
-  "Other",
-] as const;
+// Same choices as the BLACKPIPS app request form.
+export const ALC_PROGRAMS = ["Regular Class", "Advanced Class", "Masterclass", "Other"] as const;
+
+export const ALC_LANGUAGES = ["Kiswahili", "English"] as const;
+
+/** Years the app offers: 2021 up to the current year, newest first. */
+export function alcStudyYears(currentYear = new Date().getFullYear()) {
+  const years: number[] = [];
+  for (let year = currentYear; year >= 2021; year -= 1) years.push(year);
+  return years;
+}
+
+export const ALC_PROOF_MAX_COUNT = 3;
+export const ALC_PROOF_MAX_BYTES = 5 * 1024 * 1024;
+export const ALC_PROOF_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+export const ALC_WHATSAPP_URL = `https://wa.me/255693413655?text=${encodeURIComponent(
+  "Hello Black Pips, I have submitted my ALC Access verification request and would like assistance with the review.",
+)}`;
 
 export const alcAccessSchema = z
   .object({
     fullName: z.string().min(2).max(120).transform(clean),
-    studyYear: z.coerce.number().int().min(2010).max(new Date().getFullYear()),
+    studyYear: z.coerce.number().int().min(2021).max(new Date().getFullYear()),
     email: z.string().email().max(255).transform(clean),
     phone: z
       .string()

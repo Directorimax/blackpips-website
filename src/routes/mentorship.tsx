@@ -355,7 +355,9 @@ function Mentorship() {
                     <label className="field">
                       <span className="label">What are your biggest trading challenges?</span>
                       <textarea
-                        className="input"
+                        className="input grow-area"
+                        rows={1}
+                        onInput={growTextarea}
                         required
                         value={form.biggest_challenge}
                         onChange={(event) =>
@@ -368,7 +370,9 @@ function Mentorship() {
                         What do you want to achieve through this mentorship?
                       </span>
                       <textarea
-                        className="input"
+                        className="input grow-area"
+                        rows={1}
+                        onInput={growTextarea}
                         required
                         value={form.learning_goal}
                         onChange={(event) =>
@@ -620,4 +624,11 @@ function useOfferClock() {
   }, []);
 
   return now;
+}
+
+// Starts the height of a normal field, grows with the text, then scrolls inside.
+function growTextarea(event: { currentTarget: HTMLTextAreaElement }) {
+  const el = event.currentTarget;
+  el.style.height = "auto";
+  el.style.height = `${Math.min(el.scrollHeight + 2, 152)}px`;
 }

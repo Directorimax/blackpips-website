@@ -2,10 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Download, Loader2, MoveLeft, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import certificateLogo from "@/assets/blackpips-bull-gold.png";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
 import { supabase } from "@/integrations/supabase/client";
 import { generateCertificatePng } from "@/lib/generateCertificateImage";
+import type { CertificateImageData } from "@/lib/generateCertificateImage";
 
 export const Route = createFileRoute("/certificates/$certificateId")({
   head: () => ({
@@ -35,6 +35,8 @@ function CertificatePage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [renderFailed, setRenderFailed] = useState(false);
 
   const loadCertificate = useCallback(async () => {
     setLoading(true);
@@ -55,16 +57,33 @@ function CertificatePage() {
     void loadCertificate();
   }, [loadCertificate]);
 
+  // Same picture the app issues: the template image with the learner's details drawn on it.
+  useEffect(() => {
+    if (!certificate) return;
+    let url: string | null = null;
+    let cancelled = false;
+    setRenderFailed(false);
+    generateCertificatePng(toImageData(certificate))
+      .then((blob) => {
+        if (cancelled) return;
+        url = URL.createObjectURL(blob);
+        setImageUrl(url);
+      })
+      .catch((renderError) => {
+        console.error("Certificate render failed:", renderError);
+        if (!cancelled) setRenderFailed(true);
+      });
+    return () => {
+      cancelled = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [certificate]);
+
   async function handleDownloadPng() {
     if (!certificate) return;
     try {
       setIsDownloading(true);
-      const blob = await generateCertificatePng({
-        studentName: certificate.student_name,
-        courseName: certificate.course_name,
-        certificateNumber: certificate.certificate_number,
-        issuedAt: certificate.issued_at,
-      });
+      const blob = await generateCertificatePng(toImageData(certificate));
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -105,11 +124,6 @@ function CertificatePage() {
     );
   }
 
-  const completionDate = new Intl.DateTimeFormat(undefined, {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(certificate.issued_at));
   return (
     <main className="certificate-page mx-auto max-w-6xl px-4 py-14 sm:py-16">
       <div className="certificate-controls mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -132,62 +146,31 @@ function CertificatePage() {
           {isDownloading ? "Generating certificate..." : "Download Certificate PNG"}
         </button>
       </div>
-      <article className="certificate-sheet">
-        <div className="certificate-inner-border" />
-        <div className="certificate-glow" />
-        <div className="certificate-content">
-          <div className="certificate-brand">
-            <img
-              src={certificateLogo}
-              alt="BlackPips logo"
-              width={48}
-              height={48}
-              loading="lazy"
-              decoding="async"
-              className="certificate-logo"
-            />
-            <span>
-              Black<span>Pips</span>
-            </span>
-          </div>
-          <p className="certificate-eyebrow">Certificate of completion</p>
-          <h1 className="certificate-heading">This certifies that</h1>
-          <p className="certificate-student-name">{certificate.student_name}</p>
-          <p className="certificate-description">
-            has successfully completed every published lesson in the BlackPips premium course
-          </p>
-          <h2 className="certificate-course-name">{certificate.course_name}</h2>
-          <div className="certificate-meta-grid">
-            <CertificateMeta label="Completion date" value={completionDate} />
-            <CertificateMeta label="Completion" value={`${certificate.completion_percentage}%`} />
-            <CertificateMeta label="Certificate no." value={certificate.certificate_number} />
-          </div>
-          <div className="certificate-signatures">
-            <Signature label="BlackPips Academy" caption="Instructor signature" />
-            <div className="certificate-seal">
-              <ShieldCheck className="h-7 w-7" />
-            </div>
-            <Signature label="BlackPips" caption="Verified completion" />
-          </div>
-        </div>
-      </article>
+      <figure className="certificate-image">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={`${certificate.course_name} certificate for ${certificate.student_name}, number ${certificate.certificate_number}`}
+            width={1200}
+            height={800}
+          />
+        ) : renderFailed ? (
+          <p className="small center">This certificate could not be drawn. Please try again.</p>
+        ) : (
+          <Loader2 className="h-6 w-6 animate-spin text-gold" />
+        )}
+      </figure>
     </main>
   );
 }
 
-function CertificateMeta({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="certificate-meta-item">
-      <p>{label}</p>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-function Signature({ label, caption }: { label: string; caption: string }) {
-  return (
-    <div className="certificate-signature">
-      <p>{label}</p>
-      <span>{caption}</span>
-    </div>
-  );
+function toImageData(certificate: Certificate): CertificateImageData {
+  return {
+    studentName: certificate.student_name,
+    courseId: certificate.course_id,
+    courseName: certificate.course_name,
+    certificateNumber: certificate.certificate_number,
+    issuedAt: certificate.issued_at,
+    completionPercentage: certificate.completion_percentage,
+  };
 }

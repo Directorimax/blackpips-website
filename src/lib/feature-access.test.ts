@@ -11,7 +11,7 @@ describe("learning feature release flags", () => {
   it("keeps the production lesson feature flags disabled", () => {
     expect(FEATURE_ACCESS.freeLessonsEnabled).toBe(false);
     expect(FEATURE_ACCESS.premiumLessonsEnabled).toBe(true);
-    expect(FEATURE_ACCESS.alcAccessEnabled).toBe(false);
+    expect(FEATURE_ACCESS.alcAccessEnabled).toBe(true);
   });
 
   it("keeps premium lessons available independent of build mode", () => {
@@ -21,6 +21,6 @@ describe("learning feature release flags", () => {
     expect(isPremiumCourseAvailable("alc-foundations")).toBe(true);
     expect(isPremiumCourseAvailable("eight-entries")).toBe(true);
     expect(isPremiumCourseAvailable("xauusd-mastery")).toBe(true);
-    expect(isAlcAccessAvailable()).toBe(false);
+    expect(isAlcAccessAvailable()).toBe(true);
   });
 });

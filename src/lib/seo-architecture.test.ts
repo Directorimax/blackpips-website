@@ -72,10 +72,8 @@ describe("BLACKPIPS priority SEO architecture", () => {
   });
 
   it("links all priority destinations from crawlable public navigation surfaces", () => {
-    const home = read("../routes/index.tsx");
     const tools = read("../routes/tools.index.tsx");
     const footer = read("../components/Footer.tsx");
-    expect(home).toContain("PRIORITY_DESTINATIONS.map");
     expect(tools).toContain("PRIORITY_DESTINATIONS.map");
     expect(footer).toContain("PRIORITY_DESTINATIONS.map");
   });

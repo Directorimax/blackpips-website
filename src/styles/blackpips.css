@@ -1289,3 +1289,72 @@ html:not(.dark) .bp .course-card .cover { background: linear-gradient(135deg, #f
 .bp .instrument-pop { --pop-blur: blur(20px); background: color-mix(in oklab, var(--s1) 97%, transparent) !important; backdrop-filter: var(--pop-blur); }
 /* The instrument row must stack above the inputs below it, or its list opens underneath them */
 .bp .calc > .between:first-child + .cgrid { z-index: 40; }
+
+/* Theme switch: one clean swap, revealed as a circle from the toggle */
+html.theme-switching, html.theme-switching *, html.theme-switching *::before, html.theme-switching *::after { transition: none !important; }
+::view-transition-old(root), ::view-transition-new(root) { mix-blend-mode: normal; animation-duration: .32s; animation-timing-function: cubic-bezier(.4,0,.2,1); }
+
+/* Long answers: same height as the other fields, grow to ~5 lines, then scroll */
+.bp textarea.input.grow-area { min-height: 50px; height: 50px; max-height: 152px; padding: 13px 16px; line-height: 1.5; resize: none; overflow-y: auto; }
+
+/* Certificate: the app's own template image */
+.certificate-image { margin: 0; aspect-ratio: 3 / 2; display: grid; place-items: center; border-radius: 18px; overflow: hidden; background: #0b0b0b; box-shadow: 0 30px 80px -40px rgba(0,0,0,.8); }
+.certificate-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+/* Checkout: payment methods as one row of logo pills, cards below start level */
+.bp .pay-methods { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 24px; }
+.bp .pay-method { position: relative; display: flex; align-items: center; gap: 12px; min-height: 68px; padding: 12px 16px 12px 12px; border-radius: 18px; border: 1px solid var(--line2); background: var(--fill); color: var(--tx); cursor: pointer; text-align: left; font: inherit; transition: border-color .25s, background .25s, box-shadow .25s; }
+.bp .pay-method:hover { border-color: var(--gold-line); }
+.bp .pay-method:disabled { cursor: not-allowed; opacity: .6; }
+.bp .pay-method.on { border-color: var(--gold); background: var(--gold-wash); box-shadow: 0 10px 30px -16px rgba(250,190,51,.55); }
+.bp .pay-logo { width: 44px; height: 44px; flex: none; border-radius: 50%; overflow: hidden; background: #fff; display: grid; place-items: center; box-shadow: 0 0 0 1px var(--line2); }
+.bp .pay-method.on .pay-logo { box-shadow: 0 0 0 2px var(--gold); }
+.bp .pay-logo img { width: 100%; height: 100%; object-fit: cover; }
+.bp .pay-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bp .pay-name b { font-size: 15px; font-weight: 700; }
+.bp .pay-name span { font-size: 12px; color: var(--tx3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bp .pay-check { margin-left: auto; width: 20px; height: 20px; color: var(--gold-ink); flex: none; }
+.bp .pay-layout { align-items: start; }
+@media (max-width: 640px) {
+  .bp .pay-methods { gap: 8px; margin: 0 0 16px; }
+  .bp .pay-method { flex-direction: column; justify-content: center; gap: 8px; padding: 12px 6px; text-align: center; }
+  .bp .pay-name { align-items: center; }
+  .bp .pay-name span { display: none; }
+  .bp .pay-check { position: absolute; top: 8px; right: 8px; width: 16px; height: 16px; }
+}
+
+/* ALC Access request: app-style rows and proof slots */
+.bp .alc-row { display: grid; grid-template-columns: 2fr 3fr; gap: 12px; }
+.bp .alc-proof { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.bp .alc-proof-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.bp .alc-slot { position: relative; min-height: 76px; border-radius: 14px; border: 1px solid var(--line2); background: var(--fill); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 8px; font: 600 12px Inter, system-ui, sans-serif; color: var(--tx2); }
+.bp .alc-slot svg { width: 18px; height: 18px; }
+.bp .alc-slot.add { border-style: dashed; cursor: pointer; }
+.bp .alc-slot.add:hover { border-color: var(--gold-line); color: var(--gold-ink); }
+.bp .alc-slot.done { color: var(--bull-ink); }
+.bp .alc-slot-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bp .alc-slot.file button { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; border: 0; background: var(--fill2); color: var(--tx2); cursor: pointer; }
+.bp .alc-slot.file button svg { width: 12px; height: 12px; }
+@media (max-width: 480px) { .bp .alc-row { grid-template-columns: 1fr; } }
+
+/* Checkout: course language, as the app asks before a purchase */
+.bp .pay-lang { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 18px; align-items: center; margin: 28px 0 14px; padding: 18px; border-radius: 20px; border: 1px solid var(--line); background: var(--bp-card); }
+.bp .pay-lang .small { margin-top: 4px; }
+.bp .pay-lang-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bp .pay-lang-opt { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px 10px 10px; border-radius: 16px; border: 1px solid var(--line2); background: var(--fill); color: var(--tx); cursor: pointer; text-align: left; font: inherit; transition: border-color .25s, background .25s; }
+.bp .pay-lang-opt:hover { border-color: var(--gold-line); }
+.bp .pay-lang-opt.on { border-color: var(--gold); background: var(--gold-wash); }
+.bp .pay-lang-tag { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; font: 800 13px Inter, system-ui, sans-serif; background: var(--fill2); color: var(--tx2); }
+.bp .pay-lang-opt.on .pay-lang-tag { background: var(--gold); color: #19150b; }
+@media (max-width: 1020px) { .bp .pay-methods { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .bp .pay-lang { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .bp .pay-lang { margin: 20px 0 12px; padding: 14px; }
+  .bp .pay-lang-opt .pay-name span { display: none; }
+}
+.bp .pay-lang.need { border-color: var(--bear); box-shadow: 0 0 0 3px color-mix(in oklab, var(--bear) 22%, transparent); }
+
+/* About bull in light mode: sit it on a dark medallion so the gold stays readable */
+html:not(.dark) .bp .about-glow { width: min(330px, 74vw); background: radial-gradient(circle at 50% 38%, #2a2416 0%, #14110b 62%, #0b0907 100%); box-shadow: 0 0 0 1px rgba(224,142,0,.45), 0 0 0 8px rgba(250,190,51,.12), 0 34px 70px -24px rgba(60,40,0,.55); }
+html:not(.dark) .bp .about-bull { width: min(270px, 60%); filter: drop-shadow(0 10px 22px rgba(0,0,0,.55)); }
+html:not(.dark) .bp .about-ring { border-color: rgba(176,112,0,.45); }

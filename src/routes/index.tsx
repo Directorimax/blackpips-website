@@ -3,13 +3,9 @@ import {
   ArrowRight,
   BarChart3,
   BookOpenText,
-  Calculator,
-  CalendarCheck,
   Check,
-  Clock,
   GraduationCap,
   Landmark,
-  Lightbulb,
   Plus,
   ShieldCheck,
   TrendingUp,
@@ -18,7 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CandleLayer } from "@/components/bp/CandleField";
-import { COURSES, HOME_FAQ, JOURNEY, PRIORITY_DESTINATIONS, WHY } from "@/lib/site-data";
+import { COURSES, HOME_FAQ, JOURNEY, WHY } from "@/lib/site-data";
 import { getAllSessionSnapshots } from "@/lib/market-session-engine";
 import { formatTime, formatTimeZoneLabel } from "@/lib/market-session-time";
 import { useMarketSessions } from "@/hooks/useMarketSessions";
@@ -64,14 +60,6 @@ const TOPICS = [
 
 const PROGRAMME_MARKS = ["REG", "ADV", "MC", "T8"];
 const PROGRAMME_LEVELS = ["Foundation", "Advanced", "Master", "Specialized"];
-
-const TOOL_ICONS: Record<(typeof PRIORITY_DESTINATIONS)[number]["to"], typeof Clock> = {
-  "/tools/trading-journal": BookOpenText,
-  "/tools/market-sessions": Clock,
-  "/tools/pip-calculator": Calculator,
-  "/trading-tips": Lightbulb,
-  "/trading-plan": CalendarCheck,
-};
 
 const WHY_ICONS = [Landmark, TrendingUp, Zap, ShieldCheck, Users, BarChart3];
 
@@ -434,48 +422,6 @@ function TraderTools() {
             </Link>
           </div>
           <JournalCard />
-          {PRIORITY_DESTINATIONS.map((destination) => {
-            if (destination.to === "/tools/trading-journal") return null;
-            const Icon = TOOL_ICONS[destination.to];
-            if (destination.to === "/trading-tips") {
-              return (
-                <Link
-                  key={destination.to}
-                  to={destination.open}
-                  className="card lift spot reveal bento-tip"
-                >
-                  <span className="ico">
-                    <Icon aria-hidden="true" />
-                  </span>
-                  <div style={{ flex: "1 1 320px" }}>
-                    <p className="micro">{destination.label}</p>
-                    <p className="h4" style={{ fontSize: 17, marginTop: 6 }}>
-                      {destination.description}
-                    </p>
-                  </div>
-                  <span className="chip chip-gold">Fresh insights from BLACKPIPS</span>
-                </Link>
-              );
-            }
-            return (
-              <Link
-                key={destination.to}
-                to={destination.open}
-                className="card lift spot span-2 reveal"
-                style={{ padding: 24 }}
-              >
-                <div className="row">
-                  <span className="ico">
-                    <Icon aria-hidden="true" />
-                  </span>
-                  <h3 className="h3">{destination.label}</h3>
-                </div>
-                <p className="small" style={{ marginTop: 12 }}>
-                  {destination.description}
-                </p>
-              </Link>
-            );
-          })}
         </div>
       </div>
     </section>

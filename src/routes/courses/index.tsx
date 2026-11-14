@@ -12,7 +12,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { COURSES, FREE_LESSONS, formatTZS } from "@/lib/site-data";
+import { COURSES, formatTZS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/useAuth";
 import { createSeoHead } from "@/lib/seo";
@@ -310,7 +310,7 @@ function CoursesCatalog() {
           )}
 
           {tab === "free" && (
-            <div className="split rise" style={{ alignItems: "start", gap: 28 }}>
+            <div className="rise" style={{ maxWidth: 680, margin: "0 auto" }}>
               <div className="orbit">
                 <div className="orbit-in" style={{ padding: "clamp(24px, 4vw, 40px)" }}>
                   <span className="ico ico-solid">
@@ -320,28 +320,14 @@ function CoursesCatalog() {
                     Free lessons live in the app.
                   </h2>
                   <p className="body" style={{ marginTop: 12 }}>
-                    Download BLACKPIPS and sign in with your account to watch the free library —
-                    from what forex is to top-down analysis.
+                    Download BLACKPIPS and sign in with your account. Free lessons are published and
+                    watched inside the app.
                   </p>
                   <div className="store-badges" style={{ marginTop: 26 }}>
                     <GooglePlayBadge />
                     <AppStoreBadge />
                   </div>
                 </div>
-              </div>
-              <div className="card" style={{ padding: 10 }}>
-                {FREE_LESSONS.map((lesson, i) => (
-                  <div className="frow" key={lesson.id}>
-                    <span className="fnum">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="stack" style={{ gap: 3, minWidth: 0 }}>
-                      <span className="h4" style={{ fontSize: 15 }}>
-                        {lesson.title}
-                      </span>
-                      <span className="small">{lesson.level}</span>
-                    </span>
-                    <span className="chip">In app</span>
-                  </div>
-                ))}
               </div>
             </div>
           )}

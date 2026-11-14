@@ -9,10 +9,15 @@ import {
   ShieldCheck,
   X,
   FileImage,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { COURSES, formatTZS } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
+import mpesaLogo from "@/assets/payments/mpesa.png";
+import airtelLogo from "@/assets/payments/airtel.png";
+import yasLogo from "@/assets/payments/yas.png";
+import binanceLogo from "@/assets/payments/binance.svg";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/useAuth";
 import { AuthenticatedRouteGuard } from "@/components/AuthenticatedRouteGuard";
@@ -48,7 +53,33 @@ export const Route = createFileRoute("/payment/$slug")({
   ),
 });
 
-type MethodKey = "mpesa" | "airtel" | "tigo";
+type MethodKey = "mpesa" | "airtel" | "tigo" | "binance";
+// Same network logos the BLACKPIPS app uses
+const METHOD_LOGOS: Record<MethodKey, string> = {
+  mpesa: mpesaLogo,
+  airtel: airtelLogo,
+  tigo: yasLogo,
+  binance: binanceLogo,
+};
+
+// The BLACKPIPS TRON wallet for buyers outside Tanzania.
+const TRC20_WALLET = "TUjTyQL87cUt8K4bDwJ3SijcESityoZr57";
+
+// Fixed Binance prices in USDT, per course.
+const USDT_PRICES: Record<string, number> = {
+  "alc-foundations": 39.99, // Regular ALC
+  "liquidity-engine": 99.99, // Advanced ALC
+  "eight-entries": 199.99, // ALC Masterclass
+  "xauusd-mastery": 79.99, // The Eight Entries
+};
+
+// Same choice the app asks before a purchase: each language has its own lessons.
+const LANGUAGES = [
+  { code: "sw", tag: "SW", name: "Kiswahili", note: "Masomo yote kwa Kiswahili" },
+  { code: "en", tag: "EN", name: "English", note: "All lessons in English" },
+] as const;
+type LanguageCode = (typeof LANGUAGES)[number]["code"];
+
 const METHODS: {
   key: MethodKey;
   name: string;
@@ -58,6 +89,7 @@ const METHODS: {
   color: string;
   icon: typeof Smartphone;
   instructions: string[];
+  crypto?: boolean;
 }[] = [
   {
     key: "mpesa",
@@ -113,12 +145,35 @@ const METHODS: {
       "Upload the payment receipt",
     ],
   },
+  {
+    key: "binance",
+    name: "Binance · USDT (TRC20)",
+    short: "Binance",
+    business: "USDT · TRON (TRC20)",
+    phone: TRC20_WALLET,
+    color: "from-yellow-500/20 to-amber-500/10",
+    icon: Smartphone,
+    crypto: true,
+    instructions: [
+      "Open Binance and go to Wallet → Withdraw (Send) → Crypto",
+      "Choose the coin USDT",
+      "Paste the wallet address shown above",
+      "Choose the network TRON (TRC20) — only this network",
+      "Enter the exact USDT amount shown above",
+      "Confirm the withdrawal with your Binance security check",
+      "Open the withdrawal history and copy the TxID",
+      "Paste the TxID below and upload a screenshot of the completed withdrawal",
+    ],
+  },
 ];
 
 function Checkout() {
   const { course } = Route.useLoaderData();
   const { loading: authLoading } = useAuth();
   const [method, setMethod] = useState<MethodKey>("mpesa");
+  const [language, setLanguage] = useState<LanguageCode | null>(null);
+  const [languageMissing, setLanguageMissing] = useState(false);
+  const languageRef = useRef<HTMLDivElement>(null);
   const [txId, setTxId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -167,6 +222,14 @@ function Checkout() {
       toast.error(message);
       return;
     }
+    if (!language) {
+      setLanguageMissing(true);
+      languageRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const message = "Choose Kiswahili or English before submitting your payment.";
+      setSubmitError(message);
+      toast.error(message);
+      return;
+    }
     const transactionId = txId.trim();
     if (!transactionId) {
       const message = "Transaction ID is required.";
@@ -200,6 +263,16 @@ function Checkout() {
         .maybeSingle();
       if (courseError) throw courseError;
       if (!databaseCourse) throw new Error("This course is no longer available for payment.");
+
+      // Record the chosen language on the server, exactly as the app does before a purchase.
+      const { error: languageError } = await supabase.rpc(
+        "choose_course_language" as never,
+        { p_course_slug: databaseCourse.slug, p_language: language } as never,
+      );
+      if (languageError)
+        throw new Error(
+          "Your language choice could not be saved. Check your connection and try again.",
+        );
 
       const result = await submitPaymentRecord(
         {
@@ -297,47 +370,79 @@ function Checkout() {
           <span aria-hidden="true">/</span>
           <span style={{ color: "var(--tx)" }}>Checkout</span>
         </nav>
-        <div className="clayout">
-          <div className="stack" style={{ gap: 24 }}>
-            <div className="stack rise" style={{ gap: 14 }}>
-              <span className="eyebrow" style={{ alignSelf: "flex-start" }}>
-                <span className="tag">Checkout</span> Complete payment
-              </span>
-              <h1 className="h1" style={{ fontSize: "clamp(32px, 4.4vw, 52px)" }}>
-                {course.title}
-              </h1>
-              <p className="lead">Lifetime access · Instant unlock after verification</p>
-            </div>
-
-            <div className="card spot rise d1" style={{ padding: "clamp(22px, 3vw, 28px)" }}>
-              <h2 className="h3">Pay with mobile money</h2>
-              <div
-                className="stack"
-                style={{ gap: 8, marginTop: 16 }}
-                role="radiogroup"
-                aria-label="Payment method"
+        <div className="stack rise" style={{ gap: 14 }}>
+          <span className="eyebrow" style={{ alignSelf: "flex-start" }}>
+            <span className="tag">Checkout</span> Complete payment
+          </span>
+          <h1 className="h1" style={{ fontSize: "clamp(32px, 4.4vw, 52px)" }}>
+            {course.title}
+          </h1>
+          <p className="lead">Lifetime access · Instant unlock after verification</p>
+        </div>
+        <div ref={languageRef} className={cn("pay-lang rise d1", languageMissing && "need")}>
+          <div>
+            <p className="h4">Choose your course language</p>
+            <p className="small">
+              Each language has its own lessons. Same price for both. You can&apos;t change it after
+              buying.
+            </p>
+            {languageMissing && (
+              <p className="err small" role="alert" style={{ marginTop: 6 }}>
+                Choose a language to continue. Your payment can&apos;t be submitted without it.
+              </p>
+            )}
+          </div>
+          <div className="pay-lang-opts" role="radiogroup" aria-label="Course language">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l.code}
+                type="button"
+                role="radio"
+                aria-checked={language === l.code}
+                disabled={busy}
+                onClick={() => {
+                  setLanguage(l.code);
+                  setLanguageMissing(false);
+                }}
+                className={cn("pay-lang-opt", language === l.code && "on")}
               >
-                {METHODS.map((m) => {
-                  const active = m.key === method;
-                  return (
-                    <button
-                      key={m.key}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      onClick={() => setMethod(m.key)}
-                      disabled={busy}
-                      className={cn("method", active && "on")}
-                    >
-                      <span className="radio" />
-                      <span>{m.short}</span>
-                      <span className="small">{m.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
+                <span className="pay-lang-tag">{l.tag}</span>
+                <span className="pay-name">
+                  <b>{l.name}</b>
+                  <span>{l.note}</span>
+                </span>
+                {language === l.code && <CheckCircle2 className="pay-check" aria-hidden="true" />}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="pay-methods rise d1" role="radiogroup" aria-label="Payment method">
+          {METHODS.map((m) => {
+            const active = m.key === method;
+            return (
+              <button
+                key={m.key}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setMethod(m.key)}
+                disabled={busy}
+                className={cn("pay-method", active && "on")}
+              >
+                <span className="pay-logo">
+                  <img src={METHOD_LOGOS[m.key]} alt="" width={40} height={40} />
+                </span>
+                <span className="pay-name">
+                  <b>{m.short}</b>
+                  <span>{m.name}</span>
+                </span>
+                {active && <CheckCircle2 className="pay-check" aria-hidden="true" />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="clayout pay-layout">
+          <div className="stack" style={{ gap: 24 }}>
             <div
               className="card rise d2"
               style={{ padding: "clamp(22px, 3vw, 28px)" }}
@@ -346,20 +451,24 @@ function Checkout() {
               <p className="micro">{activeMethod.name} details</p>
               <div className="stack" style={{ gap: 8, marginTop: 14 }}>
                 <DetailField
-                  label="Business name"
+                  label={activeMethod.crypto ? "Coin · Network" : "Business name"}
                   value={activeMethod.business}
                   onCopy={copy}
                   copied={copied}
                 />
                 <DetailField
-                  label="Phone number"
+                  label={activeMethod.crypto ? "Wallet address (TRC20)" : "Phone number"}
                   value={activeMethod.phone}
                   onCopy={copy}
                   copied={copied}
                 />
                 <DetailField
                   label="Amount"
-                  value={formatTZS(course.price)}
+                  value={
+                    activeMethod.crypto
+                      ? `USDT ${USDT_PRICES[course.slug] ?? "—"}`
+                      : formatTZS(course.price)
+                  }
                   onCopy={copy}
                   copied={copied}
                   highlight
@@ -402,7 +511,16 @@ function Checkout() {
                     {formatTZS(course.price)}
                   </p>
                   <p className="small" style={{ marginTop: 6 }}>
-                    Send with {activeMethod.short}, then confirm below.
+                    {activeMethod.crypto
+                      ? `Send USDT ${USDT_PRICES[course.slug] ?? ""} on TRON (TRC20), then confirm below.`
+                      : `Send with ${activeMethod.short}, then confirm below.`}
+                  </p>
+                  <p className="small" style={{ marginTop: 4 }}>
+                    Lessons in:{" "}
+                    <b style={{ color: "var(--tx)" }}>
+                      {LANGUAGES.find((l) => l.code === language)?.name ??
+                        "choose a language above"}
+                    </b>
                   </p>
                 </div>
                 <label className="field" htmlFor="txid">
@@ -415,7 +533,9 @@ function Checkout() {
                     value={txId}
                     onChange={(e) => setTxId(e.target.value)}
                     disabled={busy}
-                    placeholder="e.g. CJ1A2B3C4D"
+                    placeholder={
+                      activeMethod.crypto ? "Paste the TxID from Binance" : "e.g. CJ1A2B3C4D"
+                    }
                   />
                   <span className="small" style={{ fontSize: 12 }}>
                     Paste the reference code from the SMS confirmation you received.

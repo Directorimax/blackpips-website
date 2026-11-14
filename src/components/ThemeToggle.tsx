@@ -6,7 +6,10 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      onClick={toggle}
+      onClick={(event) => {
+        const box = event.currentTarget.getBoundingClientRect();
+        toggle({ x: box.left + box.width / 2, y: box.top + box.height / 2 });
+      }}
       data-theme-toggle
       aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
       className="icon-btn"
