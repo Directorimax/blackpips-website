@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { ArrowRight, Check, Loader2, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatTZS, MENTORSHIP } from "@/lib/site-data";
 import { supabase } from "@/integrations/supabase/client";
@@ -487,6 +487,7 @@ function CompareTable({
       available: option.is_active,
     };
   };
+  const [openTier, setOpenTier] = useState<string | null>(null);
   const groups: { title: string; rows: [string, CompareValue, CompareValue, CompareValue][] }[] =
     [];
   for (const row of COMPARE_ROWS) {
@@ -494,7 +495,7 @@ function CompareTable({
     else groups[groups.length - 1].rows.push(row);
   }
   return (
-    <section style={{ padding: "0 0 104px" }}>
+    <section className="pkg-section">
       <div className="wrap">
         <div className="pkg-grid">
           {MENTORSHIP.map((program, i) => {
@@ -540,33 +541,46 @@ function CompareTable({
                     </span>
                   </div>
                 </div>
-                {groups.map((group) => (
-                  <div className="pkg-group" key={group.title}>
-                    <p className="micro">{group.title}</p>
-                    <ul>
-                      {group.rows.map((row) => {
-                        const value = row[i + 1];
-                        const on = value !== "no";
-                        return (
-                          <li key={row[0]} className={on ? "" : "off"}>
-                            <span className="pkg-ic" aria-hidden="true">
-                              {on ? <Check /> : <X />}
-                            </span>
-                            <span style={{ flex: 1 }}>
-                              {row[0]}
-                              <span className="sr-only">
-                                {on ? " — included" : " — not included"}
+                <button
+                  type="button"
+                  className="pkg-toggle"
+                  aria-expanded={openTier === program.tier}
+                  onClick={() =>
+                    setOpenTier((current) => (current === program.tier ? null : program.tier))
+                  }
+                >
+                  {openTier === program.tier ? "Hide curriculum" : "View curriculum"}
+                  <ChevronDown aria-hidden="true" />
+                </button>
+                <div className={`pkg-curr ${openTier === program.tier ? "open" : ""}`}>
+                  {groups.map((group) => (
+                    <div className="pkg-group" key={group.title}>
+                      <p className="micro">{group.title}</p>
+                      <ul>
+                        {group.rows.map((row) => {
+                          const value = row[i + 1];
+                          const on = value !== "no";
+                          return (
+                            <li key={row[0]} className={on ? "" : "off"}>
+                              <span className="pkg-ic" aria-hidden="true">
+                                {on ? <Check /> : <X />}
                               </span>
-                            </span>
-                            {on && value !== "yes" && (
-                              <span className="chip chip-gold mono">{value}</span>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ))}
+                              <span style={{ flex: 1 }}>
+                                {row[0]}
+                                <span className="sr-only">
+                                  {on ? " — included" : " — not included"}
+                                </span>
+                              </span>
+                              {on && value !== "yes" && (
+                                <span className="chip chip-gold mono">{value}</span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
                 <div className="pkg-foot">
                   <Link
                     to="/mentorship"

@@ -441,21 +441,6 @@ function AuthPage() {
               </p>
             </div>
 
-            {mode !== "forgot" && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleGoogle}
-                  disabled={busy || googleLoading}
-                  className="social"
-                >
-                  {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
-                  {googleLoading ? "Connecting to Google…" : "Continue with Google"}
-                </button>
-                <div className="or">OR WITH EMAIL</div>
-              </>
-            )}
-
             <form onSubmit={handleSubmit} className="stack" style={{ gap: 14 }}>
               {mode === "signup" && (
                 <label className="field">
@@ -540,6 +525,21 @@ function AuthPage() {
               </button>
             </form>
 
+            {mode !== "forgot" && (
+              <>
+                <div className="or">OR</div>
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  disabled={busy || googleLoading}
+                  className="social"
+                >
+                  {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                  {googleLoading ? "Connecting to Google…" : "Continue with Google"}
+                </button>
+              </>
+            )}
+
             <p className="small center">
               {mode === "forgot" && (
                 <button
@@ -552,6 +552,13 @@ function AuthPage() {
                 </button>
               )}
             </p>
+            <div className="auth-app-below">
+              <span className="small">Watch your lessons in the BLACKPIPS app</span>
+              <div className="store-badges">
+                <GooglePlayBadge />
+                <AppStoreBadge />
+              </div>
+            </div>
             <p className="small center" style={{ fontSize: 12 }}>
               By continuing you agree to our{" "}
               <Link to="/privacy-policy" style={{ textDecoration: "underline" }}>

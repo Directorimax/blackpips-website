@@ -5,10 +5,16 @@ export const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=co
 function PlayLogo() {
   return (
     <svg className="store-badge-logo" viewBox="0 0 30 33" aria-hidden="true">
-      <path d="M1.2.6 16.4 16.5 1.2 32.4C.7 32.1.4 31.5.4 30.8V2.2C.4 1.5.7.9 1.2.6Z" fill="#00d7fe" />
+      <path
+        d="M1.2.6 16.4 16.5 1.2 32.4C.7 32.1.4 31.5.4 30.8V2.2C.4 1.5.7.9 1.2.6Z"
+        fill="#00d7fe"
+      />
       <path d="M21.5 11.4 16.4 16.5 1.2.6C1.6.4 2.2.4 2.8.7Z" fill="#00f076" />
       <path d="M21.5 21.6 2.8 32.3C2.2 32.6 1.6 32.6 1.2 32.4L16.4 16.5Z" fill="#ff3a44" />
-      <path d="M27.6 15 21.5 11.4 16.4 16.5 21.5 21.6 27.6 18C28.8 17.3 28.8 15.7 27.6 15Z" fill="#ffd400" />
+      <path
+        d="M27.6 15 21.5 11.4 16.4 16.5 21.5 21.6 27.6 18C28.8 17.3 28.8 15.7 27.6 15Z"
+        fill="#ffd400"
+      />
     </svg>
   );
 }

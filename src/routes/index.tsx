@@ -193,11 +193,11 @@ function MarketsNow() {
             {openCount > 0 && <span className="dot" />}
             {note}
           </span>
-          <span className="h4" style={{ fontSize: 14 }}>
+          <span className="h4 mkt-title" style={{ fontSize: 14 }}>
             Forex markets right now
           </span>
           {isReady && (
-            <span className="small mono" style={{ fontSize: 12 }}>
+            <span className="small mono mkt-time" style={{ fontSize: 12 }}>
               {formatTime(now, timeZone, timeFormat)} · {formatTimeZoneLabel(timeZone)}
             </span>
           )}
@@ -206,7 +206,7 @@ function MarketsNow() {
           Open Market Sessions <ArrowRight aria-hidden="true" />
         </Link>
       </div>
-      <div className="mkt-grid">
+      <div className="mkt-grid" aria-label="Market sessions">
         {sessions.map((s) => {
           const color = SESSION_COLORS[s.config.name];
           return (

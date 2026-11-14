@@ -10,6 +10,7 @@ import {
   Award,
   KeyRound,
   X,
+  ChevronDown,
   LayoutDashboard,
   LogOut,
   ShieldCheck,
@@ -18,7 +19,7 @@ import {
   Video,
   Library,
 } from "lucide-react";
-import { NAV } from "@/lib/site-data";
+import { NAV, PRIORITY_DESTINATIONS } from "@/lib/site-data";
 import { ThemeToggle } from "./ThemeToggle";
 import { Logo } from "./Logo";
 import { useAuth } from "@/contexts/useAuth";
@@ -57,6 +58,7 @@ const TOOL_PATHS = ["/tools", "/trading-tips", "/trading-plan", "/dashboard/trad
 export function Nav() {
   const [open, setOpen] = useState(false);
   const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
   const { isAdmin } = useAdmin();
@@ -271,17 +273,44 @@ export function Nav() {
           aria-label="Mobile"
           className={`mob-menu max-h-[calc(100dvh-6rem)] overflow-y-auto ${open ? "open" : ""}`}
         >
-          {NAV.map((n) => (
-            <Link
-              key={n.to}
-              to={n.to}
-              activeOptions={{ exact: n.to === "/" }}
-              activeProps={{ className: "on" }}
-              onClick={() => setOpen(false)}
-            >
-              {n.label}
-            </Link>
-          ))}
+          {NAV.map((n) =>
+            n.to === "/tools" ? (
+              <div key={n.to} className="mob-group">
+                <button
+                  type="button"
+                  className={`mob-toggle ${toolsActive ? "on" : ""}`}
+                  aria-expanded={mobileToolsOpen}
+                  aria-controls="mobile-tools-menu"
+                  onClick={() => setMobileToolsOpen((v) => !v)}
+                >
+                  {n.label}
+                  <ChevronDown aria-hidden="true" className={mobileToolsOpen ? "flip" : ""} />
+                </button>
+                {mobileToolsOpen && (
+                  <div id="mobile-tools-menu" className="mob-sub">
+                    {PRIORITY_DESTINATIONS.map((d) => (
+                      <Link key={d.to} to={d.open} onClick={() => setOpen(false)}>
+                        {d.label}
+                      </Link>
+                    ))}
+                    <Link to="/tools" onClick={() => setOpen(false)}>
+                      All tools
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                key={n.to}
+                to={n.to}
+                activeOptions={{ exact: n.to === "/" }}
+                activeProps={{ className: "on" }}
+                onClick={() => setOpen(false)}
+              >
+                {n.label}
+              </Link>
+            ),
+          )}
           {user ? (
             <>
               <Link to={dashboardDestination} onClick={() => setOpen(false)}>

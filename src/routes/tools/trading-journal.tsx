@@ -426,7 +426,7 @@ function TradingJournalPage() {
         />
       </section>
       <section className="card journal-filters">
-        <div className="grid items-center gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(15rem,1.6fr)_repeat(5,minmax(8rem,1fr))]">
+        <div className="jf-top grid items-center gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(15rem,1.6fr)_repeat(5,minmax(8rem,1fr))]">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -486,7 +486,7 @@ function TradingJournalPage() {
             }}
           />
         </div>
-        <div className="mt-3 grid items-center gap-3 sm:grid-cols-[minmax(12rem,1fr)_minmax(10rem,auto)_minmax(10rem,auto)_2.5rem]">
+        <div className="jf-bottom mt-3 grid items-center gap-3 sm:grid-cols-[minmax(12rem,1fr)_minmax(10rem,auto)_minmax(10rem,auto)_2.5rem]">
           <JournalInstrumentSelect
             label="Instrument"
             value={filters.pair}
@@ -697,6 +697,17 @@ function FilterInput({
     />
   );
 }
+/** "+$1k", "-$40", "+$1.2k": short enough for a phone calendar tile (matches the app). */
+function compactMoney(value: number) {
+  const sign = value > 0 ? "+" : value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  if (abs >= 1000) {
+    const k = abs / 1000;
+    return `${sign}$${k >= 100 || Number.isInteger(k) ? k.toFixed(0) : k.toFixed(1)}k`;
+  }
+  return `${sign}$${abs.toFixed(0)}`;
+}
+
 function TradeList({
   entries,
   onView,
@@ -731,33 +742,62 @@ function TradeList({
           ))}
         </div>
       </div>
-      <div className="grid gap-3 md:hidden">
-        {entries.map((entry) => (
-          <article key={entry.id} className="card spot journal-mobile">
-            <div className="between">
-              <p className="h4 mono">{entry.pair}</p>
-              <Badge value={entry.result} />
+      {/* Phones: one compact list card, rows like the BLACKPIPS app */}
+      <div className="card jl-list md:hidden">
+        {entries.map((entry) => {
+          const amount = normalizeJournalProfitLoss(entry.result, entry.profit_loss);
+          const tone = entry.result === "win" ? "win" : entry.result === "loss" ? "loss" : "";
+          const meta = [
+            entry.direction,
+            entry.session.replaceAll("_", " "),
+            entry.strategy,
+            `R:R ${formatRiskReward(entry.risk_reward_ratio)}`,
+          ]
+            .filter((part) => part && part.trim() && part !== "—")
+            .join(" · ");
+          return (
+            <div key={entry.id} className="jl-row">
+              <button
+                type="button"
+                className="jl-main"
+                onClick={() => onView(entry)}
+                aria-label={`View ${entry.pair} trade`}
+              >
+                <span className={`jl-bar ${tone}`} aria-hidden="true" />
+                <span className="jl-text">
+                  <span className="jl-top">
+                    <b className="mono">{entry.pair}</b>
+                    <Badge value={entry.result} />
+                  </span>
+                  <span className="jl-meta">{meta}</span>
+                </span>
+              </button>
+              <div className="jl-side">
+                <b className={`jl-pnl ${tone}`}>
+                  {amount > 0 ? "+" : ""}${amount.toFixed(2)}
+                </b>
+                <span className="jl-actions">
+                  <button
+                    type="button"
+                    aria-label={`Edit ${entry.pair}`}
+                    onClick={() => onEdit(entry)}
+                  >
+                    <Pencil />
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    aria-label={`Delete ${entry.pair}`}
+                    disabled={deleting === entry.id}
+                    onClick={() => setConfirming(entry)}
+                  >
+                    <Trash2 />
+                  </button>
+                </span>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-sm">
-              <MobileRow label="Trade date" value={new Date(entry.trade_at).toLocaleDateString()} />
-              <MobileRow label="Trade type" value={<Badge value={entry.direction} />} />
-              <MobileRow label="Session" value={entry.session.replaceAll("_", " ")} />
-              <MobileRow label="Strategy" value={entry.strategy || "—"} />
-              <MobileRow
-                label="P/L"
-                value={<Pnl value={entry.profit_loss} result={entry.result} />}
-              />
-              <MobileRow label="RR" value={formatRiskReward(entry.risk_reward_ratio)} />
-            </div>
-            <TradeActions
-              entry={entry}
-              onView={onView}
-              onEdit={onEdit}
-              onConfirmDelete={setConfirming}
-              deleting={deleting === entry.id}
-            />
-          </article>
-        ))}
+          );
+        })}
       </div>
       <TradeDeleteDialog
         entry={confirming}
@@ -1056,15 +1096,15 @@ function JournalCalendar({
         </div>
       </div>
       <div className="journal-scrollbar card overflow-x-auto">
-        <div className="min-w-[680px] p-2 sm:p-3">
-          <div className="grid grid-cols-7 gap-1.5">
+        <div className="p-1.5 sm:min-w-[680px] sm:p-3">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
               <div key={day} className="cal-h">
                 {day}
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-1.5">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
             {days.map((date) => {
               const key = keyOf(date);
               const daily = byDay[key] ?? [];
@@ -1087,22 +1127,46 @@ function JournalCalendar({
                       {date.getDate()}
                     </span>
                     {daily.length ? (
-                      <span className="text-[10px] font-semibold text-muted-foreground">
+                      <span className="jday-count text-[10px] font-semibold text-muted-foreground">
                         {daily.length} trade{daily.length === 1 ? "" : "s"}
                       </span>
                     ) : null}
                   </div>
                   {daily.length ? (
                     <div className="mt-3 space-y-1 text-xs">
-                      <Pnl value={pnl} />
-                      <p className="text-muted-foreground">
+                      <span className="jday-full">
+                        <Pnl value={pnl} />
+                      </span>
+                      <span className={`jday-compact ${tone}`}>{compactMoney(pnl)}</span>
+                      <p className="jday-wl text-muted-foreground">
                         {wins}W / {losses}L
+                      </p>
+                      <p className="jday-wl-m">
+                        {wins}W · {losses}L
                       </p>
                     </div>
                   ) : (
-                    <p className="mt-4 text-[10px] text-muted-foreground">No trades</p>
+                    <>
+                      <p className="jday-empty mt-4 text-[10px] text-muted-foreground">No trades</p>
+                      <span className="jday-dash">—</span>
+                    </>
                   )}
                 </button>
+              );
+            })}
+          </div>
+          <div className="jweek-row" aria-label="Weekly totals">
+            {Array.from({ length: 6 }, (_, row) => {
+              const weekDays = days.slice(row * 7, row * 7 + 7);
+              const weekEntries = weekDays.flatMap((date) => byDay[keyOf(date)] ?? []);
+              const total = summarizeJournalEntries(weekEntries).pnl;
+              return (
+                <div key={row} className="jweek">
+                  <span>WEEK {row + 1}</span>
+                  <b className={total > 0 ? "win" : total < 0 ? "loss" : ""}>
+                    {weekEntries.length ? compactMoney(total) : "—"}
+                  </b>
+                </div>
               );
             })}
           </div>

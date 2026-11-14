@@ -94,6 +94,18 @@ export function TradingPlanHeader({
           </div>
         </div>
       </div>
+      {/* Phones: the app's compact completion card instead of the large ring */}
+      <div className="plan-progress" aria-hidden="true">
+        <div className="between">
+          <b>Plan completion</b>
+          <span>
+            {completedCount} / {requiredCount} sections
+          </span>
+        </div>
+        <div className="plan-progress-bar">
+          <i style={{ width: `${percentage}%` }} />
+        </div>
+      </div>
       <dl className="plan-summary">
         {summary.map(([label, value]) => (
           <div key={label} className="card-flat" style={{ padding: 14, minWidth: 0 }}>

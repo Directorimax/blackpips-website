@@ -571,9 +571,14 @@ const MarkerLayer = memo(function MarkerLayer({
       data-testid="market-hours-marker-layer"
     >
       <div
-        className="pointer-events-none absolute bottom-0 left-0 top-[84px] w-[3px] bg-gold shadow-[0_0_8px_hsl(var(--gold)/0.25)] motion-reduce:!transition-none"
-        style={{ transform: `translate3d(${markerX - 1.5}px, 0, 0)`, transition }}
+        className="pointer-events-none absolute bottom-[5px] left-0 top-[88px] w-[2px] rounded-full bg-gold motion-reduce:!transition-none"
+        style={{ transform: `translate3d(${markerX - 1}px, 0, 0)`, transition }}
         data-testid="market-hours-marker"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 left-0 size-[11px] rounded-full border-2 border-gold bg-card motion-reduce:!transition-none"
+        style={{ transform: `translate3d(${markerX - 5.5}px, 0, 0)`, transition }}
       />
       <div
         role="presentation"
@@ -586,18 +591,9 @@ const MarkerLayer = memo(function MarkerLayer({
         data-testid="market-hours-hit-area"
       />
       <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-0 top-[72px] h-[14px] w-full bg-gold motion-reduce:!transition-none"
+        className="pointer-events-none absolute left-0 top-0 w-[50px] motion-reduce:!transition-none"
         style={{
-          clipPath: `polygon(${leftBaseX}px 0, ${rightBaseX}px 0, ${tipX}px 100%)`,
-          transition: dragging ? "none" : "clip-path 350ms cubic-bezier(.2,.8,.2,1)",
-        }}
-        data-testid="market-hours-bubble-pointer"
-      />
-      <div
-        className="pointer-events-none absolute left-0 top-0 w-[68px] motion-reduce:!transition-none"
-        style={{
-          transform: `translate3d(${bubbleCenter - MARKER_BUBBLE_WIDTH / 2}px, 0, 0)`,
+          transform: `translate3d(${markerX - 25}px, 0, 0)`,
           transition,
         }}
         data-testid="market-hours-bubble"
@@ -628,19 +624,38 @@ const MarkerLayer = memo(function MarkerLayer({
             onPointerUp();
           }}
           onPointerCancel={onPointerUp}
-          className={`pointer-events-auto flex h-[76px] w-[68px] touch-none flex-col items-center justify-start rounded-t-[34px] rounded-b-[16px] border border-gold/30 bg-gold pb-3 pt-1 text-background shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 sm:h-[78px] sm:pb-3.5 ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
+          className={`market-pin pointer-events-auto relative flex h-[92px] w-[50px] touch-none flex-col items-center focus-visible:outline-none ${dragging ? "cursor-grabbing" : "cursor-grab"}`}
         >
-          <span className="flex size-8 items-center justify-center rounded-full bg-card shadow-sm sm:size-9">
+          {/* Same teardrop pin as the BLACKPIPS app: round head, straight sides, point at the line */}
+          <svg
+            aria-hidden="true"
+            className="absolute inset-0 drop-shadow-[0_4px_6px_rgba(0,0,0,0.45)]"
+            width="50"
+            height="92"
+            viewBox="0 0 50 92"
+          >
+            <defs>
+              <linearGradient id="market-pin-gold" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#FFD54A" />
+                <stop offset="1" stopColor="#E3A21E" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M25 0 A25 25 0 0 1 50 25 L50 62 Q50 70 43 76 L25 92 L7 76 Q0 70 0 62 L0 25 A25 25 0 0 1 25 0 Z"
+              fill="url(#market-pin-gold)"
+            />
+          </svg>
+          <span className="relative mt-[7px] flex size-[30px] items-center justify-center rounded-full bg-card ring-[1.6px] ring-inset ring-gold">
             <Clock
               hour={clockParts.hour}
               minute={clockParts.minute}
               second={clockSecondForMode(clockParts.second, isPreview)}
             />
           </span>
-          <span className="mt-0.5 text-[11px] font-extrabold leading-tight sm:text-xs">
+          <span className="relative mt-[3px] text-[9.5px] font-extrabold leading-tight text-[#19150B]">
             {formatTime(previewNow, timeZone, timeFormat)}
           </span>
-          <span className="text-[9px] leading-tight opacity-85 sm:text-[10px]">
+          <span className="relative text-[8px] font-semibold leading-tight text-[#19150B]/80">
             {WEEKDAYS[weekday]}
           </span>
         </div>

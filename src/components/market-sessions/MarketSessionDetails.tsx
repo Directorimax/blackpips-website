@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, ChevronDown } from "lucide-react";
 import { getAllSessionSnapshots } from "@/lib/market-session-engine";
 import {
   ALERT_LEADS,
@@ -35,11 +35,26 @@ function MarketSessionDetailsView({ now, timeZone, timeFormat }: MarketSessionDe
     [summaryNow, timeFormat, timeZone],
   );
 
+  // Phones get the app's accordion: one of Alerts / Major Sessions open at a time.
+  const [expanded, setExpanded] = useState<"alerts" | "sessions" | null>("sessions");
+  const toggle = (section: "alerts" | "sessions") =>
+    setExpanded((current) => (current === section ? null : section));
+
   return (
     <div className="mt-6 space-y-5 sm:mt-8 sm:space-y-7" data-testid="market-detail-sections">
-      <SessionAlerts now={summaryNow} sessions={sessions} overlaps={overlaps} />
+      <SessionAlerts
+        now={summaryNow}
+        sessions={sessions}
+        overlaps={overlaps}
+        expanded={expanded === "alerts"}
+        onToggle={() => toggle("alerts")}
+      />
       <SessionOverlaps now={summaryNow} overlaps={overlaps} />
-      <MajorSessions sessions={sessions} />
+      <MajorSessions
+        sessions={sessions}
+        expanded={expanded === "sessions"}
+        onToggle={() => toggle("sessions")}
+      />
     </div>
   );
 }
@@ -55,99 +70,134 @@ export const MarketSessionDetails = memo(
 type SessionSnapshots = ReturnType<typeof getAllSessionSnapshots>;
 type OverlapSnapshots = ReturnType<typeof getOverlapSnapshot>[];
 
-const MajorSessions = memo(function MajorSessions({ sessions }: { sessions: SessionSnapshots }) {
+function CollapseToggle({
+  expanded,
+  onToggle,
+  label,
+}: {
+  expanded: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      className="mkt-collapse-btn"
+      aria-expanded={expanded}
+      aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
+      onClick={onToggle}
+    >
+      <ChevronDown aria-hidden="true" />
+    </button>
+  );
+}
+
+const MajorSessions = memo(function MajorSessions({
+  sessions,
+  expanded,
+  onToggle,
+}: {
+  sessions: SessionSnapshots;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   return (
     <section
-      className="card spot market-panel"
+      className={`card spot market-panel mkt-collapsible ${expanded ? "open" : ""}`}
       aria-labelledby="major-sessions-heading"
       data-section="sessions"
     >
-      <h2 id="major-sessions-heading" className="font-display text-xl font-extrabold sm:text-2xl">
-        Major Forex Sessions
-      </h2>
-      <div className="mt-3 grid auto-rows-fr gap-3 md:grid-cols-2 sm:mt-4">
-        {sessions.map((session) => (
-          <article
-            key={session.config.id}
-            className="flex h-full flex-col rounded-lg border border-border bg-muted/35 p-3 sm:p-4"
-            data-session-card={session.config.id}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <CountryFlag
-                  code={session.config.regionCode}
-                  className="h-auto w-6 shrink-0 rounded-[2px] shadow-sm"
-                />
-                <h3 className="font-display text-base font-extrabold sm:text-lg">
-                  {session.config.name}
-                </h3>
-              </div>
-              <StatusBadge label={session.isOpen ? "Open" : "Closed"} active={session.isOpen} />
-            </div>
-
-            <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  Your timezone
-                </p>
-                <p className="whitespace-nowrap text-sm font-semibold">
-                  {session.displayOpenTime}–{session.displayCloseTime}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {session.isOpen ? "Closes in" : "Opens in"}
-                </p>
-                <p className="text-base font-extrabold text-foreground">{session.countdown}</p>
-              </div>
-            </div>
-
-            {session.isOpen ? (
-              <div
-                className="mt-2 h-1 overflow-hidden rounded-full bg-border"
-                role="progressbar"
-                aria-label={`${session.config.name} session progress`}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(session.progressPercentage)}
-              >
-                <span
-                  className="block h-full rounded-full bg-gold"
-                  style={{ width: `${session.progressPercentage}%` }}
-                />
-              </div>
-            ) : null}
-
-            <div className="mt-3">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                Commonly watched
-              </p>
-              <div className="mt-1.5 flex flex-wrap gap-1" data-testid="watched-pairs">
-                {WATCHED_PAIRS[session.config.name].map((pair) => (
-                  <span
-                    key={pair}
-                    className="rounded-full border border-border bg-card px-1.5 py-0.5 text-[10px] font-semibold"
-                  >
-                    {pair}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <details className="mt-2 text-xs text-muted-foreground">
-              <summary className="cursor-pointer rounded-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
-                Local hours
-              </summary>
-              <p className="mt-1">
-                {session.localOpenTime}–{session.localCloseTime} · {session.config.timeZone}
-              </p>
-            </details>
-          </article>
-        ))}
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="major-sessions-heading" className="font-display text-xl font-extrabold sm:text-2xl">
+          Major Forex Sessions
+        </h2>
+        <CollapseToggle expanded={expanded} onToggle={onToggle} label="major sessions" />
       </div>
-      <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-        Standard session windows are shown for reference. Broker and holiday schedules may vary.
-      </p>
+      <div className="mkt-collapse-body">
+        <div className="mkt-sess-row mt-3 grid auto-rows-fr gap-3 md:grid-cols-2 sm:mt-4">
+          {sessions.map((session) => (
+            <article
+              key={session.config.id}
+              className="flex h-full flex-col rounded-lg border border-border bg-muted/35 p-3 sm:p-4"
+              data-session-card={session.config.id}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <CountryFlag
+                    code={session.config.regionCode}
+                    className="h-auto w-6 shrink-0 rounded-[2px] shadow-sm"
+                  />
+                  <h3 className="font-display text-base font-extrabold sm:text-lg">
+                    {session.config.name}
+                  </h3>
+                </div>
+                <StatusBadge label={session.isOpen ? "Open" : "Closed"} active={session.isOpen} />
+              </div>
+
+              <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Your timezone
+                  </p>
+                  <p className="whitespace-nowrap text-sm font-semibold">
+                    {session.displayOpenTime}–{session.displayCloseTime}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {session.isOpen ? "Closes in" : "Opens in"}
+                  </p>
+                  <p className="text-base font-extrabold text-foreground">{session.countdown}</p>
+                </div>
+              </div>
+
+              {session.isOpen ? (
+                <div
+                  className="mt-2 h-1 overflow-hidden rounded-full bg-border"
+                  role="progressbar"
+                  aria-label={`${session.config.name} session progress`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(session.progressPercentage)}
+                >
+                  <span
+                    className="block h-full rounded-full bg-gold"
+                    style={{ width: `${session.progressPercentage}%` }}
+                  />
+                </div>
+              ) : null}
+
+              <div className="mt-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Commonly watched
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1" data-testid="watched-pairs">
+                  {WATCHED_PAIRS[session.config.name].map((pair) => (
+                    <span
+                      key={pair}
+                      className="rounded-full border border-border bg-card px-1.5 py-0.5 text-[10px] font-semibold"
+                    >
+                      {pair}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <details className="mt-2 text-xs text-muted-foreground">
+                <summary className="cursor-pointer rounded-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
+                  Local hours
+                </summary>
+                <p className="mt-1">
+                  {session.localOpenTime}–{session.localCloseTime} · {session.config.timeZone}
+                </p>
+              </details>
+            </article>
+          ))}
+        </div>
+        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+          Standard session windows are shown for reference. Broker and holiday schedules may vary.
+        </p>
+      </div>
     </section>
   );
 });
@@ -247,9 +297,17 @@ type SessionAlertsProps = {
   now: Date;
   sessions: SessionSnapshots;
   overlaps: OverlapSnapshots;
+  expanded: boolean;
+  onToggle: () => void;
 };
 
-const SessionAlerts = memo(function SessionAlerts({ now, sessions, overlaps }: SessionAlertsProps) {
+const SessionAlerts = memo(function SessionAlerts({
+  now,
+  sessions,
+  overlaps,
+  expanded,
+  onToggle,
+}: SessionAlertsProps) {
   const [preferences, setPreferences] = useState<AlertPreferences>(DEFAULT_ALERTS);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
@@ -322,7 +380,7 @@ const SessionAlerts = memo(function SessionAlerts({ now, sessions, overlaps }: S
 
   return (
     <section
-      className="card spot market-panel"
+      className={`card spot market-panel mkt-collapsible ${expanded ? "open" : ""}`}
       aria-labelledby="session-alerts-heading"
       data-section="alerts"
     >
@@ -336,81 +394,85 @@ const SessionAlerts = memo(function SessionAlerts({ now, sessions, overlaps }: S
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">Stored only in this browser.</p>
         </div>
-        {permission === "granted" ? (
-          <Bell className="size-5 text-gold" aria-hidden="true" />
-        ) : (
-          <BellOff className="size-5 text-muted-foreground" aria-hidden="true" />
-        )}
+        <div className="flex items-center gap-2">
+          {permission === "granted" ? (
+            <Bell className="size-5 text-gold" aria-hidden="true" />
+          ) : (
+            <BellOff className="size-5 text-muted-foreground" aria-hidden="true" />
+          )}
+          <CollapseToggle expanded={expanded} onToggle={onToggle} label="session alerts" />
+        </div>
       </div>
-
-      <div className="mt-3 grid gap-2 md:grid-cols-2 lg:grid-cols-3 sm:mt-4 sm:gap-3">
-        {alerts.map((alert) => {
-          const preference = preferences[alert.id];
-          const countdown = formatCountdown(
-            alert.eventAt.getTime() - preference.leadMinutes * 60_000 - now.getTime(),
-          );
-          return (
-            <article
-              key={alert.id}
-              className="rounded-lg border border-border bg-muted/35 p-3"
-              data-alert-row={alert.id}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h3 className="text-sm font-bold leading-tight">{alert.label}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">Alert in {countdown}</p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={preference.enabled}
-                  aria-label={`${alert.label} alert`}
-                  onClick={() => void toggleAlert(alert.id)}
-                  className={`inline-flex h-7 w-12 shrink-0 items-center rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${preference.enabled ? "bg-gold" : "bg-muted-foreground/25"}`}
-                >
-                  <span
-                    className={`size-5 rounded-full bg-card shadow transition-transform motion-reduce:transition-none ${preference.enabled ? "translate-x-5" : "translate-x-0"}`}
-                  />
-                </button>
-              </div>
-              <div
-                className="mt-2 flex flex-wrap gap-1"
-                role="group"
-                aria-label={`${alert.label} lead time`}
+      <div className="mkt-collapse-body">
+        <div className="mt-3 grid gap-2 md:grid-cols-2 lg:grid-cols-3 sm:mt-4 sm:gap-3">
+          {alerts.map((alert) => {
+            const preference = preferences[alert.id];
+            const countdown = formatCountdown(
+              alert.eventAt.getTime() - preference.leadMinutes * 60_000 - now.getTime(),
+            );
+            return (
+              <article
+                key={alert.id}
+                className="rounded-lg border border-border bg-muted/35 p-3"
+                data-alert-row={alert.id}
               >
-                {ALERT_LEADS.map((minutes) => {
-                  const selected = preference.leadMinutes === minutes;
-                  return (
-                    <button
-                      key={minutes}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() =>
-                        setPreferences((current) => ({
-                          ...current,
-                          [alert.id]: { ...current[alert.id], leadMinutes: minutes },
-                        }))
-                      }
-                      className={`min-h-8 min-w-9 rounded-md border px-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${selected ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground"}`}
-                    >
-                      {minutes}
-                    </button>
-                  );
-                })}
-                <span className="self-center pl-1 text-[10px] text-muted-foreground">
-                  min before
-                </span>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold leading-tight">{alert.label}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">Alert in {countdown}</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={preference.enabled}
+                    aria-label={`${alert.label} alert`}
+                    onClick={() => void toggleAlert(alert.id)}
+                    className={`inline-flex h-7 w-12 shrink-0 items-center rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${preference.enabled ? "bg-gold" : "bg-muted-foreground/25"}`}
+                  >
+                    <span
+                      className={`size-5 rounded-full bg-card shadow transition-transform motion-reduce:transition-none ${preference.enabled ? "translate-x-5" : "translate-x-0"}`}
+                    />
+                  </button>
+                </div>
+                <div
+                  className="mt-2 flex flex-wrap gap-1"
+                  role="group"
+                  aria-label={`${alert.label} lead time`}
+                >
+                  {ALERT_LEADS.map((minutes) => {
+                    const selected = preference.leadMinutes === minutes;
+                    return (
+                      <button
+                        key={minutes}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() =>
+                          setPreferences((current) => ({
+                            ...current,
+                            [alert.id]: { ...current[alert.id], leadMinutes: minutes },
+                          }))
+                        }
+                        className={`min-h-8 min-w-9 rounded-md border px-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold ${selected ? "border-gold bg-gold/15 text-foreground" : "border-border bg-card text-muted-foreground"}`}
+                      >
+                        {minutes}
+                      </button>
+                    );
+                  })}
+                  <span className="self-center pl-1 text-[10px] text-muted-foreground">
+                    min before
+                  </span>
+                </div>
+              </article>
+            );
+          })}
+        </div>
 
-      {permission === "denied" || permission === "unsupported" ? (
-        <p className="mt-3 text-xs text-muted-foreground" role="status">
-          Browser notifications are unavailable. Event countdowns will remain visible.
-        </p>
-      ) : null}
+        {permission === "denied" || permission === "unsupported" ? (
+          <p className="mt-3 text-xs text-muted-foreground" role="status">
+            Browser notifications are unavailable. Event countdowns will remain visible.
+          </p>
+        ) : null}
+      </div>
     </section>
   );
 });

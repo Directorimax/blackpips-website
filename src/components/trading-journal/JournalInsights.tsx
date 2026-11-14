@@ -69,7 +69,10 @@ function groupBy(entries: TradingJournalEntry[], keyOf: (e: TradingJournalEntry)
 function useCountUp(target: number, duration = 900) {
   const [value, setValue] = useState(0);
   useEffect(() => {
-    if (typeof window === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (
+      typeof window === "undefined" ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       setValue(target);
       return;
     }
@@ -96,17 +99,34 @@ function CountUp({ text }: { text: string }) {
   return (
     <>
       {match[1]}
-      {value.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
+      {value.toLocaleString(undefined, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      })}
       {match[3]}
     </>
   );
 }
 
-function Kpi({ label, value, sub, valueTone, index = 0 }: { label: string; value: string; sub?: string; valueTone?: string; index?: number }) {
+function Kpi({
+  label,
+  value,
+  sub,
+  valueTone,
+  index = 0,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  valueTone?: string;
+  index?: number;
+}) {
   return (
     <div className="ji-kpi ji-in" style={{ animationDelay: `${index * 70}ms` }}>
       <span className="ji-label">{label}</span>
-      <strong className={`ji-value ${valueTone ?? ""}`}><CountUp text={value} /></strong>
+      <strong className={`ji-value ${valueTone ?? ""}`}>
+        <CountUp text={value} />
+      </strong>
       {sub && <span className="ji-sub">{sub}</span>}
     </div>
   );
@@ -129,7 +149,10 @@ function Breakdown({ title, rows }: { title: string; rows: ReturnType<typeof gro
                 <strong className={tone(row.pnl)}>{money(row.pnl)}</strong>
               </div>
               <div className="ji-bar">
-                <i className={`ji-grow ${tone(row.pnl)}`} style={{ width: `${(Math.abs(row.pnl) / max) * 100}%` }} />
+                <i
+                  className={`ji-grow ${tone(row.pnl)}`}
+                  style={{ width: `${(Math.abs(row.pnl) / max) * 100}%` }}
+                />
               </div>
             </div>
           ))}
@@ -148,7 +171,8 @@ function State({ loading, failed, empty }: { loading: boolean; failed: boolean; 
         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> Loading your trades…
       </div>
     );
-  if (failed) return <div className="card ji-state">We could not load your trades. Please try again.</div>;
+  if (failed)
+    return <div className="card ji-state">We could not load your trades. Please try again.</div>;
   if (empty) return <div className="card ji-state">No trades in this period yet.</div>;
   return null;
 }
@@ -165,14 +189,18 @@ export function JournalAnalytics({ fetchRange }: { fetchRange: FetchJournalRange
   const { start, end } = useMemo(() => {
     const now = new Date();
     const range = RANGES.find((r) => r.id === rangeId)!;
-    const from = range.days ? new Date(now.getTime() - range.days * 86_400_000) : new Date(2000, 0, 1);
+    const from = range.days
+      ? new Date(now.getTime() - range.days * 86_400_000)
+      : new Date(2000, 0, 1);
     return { start: from, end: new Date(now.getTime() + 86_400_000) };
   }, [rangeId]);
   const { entries, loading, failed } = useRange(fetchRange, start, end);
   const s = useMemo(() => stats(entries), [entries]);
   const monthly = useMemo(
     () =>
-      groupBy(entries, (e) => e.trade_at.slice(0, 7)).sort((a, b) => a.label.localeCompare(b.label)).slice(-12),
+      groupBy(entries, (e) => e.trade_at.slice(0, 7))
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .slice(-12),
     [entries],
   );
   const equity = useMemo(() => {
@@ -189,7 +217,13 @@ export function JournalAnalytics({ fetchRange }: { fetchRange: FetchJournalRange
         </div>
         <div className="seg" role="group" aria-label="Analytics period">
           {RANGES.map((r) => (
-            <button key={r.id} type="button" aria-pressed={rangeId === r.id} className={`seg-btn ${rangeId === r.id ? "on" : ""}`} onClick={() => setRangeId(r.id)}>
+            <button
+              key={r.id}
+              type="button"
+              aria-pressed={rangeId === r.id}
+              className={`seg-btn ${rangeId === r.id ? "on" : ""}`}
+              onClick={() => setRangeId(r.id)}
+            >
               {r.label}
             </button>
           ))}
@@ -199,10 +233,31 @@ export function JournalAnalytics({ fetchRange }: { fetchRange: FetchJournalRange
       {!loading && !failed && entries.length > 0 && (
         <>
           <div className="ji-kpis">
-            <Kpi index={0} label="Net P/L" value={money(s.pnl)} valueTone={tone(s.pnl)} sub={`${s.count} trades`} />
-            <Kpi index={1} label="Win rate" value={`${Math.round(s.winRate)}%`} sub={`${s.wins}W · ${s.losses}L · ${s.breakEvens}BE`} />
-            <Kpi index={2} label="Profit factor" value={s.profitFactor === null ? "—" : s.profitFactor.toFixed(2)} sub="Gross win ÷ gross loss" />
-            <Kpi index={3} label="Avg R:R" value={s.avgRR === null ? "—" : `1:${s.avgRR.toFixed(2)}`} sub="Planned reward to risk" />
+            <Kpi
+              index={0}
+              label="Net P/L"
+              value={money(s.pnl)}
+              valueTone={tone(s.pnl)}
+              sub={`${s.count} trades`}
+            />
+            <Kpi
+              index={1}
+              label="Win rate"
+              value={`${Math.round(s.winRate)}%`}
+              sub={`${s.wins}W · ${s.losses}L · ${s.breakEvens}BE`}
+            />
+            <Kpi
+              index={2}
+              label="Profit factor"
+              value={s.profitFactor === null ? "—" : s.profitFactor.toFixed(2)}
+              sub="Gross win ÷ gross loss"
+            />
+            <Kpi
+              index={3}
+              label="Avg R:R"
+              value={s.avgRR === null ? "—" : `1:${s.avgRR.toFixed(2)}`}
+              sub="Planned reward to risk"
+            />
           </div>
           <div className="ji-pair">
             <WinLoss avgWin={s.avgWin} avgLoss={s.avgLoss} wins={s.wins} losses={s.losses} />
@@ -216,10 +271,29 @@ export function JournalAnalytics({ fetchRange }: { fetchRange: FetchJournalRange
           <div className="ji-grid">
             <Breakdown title="By session" rows={groupBy(entries, (e) => e.session)} />
             <Breakdown title="By direction" rows={groupBy(entries, (e) => e.direction)} />
-            <Breakdown title="Top pairs" rows={groupBy(entries, (e) => e.pair).sort((a, b) => b.count - a.count).slice(0, 6)} />
-            <Breakdown title="By strategy" rows={groupBy(entries, (e) => e.strategy || "No strategy").sort((a, b) => b.count - a.count).slice(0, 6)} />
+            <Breakdown
+              title="Top pairs"
+              rows={groupBy(entries, (e) => e.pair)
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 6)}
+            />
+            <Breakdown
+              title="By strategy"
+              rows={groupBy(entries, (e) => e.strategy || "No strategy")
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 6)}
+            />
           </div>
-          <Breakdown title="Monthly trend" rows={monthly.map((m) => ({ ...m, label: new Date(`${m.label}-01T00:00:00`).toLocaleDateString(undefined, { month: "short", year: "numeric" }) }))} />
+          <Breakdown
+            title="Monthly trend"
+            rows={monthly.map((m) => ({
+              ...m,
+              label: new Date(`${m.label}-01T00:00:00`).toLocaleDateString(undefined, {
+                month: "short",
+                year: "numeric",
+              }),
+            }))}
+          />
         </>
       )}
     </section>
@@ -233,12 +307,21 @@ function EquityCurve({ points }: { points: number[] }) {
   const span = max - min || 1;
   const w = 600;
   const h = 160;
-  const xy = data.map((v, i) => [(i / Math.max(1, data.length - 1)) * w, h - ((v - min) / span) * (h - 16) - 8]);
+  const xy = data.map((v, i) => [
+    (i / Math.max(1, data.length - 1)) * w,
+    h - ((v - min) / span) * (h - 16) - 8,
+  ]);
   const line = xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
   const zeroY = h - ((0 - min) / span) * (h - 16) - 8;
   const last = data[data.length - 1];
   return (
-    <svg className={`ji-curve ${tone(last)}`} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label={`Equity curve ending at ${money(last)}`}>
+    <svg
+      className={`ji-curve ${tone(last)}`}
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      role="img"
+      aria-label={`Equity curve ending at ${money(last)}`}
+    >
       <line x1="0" x2={w} y1={zeroY} y2={zeroY} className="ji-zero" />
       <polygon points={`0,${h} ${line} ${w},${h}`} className="ji-area" />
       <polyline points={line} className="ji-line" pathLength={1} />
@@ -255,8 +338,14 @@ function weekStart(date: Date) {
 
 export function JournalWeeklyReview({ fetchRange }: { fetchRange: FetchJournalRange }) {
   const [start, setStart] = useState(() => weekStart(new Date()));
-  const end = useMemo(() => new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7), [start]);
-  const prevStart = useMemo(() => new Date(start.getFullYear(), start.getMonth(), start.getDate() - 7), [start]);
+  const end = useMemo(
+    () => new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7),
+    [start],
+  );
+  const prevStart = useMemo(
+    () => new Date(start.getFullYear(), start.getMonth(), start.getDate() - 7),
+    [start],
+  );
   const { entries, loading, failed } = useRange(fetchRange, prevStart, end);
   const week = entries.filter((e) => new Date(e.trade_at) >= start);
   const last = entries.filter((e) => new Date(e.trade_at) < start);
@@ -269,7 +358,9 @@ export function JournalWeeklyReview({ fetchRange }: { fetchRange: FetchJournalRa
   });
   const maxDay = Math.max(1, ...days.map((d) => Math.abs(d.pnl)));
   const sorted = [...week].sort(
-    (a, b) => normalizeJournalProfitLoss(b.result, b.profit_loss) - normalizeJournalProfitLoss(a.result, a.profit_loss),
+    (a, b) =>
+      normalizeJournalProfitLoss(b.result, b.profit_loss) -
+      normalizeJournalProfitLoss(a.result, a.profit_loss),
   );
   const bestPair = groupBy(week, (e) => e.pair).sort((a, b) => b.pnl - a.pnl)[0];
   const bestSession = groupBy(week, (e) => e.session).sort((a, b) => b.pnl - a.pnl)[0];
@@ -286,13 +377,29 @@ export function JournalWeeklyReview({ fetchRange }: { fetchRange: FetchJournalRa
           </p>
         </div>
         <div className="row" style={{ gap: 8 }}>
-          <button type="button" className="btn btn-ghost btn-sm" aria-label="Previous week" onClick={() => setStart(prevStart)}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            aria-label="Previous week"
+            onClick={() => setStart(prevStart)}
+          >
             <ChevronLeft aria-hidden="true" />
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" disabled={isCurrent} onClick={() => setStart(weekStart(new Date()))}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={isCurrent}
+            onClick={() => setStart(weekStart(new Date()))}
+          >
             This week
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" aria-label="Next week" disabled={isCurrent} onClick={() => setStart(new Date(end))}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            aria-label="Next week"
+            disabled={isCurrent}
+            onClick={() => setStart(new Date(end))}
+          >
             <ChevronRight aria-hidden="true" />
           </button>
         </div>
@@ -301,11 +408,30 @@ export function JournalWeeklyReview({ fetchRange }: { fetchRange: FetchJournalRa
       {!loading && !failed && week.length > 0 && (
         <>
           <div className="ji-kpis">
-            <Kpi index={4} label="Week P/L" value={money(s.pnl)} valueTone={tone(s.pnl)} sub={`${money(delta)} vs last week`} />
+            <Kpi
+              index={4}
+              label="Week P/L"
+              value={money(s.pnl)}
+              valueTone={tone(s.pnl)}
+              sub={`${money(delta)} vs last week`}
+            />
             <Kpi index={5} label="Trades" value={String(s.count)} sub={`${p.count} last week`} />
-            <Kpi index={6} label="Win rate" value={`${Math.round(s.winRate)}%`} sub={`${Math.round(p.winRate)}% last week`} />
-            <Kpi index={7} label="Profit factor" value={s.profitFactor === null ? "—" : s.profitFactor.toFixed(2)} />
-            <Kpi index={8} label="Avg R:R" value={s.avgRR === null ? "—" : `1:${s.avgRR.toFixed(2)}`} />
+            <Kpi
+              index={6}
+              label="Win rate"
+              value={`${Math.round(s.winRate)}%`}
+              sub={`${Math.round(p.winRate)}% last week`}
+            />
+            <Kpi
+              index={7}
+              label="Profit factor"
+              value={s.profitFactor === null ? "—" : s.profitFactor.toFixed(2)}
+            />
+            <Kpi
+              index={8}
+              label="Avg R:R"
+              value={s.avgRR === null ? "—" : `1:${s.avgRR.toFixed(2)}`}
+            />
           </div>
           <div className="ji-grid">
             <section className="card ji-panel">
@@ -314,9 +440,16 @@ export function JournalWeeklyReview({ fetchRange }: { fetchRange: FetchJournalRa
                 {days.map((d) => (
                   <div key={d.label} className="ji-day" title={`${d.count} trades`}>
                     <div className="ji-day-col">
-                      <i className={`ji-grow-y ${tone(d.pnl)}`} style={{ height: `${Math.max(d.count ? 6 : 0, (Math.abs(d.pnl) / maxDay) * 100)}%` }} />
+                      <i
+                        className={`ji-grow-y ${tone(d.pnl)}`}
+                        style={{
+                          height: `${Math.max(d.count ? 6 : 0, (Math.abs(d.pnl) / maxDay) * 100)}%`,
+                        }}
+                      />
                     </div>
-                    <span className={`ji-day-val ${tone(d.pnl)}`}>{d.count ? money(d.pnl) : "—"}</span>
+                    <span className={`ji-day-val ${tone(d.pnl)}`}>
+                      {d.count ? money(d.pnl) : "—"}
+                    </span>
                     <span className="ji-muted">{d.label}</span>
                   </div>
                 ))}
@@ -325,11 +458,53 @@ export function JournalWeeklyReview({ fetchRange }: { fetchRange: FetchJournalRa
             <section className="card ji-panel">
               <h3 className="ji-title">Highlights</h3>
               <ul className="ji-list">
-                <li><span>Best trade</span><strong className={tone(normalizeJournalProfitLoss(sorted[0].result, sorted[0].profit_loss))}>{sorted[0].pair} · {money(normalizeJournalProfitLoss(sorted[0].result, sorted[0].profit_loss))}</strong></li>
-                <li><span>Worst trade</span><strong className={tone(normalizeJournalProfitLoss(sorted.at(-1)!.result, sorted.at(-1)!.profit_loss))}>{sorted.at(-1)!.pair} · {money(normalizeJournalProfitLoss(sorted.at(-1)!.result, sorted.at(-1)!.profit_loss))}</strong></li>
-                {bestPair && <li><span>Best pair</span><strong>{bestPair.label} · {money(bestPair.pnl)}</strong></li>}
-                {bestSession && <li><span>Best session</span><strong className="capitalize">{human(bestSession.label)} · {money(bestSession.pnl)}</strong></li>}
-                <li><span>Long / short</span><strong>{week.filter((e) => e.direction === "long").length} / {week.filter((e) => e.direction === "short").length}</strong></li>
+                <li>
+                  <span>Best trade</span>
+                  <strong
+                    className={tone(
+                      normalizeJournalProfitLoss(sorted[0].result, sorted[0].profit_loss),
+                    )}
+                  >
+                    {sorted[0].pair} ·{" "}
+                    {money(normalizeJournalProfitLoss(sorted[0].result, sorted[0].profit_loss))}
+                  </strong>
+                </li>
+                <li>
+                  <span>Worst trade</span>
+                  <strong
+                    className={tone(
+                      normalizeJournalProfitLoss(sorted.at(-1)!.result, sorted.at(-1)!.profit_loss),
+                    )}
+                  >
+                    {sorted.at(-1)!.pair} ·{" "}
+                    {money(
+                      normalizeJournalProfitLoss(sorted.at(-1)!.result, sorted.at(-1)!.profit_loss),
+                    )}
+                  </strong>
+                </li>
+                {bestPair && (
+                  <li>
+                    <span>Best pair</span>
+                    <strong>
+                      {bestPair.label} · {money(bestPair.pnl)}
+                    </strong>
+                  </li>
+                )}
+                {bestSession && (
+                  <li>
+                    <span>Best session</span>
+                    <strong className="capitalize">
+                      {human(bestSession.label)} · {money(bestSession.pnl)}
+                    </strong>
+                  </li>
+                )}
+                <li>
+                  <span>Long / short</span>
+                  <strong>
+                    {week.filter((e) => e.direction === "long").length} /{" "}
+                    {week.filter((e) => e.direction === "short").length}
+                  </strong>
+                </li>
               </ul>
             </section>
           </div>
@@ -341,10 +516,13 @@ export function JournalWeeklyReview({ fetchRange }: { fetchRange: FetchJournalRa
                   <span>
                     <strong className="mono">{e.pair}</strong>{" "}
                     <span className="ji-muted capitalize">
-                      {new Date(e.trade_at).toLocaleDateString(undefined, { weekday: "short" })} · {e.direction} · {human(e.session)}
+                      {new Date(e.trade_at).toLocaleDateString(undefined, { weekday: "short" })} ·{" "}
+                      {e.direction} · {human(e.session)}
                     </span>
                   </span>
-                  <strong className={tone(normalizeJournalProfitLoss(e.result, e.profit_loss))}>{money(normalizeJournalProfitLoss(e.result, e.profit_loss))}</strong>
+                  <strong className={tone(normalizeJournalProfitLoss(e.result, e.profit_loss))}>
+                    {money(normalizeJournalProfitLoss(e.result, e.profit_loss))}
+                  </strong>
                 </li>
               ))}
             </ul>
@@ -355,7 +533,17 @@ export function JournalWeeklyReview({ fetchRange }: { fetchRange: FetchJournalRa
   );
 }
 
-function WinLoss({ avgWin, avgLoss, wins, losses }: { avgWin: number; avgLoss: number; wins: number; losses: number }) {
+function WinLoss({
+  avgWin,
+  avgLoss,
+  wins,
+  losses,
+}: {
+  avgWin: number;
+  avgLoss: number;
+  wins: number;
+  losses: number;
+}) {
   const total = avgWin + avgLoss || 1;
   const ratio = avgLoss ? avgWin / avgLoss : null;
   return (
@@ -364,11 +552,15 @@ function WinLoss({ avgWin, avgLoss, wins, losses }: { avgWin: number; avgLoss: n
       <div className="ji-wl-vals">
         <div>
           <span className="ji-sub">Avg win · {wins}</span>
-          <strong className="ji-value pos"><CountUp text={money(avgWin)} /></strong>
+          <strong className="ji-value pos">
+            <CountUp text={money(avgWin)} />
+          </strong>
         </div>
         <div style={{ textAlign: "right" }}>
           <span className="ji-sub">Avg loss · {losses}</span>
-          <strong className="ji-value neg"><CountUp text={money(-avgLoss)} /></strong>
+          <strong className="ji-value neg">
+            <CountUp text={money(-avgLoss)} />
+          </strong>
         </div>
       </div>
       <div className="ji-wl-bar" aria-hidden="true">
@@ -376,7 +568,9 @@ function WinLoss({ avgWin, avgLoss, wins, losses }: { avgWin: number; avgLoss: n
         <i className="ji-grow neg" style={{ width: `${(avgLoss / total) * 100}%` }} />
       </div>
       <span className="ji-sub">
-        {ratio === null ? "No losing trades in this period" : `Your average win is ${ratio.toFixed(2)}× your average loss`}
+        {ratio === null
+          ? "No losing trades in this period"
+          : `Your average win is ${ratio.toFixed(2)}× your average loss`}
       </span>
     </div>
   );
@@ -388,13 +582,22 @@ function TradeCard({ label, entry }: { label: string; entry?: TradingJournalEntr
   return (
     <div className={`ji-kpi ji-in ji-trade ${tone(pnl)}`}>
       <span className="ji-label">{label}</span>
-      <strong className={`ji-value ${tone(pnl)}`}><CountUp text={money(pnl)} /></strong>
+      <strong className={`ji-value ${tone(pnl)}`}>
+        <CountUp text={money(pnl)} />
+      </strong>
       <span className="ji-trade-meta">
         <b className="mono">{entry.pair}</b>
-        <span className="capitalize">{entry.direction} · {human(entry.session)}</span>
+        <span className="capitalize">
+          {entry.direction} · {human(entry.session)}
+        </span>
       </span>
       <span className="ji-sub">
-        {new Date(entry.trade_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+        {new Date(entry.trade_at).toLocaleDateString(undefined, {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}
       </span>
     </div>
   );

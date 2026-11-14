@@ -1031,3 +1031,261 @@ html:not(.dark) .bp .cover-word b { color: rgba(190,130,0,.1); }
 /* Soft linear wash instead of the corner glow. */
 .bp .course-card .cover { background: linear-gradient(135deg, var(--s2) 0%, var(--bg-soft) 55%, color-mix(in oklab, #FABE33 12%, var(--bg-soft)) 100%); }
 html:not(.dark) .bp .course-card .cover { background: linear-gradient(135deg, #fffaf0 0%, #f7efdc 55%, #f3e2b8 100%); }
+
+/* ---------- Phone sizing: tighter type, spacing and a calendar that fits ---------- */
+@media (max-width: 640px) {
+  .bp .h1 { font-size: clamp(28px, 8vw, 36px); }
+  .bp .h2 { font-size: clamp(24px, 6.6vw, 30px); }
+  .bp .h3 { font-size: 19px; }
+  .bp .body, .bp .lead { font-size: 15px; }
+  .bp .section { padding: 48px 0; }
+  .bp.bp-page { padding-top: 68px; }
+  .bp .btn { min-height: 44px; padding: 0 18px; font-size: 14px; }
+  .bp .card.spot, .bp .course-body, .bp .ji-panel { padding: 16px; }
+  .bp .seg-btn { min-height: 34px; padding: 0 12px; font-size: 12.5px; }
+  .bp .journal-summary { gap: 8px; }
+  .bp .ji-kpi { padding: 14px; }
+  .bp .ji-value { font-size: 18px; }
+  /* Calendar sized like the BLACKPIPS app: 56px tiles, compact P/L, W·L, dash for empty days */
+  .bp .cal-h { font-size: 9.5px; letter-spacing: .07em; padding: 4px 0; }
+  .bp .jday { min-height: 56px; height: 56px; padding: 4px 4px 3px 6px; border-radius: 12px; border-color: transparent; font-size: 10px; justify-content: flex-start; }
+  .bp .jday.win { background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.38); }
+  .bp .jday.loss { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.38); }
+  .bp .jday.out { opacity: .28; background: transparent; }
+  .bp .jday.sel { box-shadow: none; border: 1.5px solid var(--gold); }
+  .bp .jday-empty, .bp .jday-wl, .bp .jday-count, .bp .jday-full { display: none; }
+  .bp .jday .mt-3 { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .bp .jday-compact { font-size: 10.5px; font-weight: 800; line-height: 15px; color: var(--tx); }
+  .bp .jday-compact.win { color: var(--bull-ink); }
+  .bp .jday-compact.loss { color: var(--bear-ink); }
+  .bp .jday-wl-m { font-size: 9px; line-height: 12px; color: var(--tx3); white-space: nowrap; }
+  .bp .jday-dash { margin: auto 0 4px; text-align: center; font-size: 10px; color: var(--tx3); opacity: .5; }
+  .bp .jday-n { font: 700 12px Inter, sans-serif; color: var(--tx); }
+  .bp .jday-n.today { display: inline; width: auto; height: auto; background: none; color: var(--gold-ink); }
+  .bp .jday:has(.jday-n.today) { border: 1.5px solid var(--gold); }
+  .bp .jweek-row { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin-top: 10px; }
+  .bp .jweek { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 0; border-radius: 12px; background: var(--fill); }
+  .bp .jweek span { font-size: 8.5px; letter-spacing: .05em; color: var(--tx3); }
+  .bp .jweek b { font-size: 11px; font-weight: 800; color: var(--tx3); }
+  .bp .jweek b.win { color: var(--bull-ink); }
+  .bp .jweek b.loss { color: var(--bear-ink); }
+}
+
+/* ================= Phone arrangement (same design, re-arranged for small screens) ================= */
+/* The shared header must stay pinned on every screen: `.bp` sets position:relative, so restate fixed. */
+.bp.bp-chrome:has(> .nav) { position: fixed; top: 0; left: 0; right: 0; z-index: 50; }
+.bp .nav-burger { border-radius: 999px; }
+.bp .mob-group { display: flex; flex-direction: column; }
+.bp .mob-toggle { min-height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-radius: 12px; background: none; border: 0; color: var(--tx); font: 600 16px Inter, sans-serif; cursor: pointer; text-align: left; }
+.bp .mob-toggle.on { background: var(--gold-wash); color: var(--gold-ink); }
+.bp .mob-toggle svg { width: 18px; height: 18px; transition: transform .25s; }
+.bp .mob-toggle svg.flip { transform: rotate(180deg); }
+.bp .mob-sub { display: flex; flex-direction: column; margin: 2px 0 6px 14px; padding-left: 10px; border-left: 2px solid var(--gold-line); }
+.bp .nav .mob-menu .mob-sub a { min-height: 42px; font-size: 14.5px; font-weight: 500; color: var(--tx2); }
+.bp .pkg-toggle { display: none; }
+.bp .pkg-section { padding: 0 0 104px; }
+
+@media (max-width: 640px) {
+  /* Hero: larger, less squeezed headline */
+  .bp .h-hero { font-size: clamp(40px, 11.5vw, 48px); letter-spacing: -.03em; line-height: 1.04; }
+  .bp .home-hero { padding-top: 28px; }
+
+  /* Market sessions: one slim strip, swipe sideways for the next session */
+  .bp .mkt-title, .bp .mkt-time { display: none; }
+  .bp .mkt-head { padding: 12px 14px; gap: 8px; }
+  .bp .mkt-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; padding: 12px; scrollbar-width: none; }
+  .bp .mkt-grid::-webkit-scrollbar { display: none; }
+  .bp .mkt-grid .mtile { flex: 0 0 72%; scroll-snap-align: start; border: 1px solid var(--line) !important; border-radius: 16px; padding: 14px; gap: 8px; background: var(--fill); }
+  .bp .mtile .clock { font-size: 19px; }
+
+  /* Trader tools: lessons on top, every tool as an even two-column tile */
+  .bp .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; grid-auto-rows: auto; }
+  .bp .bento > * { grid-column: span 1 !important; padding: 14px !important; gap: 10px; }
+  .bp .bento > .bento-lessons, .bp .bento > .bento-tip { grid-column: 1 / -1 !important; }
+  .bp .bento > .span-2 .row { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .bp .bento > .span-2 .h3 { font-size: 15px; }
+  .bp .bento > .span-2 .small { font-size: 12px; margin-top: 0 !important; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .bp .bento-journal .ring-wrap svg { width: 100px; }
+  .bp .bento-journal .ring-value { font-size: 22px; }
+  .bp .bento-journal > .small.center { display: none; }
+  .bp .bento-lessons .h2 { font-size: 22px !important; }
+  .bp .bento-lessons .prog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .bp .prog-mini { padding: 10px; gap: 8px; }
+  .bp .prog-mini .prog-title { font-size: 13px; }
+
+  /* Why BLACKPIPS: icon beside the title, text underneath */
+  .bp .why { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; column-gap: 12px; row-gap: 8px; padding: 16px; }
+  .bp .why .small { grid-column: 1 / -1; }
+  .bp .grid-3:has(> .why) { gap: 10px; }
+
+  /* Student journey: four steps across one row, titles only */
+  .bp .journey { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .bp .journey > .stack { align-items: center; text-align: center; gap: 10px !important; }
+  .bp .journey .small { display: none; }
+  .bp .journey .h3 { font-size: 12.5px; }
+  .bp .jdot { width: 44px; height: 44px; border-radius: 14px; font-size: 14px; box-shadow: 0 0 0 5px var(--bg); }
+  .bp .jline { display: block; top: 21px; left: 12.5%; right: 12.5%; }
+
+  /* Dashboard: keep the gold glow to a soft top corner */
+  .bp .page-bg::after { left: 100%; top: -520px; width: 640px; height: 760px; opacity: .3; }
+  .bp .dash-wrap { padding-top: 8px; }
+
+  /* Mentorship: compact cards, curriculum opens on demand */
+  .bp .pkg-section { padding-bottom: 56px; }
+  .bp .pkg-grid { gap: 12px; }
+  .bp .pkg-head { padding: 16px 16px 14px; }
+  .bp .pkg-head .micro { margin-top: 10px !important; }
+  .bp .pkg-head .h2 { font-size: 24px !important; }
+  .bp .pkg-head .small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .bp .pkg-price { font-size: 24px; margin-top: 8px; }
+  .bp .pkg-cover { margin-top: 10px; }
+  .bp .pkg-toggle { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 12px 16px 0; min-height: 42px; border-radius: 999px; border: 1px solid var(--line2); background: var(--fill); color: var(--tx); font: 600 13.5px Inter, sans-serif; cursor: pointer; }
+  .bp .pkg-toggle svg { width: 16px; height: 16px; transition: transform .25s; }
+  .bp .pkg-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .bp .pkg-curr:not(.open) { display: none; }
+  .bp .pkg-group { padding: 14px 16px 2px; }
+  .bp .pkg-group li { min-height: 34px; font-size: 13.5px; }
+  .bp .pkg-foot { padding: 12px 16px 16px; }
+
+  /* Footer: brand, social icons and copyright only */
+  .bp .foot-grid > div:not(.foot-brand) { display: none; }
+  .bp .foot-grid { padding: 32px 0 20px; }
+  .bp .foot-brand { align-items: center; text-align: center; gap: 14px !important; }
+  .bp .foot-brand .small { font-size: 13px; }
+  .bp .footer .between.small { flex-direction: column; text-align: center; gap: 6px; padding: 16px 0 24px !important; font-size: 11.5px; }
+}
+/* Mobile menu sits over page content now that the header stays pinned: make it opaque. */
+.bp .nav .mob-menu { background: color-mix(in oklab, var(--bg) 96%, transparent); }
+/* Phones: the app card on sign in becomes one slim row */
+@media (max-width: 900px) {
+  .bp.auth-page .auth-intro { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 16px; box-shadow: none; }
+  .bp .auth-intro-title, .bp .auth-intro-text { display: none; }
+  .bp .auth-intro-store { margin-top: 0; gap: 6px; }
+  .bp .auth-intro-store .store-badge { height: 38px; padding: 0 10px 0 8px; gap: 6px; font-size: 13px; border-radius: 8px; }
+  .bp .auth-intro-store .store-badge svg { width: 18px; height: 18px; }
+  .bp .auth-intro-store .store-badge small, .bp .auth-intro-store .store-badge-tag { font-size: 8px; }
+}
+@media (max-width: 900px) { .bp.auth-page .auth-brand { padding-top: 24px !important; } }
+
+/* Desktop keeps its calendar exactly as before; the app-style pieces only show on phones */
+.bp .jday-compact, .bp .jday-wl-m, .bp .jday-dash, .bp .jweek-row { display: none; }
+@media (max-width: 640px) {
+  .bp .jday-compact, .bp .jday-wl-m, .bp .jday-dash { display: block; }
+  .bp .jweek-row { display: grid; }
+}
+
+/* Market Sessions: Alerts / Major Sessions collapse on phones like the app's accordion */
+.mkt-collapse-btn { display: none; }
+@media (max-width: 640px) {
+  .mkt-collapse-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: inherit; cursor: pointer; }
+  .mkt-collapse-btn svg { width: 18px; height: 18px; transition: transform .25s; }
+  .mkt-collapsible.open .mkt-collapse-btn svg { transform: rotate(180deg); }
+  .mkt-collapsible:not(.open) .mkt-collapse-body { display: none; }
+}
+
+/* Pips Calculator on phones: inputs, presets, result, then the Calculate button */
+.bp .lot-presets { display: none; }
+@media (max-width: 640px) {
+  .bp .calc > .result, .bp .calc > .result-wrap { order: 1; }
+  .bp .calc > .calc-btn { order: 2; }
+  .bp .calc > .calc-foot { order: 3; }
+  .bp .calc .basis { display: none; }
+  .bp .lot-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .bp .lot-presets button { min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line2); background: var(--fill); color: var(--tx2); font: 600 12.5px Inter, sans-serif; cursor: pointer; }
+  .bp .lot-presets button.on { border-color: var(--gold); background: var(--gold-wash); color: var(--gold-ink); }
+}
+@media (max-width: 640px) {
+  .bp .calc .cgrid .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px !important; }
+  .bp .calc > .pip-hero { padding: 18px; }
+  .bp .pip-tiles > div { padding: 9px 10px; }
+}
+
+/* Trading Plan on phones: compact header + progress bar like the app */
+.bp .plan-progress { display: none; }
+@media (max-width: 640px) {
+  .bp .plan-page { padding-top: 8px; }
+  .bp .plan-head { padding: 18px; }
+  .bp .plan-head .h1 { font-size: 28px !important; }
+  .bp .plan-head .body { display: none; }
+  .bp .plan-ring { display: none; }
+  .bp .plan-progress { display: grid; gap: 10px; margin-top: 16px; padding: 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--fill); }
+  .bp .plan-progress b { font-size: 15px; }
+  .bp .plan-progress span { font-size: 12.5px; font-weight: 600; color: var(--tx2); }
+  .bp .plan-progress-bar { height: 8px; border-radius: 999px; background: var(--fill2); overflow: hidden; }
+  .bp .plan-progress-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #E08E00, #FFD54A); transition: width .6s var(--ease); }
+  .bp .plan-summary { gap: 8px; margin-top: 12px; }
+  .bp .plan-sec-h { padding: 16px; }
+  .bp .plan-sec-body { padding: 16px; }
+}
+
+/* Results use the site's own typeface */
+.bp .result .v { font-family: Inter, system-ui, sans-serif; letter-spacing: -.035em; }
+
+/* Glass blur behind the floating nav bar and the phone menu */
+.bp .nav .nav-in { background: color-mix(in oklab, var(--bg) 70%, transparent); backdrop-filter: saturate(160%) blur(22px); -webkit-backdrop-filter: saturate(160%) blur(22px); }
+.bp .nav .mob-menu { background: color-mix(in oklab, var(--bg) 78%, transparent); backdrop-filter: saturate(160%) blur(26px); -webkit-backdrop-filter: saturate(160%) blur(26px); }
+
+/* Home on phones: the lessons card and its Explore button are enough */
+@media (max-width: 640px) {
+  .bp .bento > :not(.bento-lessons) { display: none; }
+}
+
+/* Sign in on phones: the form comes first, the app badges move below Google */
+.bp .auth-app-below { display: none; }
+@media (max-width: 900px) {
+  .bp.auth-page .auth-brand { display: none; }
+  .bp.auth-page .auth-form { padding-top: 24px !important; }
+  .bp .auth-app-below { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 8px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .bp .auth-app-below .store-badges { justify-content: center; }
+}
+
+/* Risk calculator Buy / Sell, as in the app */
+.bp .dir-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 14px; background: var(--fill); border: 1px solid var(--line); }
+.bp .dir-toggle button { min-height: 44px; border-radius: 10px; border: 0; background: transparent; color: var(--tx2); font: 800 14px Inter, sans-serif; letter-spacing: .06em; cursor: pointer; }
+.bp .dir-toggle button.buy.on { background: var(--bull); color: #04140a; }
+.bp .dir-toggle button.sell.on { background: var(--bear); color: #fff; }
+
+/* Major Forex Sessions on phones: one swipeable row instead of a tall list */
+@media (max-width: 640px) {
+  .mkt-sess-row { display: flex !important; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 4px; }
+  .mkt-sess-row::-webkit-scrollbar { display: none; }
+  .mkt-sess-row > article { flex: 0 0 86%; scroll-snap-align: start; }
+}
+
+/* Journal on phones: app-style filter card and compact trade list */
+@media (max-width: 640px) {
+  .bp .journal-filters { padding: 12px; }
+  .bp .jf-top { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .bp .jf-top > :first-child { grid-column: 1 / -1; }
+  .bp .jf-bottom { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; gap: 8px; margin-top: 8px; }
+  .bp .jf-bottom > :first-child { grid-column: 1 / -1; }
+  .bp .journal-filters input, .bp .journal-filters button { font-size: 13px; }
+}
+.bp .jl-list { padding: 0; }
+.bp .jl-row { display: flex; align-items: center; gap: 8px; padding: 12px 10px 12px 12px; border-bottom: 1px solid var(--line); }
+.bp .jl-row:last-child { border-bottom: 0; }
+.bp .jl-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; background: none; border: 0; padding: 0; color: inherit; text-align: left; cursor: pointer; }
+.bp .jl-bar { width: 4px; height: 40px; border-radius: 99px; background: var(--tx3); flex: none; }
+.bp .jl-bar.win { background: var(--bull-ink); }
+.bp .jl-bar.loss { background: var(--bear-ink); }
+.bp .jl-text { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.bp .jl-top { display: flex; align-items: center; gap: 8px; }
+.bp .jl-top b { font-size: 15px; font-weight: 800; color: var(--tx); }
+.bp .jl-meta { font-size: 12px; color: var(--tx3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: capitalize; }
+.bp .jl-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+.bp .jl-pnl { font-size: 15px; font-weight: 800; color: var(--tx); }
+.bp .jl-pnl.win { color: var(--bull-ink); }
+.bp .jl-pnl.loss { color: var(--bear-ink); }
+.bp .jl-actions { display: flex; gap: 6px; }
+.bp .jl-actions button { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; border: 1px solid var(--line); background: var(--fill); color: var(--tx2); cursor: pointer; }
+.bp .jl-actions button svg { width: 15px; height: 15px; }
+.bp .jl-actions button.danger { color: var(--bear-ink); }
+.bp .calc .mini b { font-family: Inter, system-ui, sans-serif; }
+/* The CSS pipeline rewrites a literal backdrop-filter to the -webkit- form only, which Chrome ignores.
+   Passing the value through a variable keeps the standard property in the output. */
+.bp .nav .nav-in { --nav-blur: saturate(160%) blur(22px); backdrop-filter: var(--nav-blur); }
+.bp .nav .mob-menu { --menu-blur: saturate(160%) blur(26px); backdrop-filter: var(--menu-blur); }
+/* Instrument list: solid, blurred surface so nothing behind it shows through */
+.bp .instrument-pop { --pop-blur: blur(20px); background: color-mix(in oklab, var(--s1) 97%, transparent) !important; backdrop-filter: var(--pop-blur); }
+/* The instrument row must stack above the inputs below it, or its list opens underneath them */
+.bp .calc > .between:first-child + .cgrid { z-index: 40; }

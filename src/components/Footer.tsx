@@ -10,7 +10,7 @@ export function Footer() {
       <div className="footer">
         <div className="wrap">
           <div className="foot-grid foot-grid-5">
-            <div className="stack" style={{ gap: 18 }}>
+            <div className="stack foot-brand" style={{ gap: 18 }}>
               <Link to="/" className="logo" aria-label="BLACKPIPS home">
                 <Logo />
               </Link>

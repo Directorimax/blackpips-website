@@ -44,8 +44,8 @@ type CalculationResult =
       riskAmount: number;
       size: number | null;
       profit: number | null;
-      riskReward: number;
-      breakeven: number;
+      riskReward: number | null;
+      breakeven: number | null;
       stop: number;
     };
 
@@ -57,8 +57,12 @@ export function PipCalculator() {
   const [move, setMove] = useState(20);
   const [balance, setBalance] = useState("1000");
   const [riskPercent, setRiskPercent] = useState("1");
-  const [stopMove, setStopMove] = useState<number | null>(20);
-  const [targetMove, setTargetMove] = useState<number | null>(60);
+  // Risk calculator mirrors the BLACKPIPS app: direction plus entry / stop / target prices.
+  const [direction, setDirection] = useState<"buy" | "sell">("buy");
+  const [entryPrice, setEntryPrice] = useState("");
+  const [stopPrice, setStopPrice] = useState("");
+  const [targetPrice, setTargetPrice] = useState("");
+  const [riskError, setRiskError] = useState<string | null>(null);
   const [accountCurrency, setAccountCurrency] = useState<(typeof ACCOUNT_CURRENCIES)[number]>(
     ACCOUNT_CURRENCIES[0],
   );
@@ -100,10 +104,10 @@ export function PipCalculator() {
         : "Points";
   const valueLabel =
     instrument.calculationType === "pip"
-      ? "Estimated pip value"
+      ? "Pip value"
       : instrument.calculationType === "tick"
-        ? "Estimated tick value"
-        : "Estimated point value";
+        ? "Tick value"
+        : "Point value";
   const money = (value: number | null) =>
     value === null ? "—" : `${accountCurrency.symbol}${formatMoney(value)}`;
 
@@ -121,23 +125,47 @@ export function PipCalculator() {
     }
     const balanceValue = Number(balance);
     const riskValue = Number(riskPercent);
-    if (!(balanceValue > 0) || !(riskValue > 0) || !stopMove || !targetMove) return;
+    const entry = Number(entryPrice);
+    const stop = Number(stopPrice);
+    const target = targetPrice.trim() ? Number(targetPrice) : null;
+    setRiskError(null);
+    if (!(balanceValue > 0) || !(riskValue > 0) || riskValue > 100 || !(entry > 0) || !(stop > 0)) {
+      setResult(null);
+      setRiskError("Enter your balance, risk %, entry and stop loss prices.");
+      return;
+    }
+    const riskDistance = direction === "buy" ? entry - stop : stop - entry;
+    const rewardDistance =
+      target === null ? null : direction === "buy" ? target - entry : entry - target;
+    if (riskDistance <= 0 || (rewardDistance !== null && !(rewardDistance > 0))) {
+      setResult(null);
+      setRiskError(
+        direction === "buy"
+          ? "For a Buy, Stop Loss must be below Entry and Take Profit, when provided, must be above Entry."
+          : "For a Sell, Stop Loss must be above Entry and Take Profit, when provided, must be below Entry.",
+      );
+      return;
+    }
+    const stopUnits = riskDistance / instrument.pipSize;
+    const targetUnits = rewardDistance === null ? null : rewardDistance / instrument.pipSize;
     const riskAmount = (balanceValue * riskValue) / 100;
     const perLotPerUnit = toAccount(calculateEstimatedValue(instrument, 1, 1));
-    const rawSize = perLotPerUnit ? riskAmount / (stopMove * perLotPerUnit) : null;
-    const size =
-      rawSize === null
-        ? null
-        : Math.floor(rawSize / instrument.lotStep + 1e-9) * instrument.lotStep;
-    const riskReward = targetMove / stopMove;
+    if (!perLotPerUnit) {
+      setResult(null);
+      setRiskError("A reference rate is required for this currency conversion.");
+      return;
+    }
+    const rawSize = riskAmount / (stopUnits * perLotPerUnit);
+    const size = Math.floor(rawSize / instrument.lotStep + 1e-9) * instrument.lotStep;
+    const riskReward = targetUnits === null ? null : targetUnits / stopUnits;
     setResult({
       mode: "risk",
       riskAmount,
       size,
-      profit: size !== null && perLotPerUnit ? size * targetMove * perLotPerUnit : null,
+      profit: targetUnits === null ? null : size * targetUnits * perLotPerUnit,
       riskReward,
-      breakeven: 100 / (1 + riskReward),
-      stop: stopMove,
+      breakeven: riskReward === null ? null : 100 / (1 + riskReward),
+      stop: Math.round(stopUnits * 10) / 10,
     });
   }
 
@@ -185,7 +213,7 @@ export function PipCalculator() {
       </div>
 
       <div className="cgrid">
-        <div className="field">
+        <div className="field" style={{ position: "relative", zIndex: 30 }}>
           <span className="label">Instrument</span>
           <InstrumentSelect value={symbol} onValueChange={setSymbol} />
         </div>
@@ -263,31 +291,51 @@ export function PipCalculator() {
               </span>
             </div>
           </div>
+          <div className="lot-presets" role="group" aria-label="Lot size presets">
+            {[0.01, 0.1, 0.5, 1]
+              .filter((value) => value >= instrument.minLotSize)
+              .map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={lots === value}
+                  className={lots === value ? "on" : ""}
+                  onClick={() => setLots(value)}
+                >
+                  {value} lot
+                </button>
+              ))}
+          </div>
           <button
             type="button"
-            className="btn btn-gold btn-lg btn-block"
+            className="btn btn-gold btn-lg btn-block calc-btn"
             onClick={calculate}
             disabled={lots === null}
           >
             Calculate
           </button>
           {pipResult ? (
-            <div className="result rise" style={{ animationDuration: ".6s" }} aria-live="polite">
+            <div
+              className="result pip-hero rise"
+              style={{ animationDuration: ".6s" }}
+              aria-live="polite"
+            >
               <p className="micro">{valueLabel}</p>
               <p className={`v ${pipResult.value === null ? "" : "gold-text"}`}>
                 {money(pipResult.value)}
               </p>
+
               <p className="small" style={{ marginTop: 8 }}>
-                Estimated value for {pipResult.move} {unitLabel.toLowerCase()} at {pipResult.lots}{" "}
-                lot
+                Value for {pipResult.move} {unitLabel.toLowerCase()} at {pipResult.lots} lot
                 {pipResult.lots === 1 ? "" : "s"} · {money(pipResult.perUnit)} per{" "}
                 {unitLabel.toLowerCase().replace(/s$/, "")}
               </p>
             </div>
           ) : (
-            <div className="result is-empty">
+            <div className="result pip-hero is-empty">
               <p className="micro">{valueLabel}</p>
               <p className="v">—</p>
+
               <p className="small" style={{ marginTop: 8 }}>
                 Enter your lot size and {unitLabel.toLowerCase()}, then press Calculate.
               </p>
@@ -296,6 +344,23 @@ export function PipCalculator() {
         </>
       ) : (
         <>
+          <div className="dir-toggle" role="group" aria-label="Trade direction">
+            {(["buy", "sell"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={direction === value}
+                className={`${value} ${direction === value ? "on" : ""}`}
+                onClick={() => {
+                  setDirection(value);
+                  setResult(null);
+                  setRiskError(null);
+                }}
+              >
+                {value.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <div className="grid-4 keep-2" style={{ gap: 14 }}>
             <label className="field">
               <span className="label">Account balance ({accountCurrency.code})</span>
@@ -315,33 +380,30 @@ export function PipCalculator() {
                 onChange={(event) => setRiskPercent(event.target.value)}
               />
             </label>
-            <NumberStepper
-              label={`Stop loss ${unitLabel.toLowerCase()}`}
-              value={stopMove}
-              onValueChange={setStopMove}
-              min={instrument.minMove}
-              max={100_000}
-              step={instrument.moveStep}
-              defaultValue={Math.max(20, instrument.minMove)}
-              resetKey={`${instrument.symbol}-sl`}
+            <PriceField label="Entry price" value={entryPrice} onChange={setEntryPrice} />
+            <PriceField
+              label="Stop loss price"
+              value={stopPrice}
+              onChange={setStopPrice}
+              hint={distanceHint(entryPrice, stopPrice, instrument.pipSize, unitLabel)}
             />
-            <NumberStepper
-              label={`Take profit ${unitLabel.toLowerCase()}`}
-              value={targetMove}
-              onValueChange={setTargetMove}
-              min={instrument.minMove}
-              max={100_000}
-              step={instrument.moveStep}
-              defaultValue={Math.max(60, instrument.minMove)}
-              resetKey={`${instrument.symbol}-tp`}
+            <PriceField
+              label="Take profit (optional)"
+              value={targetPrice}
+              onChange={setTargetPrice}
+              hint={distanceHint(entryPrice, targetPrice, instrument.pipSize, unitLabel)}
             />
           </div>
-          <button type="button" className="btn btn-gold btn-lg btn-block" onClick={calculate}>
+          <button
+            type="button"
+            className="btn btn-gold btn-lg btn-block calc-btn"
+            onClick={calculate}
+          >
             Calculate
           </button>
           {riskResult ? (
             <div
-              className="stack rise"
+              className="stack rise result-wrap"
               style={{ gap: 14, animationDuration: ".6s" }}
               aria-live="polite"
             >
@@ -366,31 +428,42 @@ export function PipCalculator() {
                 </div>
                 <div className="mini">
                   <span className="micro">Risk / reward</span>
-                  <b>1 : {riskResult.riskReward.toFixed(1)}</b>
+                  <b>
+                    {riskResult.riskReward === null
+                      ? "—"
+                      : `1 : ${riskResult.riskReward.toFixed(1)}`}
+                  </b>
                 </div>
                 <div className="mini">
                   <span className="micro">Breakeven win rate</span>
-                  <b>{riskResult.breakeven.toFixed(1)}%</b>
+                  <b>
+                    {riskResult.breakeven === null ? "—" : `${riskResult.breakeven.toFixed(1)}%`}
+                  </b>
                 </div>
               </div>
-              <div className="rr" aria-hidden="true">
-                <i style={{ width: `${riskResult.breakeven}%`, background: "var(--bear)" }} />
-                <i style={{ width: `${100 - riskResult.breakeven}%`, background: "var(--bull)" }} />
-              </div>
+              {riskResult.breakeven !== null && (
+                <div className="rr" aria-hidden="true">
+                  <i style={{ width: `${riskResult.breakeven}%`, background: "var(--bear)" }} />
+                  <i
+                    style={{ width: `${100 - riskResult.breakeven}%`, background: "var(--bull)" }}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="result is-empty">
               <p className="micro">Recommended position size</p>
               <p className="v">—</p>
               <p className="small" style={{ marginTop: 8 }}>
-                Enter your balance, risk and stop loss, then press Calculate.
+                {riskError ??
+                  "Enter your balance, risk, entry and stop loss, then press Calculate."}
               </p>
             </div>
           )}
         </>
       )}
 
-      <div className="between" style={{ flexWrap: "wrap" }}>
+      <div className="between calc-foot" style={{ flexWrap: "wrap" }}>
         <p className="small" style={{ fontSize: 12, maxWidth: 520 }}>
           {instrument.disclaimer ??
             "This uses ECB reference conversion data with the configured instrument value. Verify tick size and contract size with your broker before trading."}
@@ -400,6 +473,45 @@ export function PipCalculator() {
         </Link>
       </div>
     </section>
+  );
+}
+
+function distanceHint(entry: string, price: string, pipSize: number, unitLabel: string) {
+  const a = Number(entry);
+  const b = Number(price);
+  if (!(a > 0) || !(b > 0)) return undefined;
+  return `${(Math.abs(a - b) / pipSize).toFixed(1)} ${unitLabel.toLowerCase()}`;
+}
+
+function PriceField({
+  label,
+  value,
+  onChange,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  hint?: string;
+}) {
+  return (
+    <label className="field">
+      <span className="between">
+        <span className="label">{label}</span>
+        {hint && (
+          <span className="small mono" style={{ fontSize: 11 }}>
+            {hint}
+          </span>
+        )}
+      </span>
+      <input
+        className="input mono"
+        inputMode="decimal"
+        value={value}
+        placeholder="0.00000"
+        onChange={(event) => onChange(event.target.value.replace(",", "."))}
+      />
+    </label>
   );
 }
 
@@ -510,7 +622,7 @@ function InstrumentSelect({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.16 }}
-            className="absolute z-[90] mt-2 w-full overflow-hidden rounded-2xl border border-gold/45 bg-popover p-2 text-popover-foreground shadow-[0_20px_50px_rgb(31_27_17_/_0.18)] dark:shadow-[0_20px_50px_rgb(0_0_0_/_0.55)]"
+            className="instrument-pop absolute z-[90] mt-2 w-full overflow-hidden rounded-2xl border border-gold/45 bg-popover p-2 text-popover-foreground shadow-[0_20px_50px_rgb(31_27_17_/_0.18)] dark:shadow-[0_20px_50px_rgb(0_0_0_/_0.55)]"
           >
             <div className="relative">
               <Search

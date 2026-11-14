@@ -139,7 +139,11 @@ function ToolsIndexPage() {
             {PRIORITY_DESTINATIONS.map((destination) => {
               const tool = TOOL_DETAILS[destination.to];
               return (
-                <Link key={destination.to} to={destination.open} className="card lift spot tool rise">
+                <Link
+                  key={destination.to}
+                  to={destination.open}
+                  className="card lift spot tool rise"
+                >
                   <div className="between">
                     <span className={`ico ${tool.solid ? "ico-solid" : ""}`}>
                       <tool.icon aria-hidden="true" />
