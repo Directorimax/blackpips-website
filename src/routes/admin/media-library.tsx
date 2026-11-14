@@ -157,7 +157,7 @@ function CentralMediaLibrary() {
   }
   if (adminLoading || (!isAdmin && !error))
     return (
-      <div className="grid min-h-[60vh] place-items-center">
+      <div className="grid min-h-[calc(60vh*var(--vhf,1))] place-items-center">
         <Loader2 className="animate-spin text-gold" />
       </div>
     );
@@ -554,7 +554,7 @@ function DetailsDialog({
     >
       <div
         onMouseDown={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border bg-background p-6 shadow-2xl"
+        className="max-h-[calc(90vh*var(--vhf,1))] w-full max-w-2xl overflow-y-auto rounded-xl border bg-background p-6 shadow-2xl"
       >
         <div className="flex items-start justify-between">
           <div>

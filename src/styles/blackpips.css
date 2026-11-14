@@ -17,7 +17,7 @@
     --gt-a: #FFE08A; --gt-b: #FABE33; --gt-c: #E08E00;
     --ease: cubic-bezier(.16,1,.3,1);
     font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--tx);
-    -webkit-font-smoothing: antialiased; position: relative; overflow-x: hidden; min-height: 100vh;
+    -webkit-font-smoothing: antialiased; position: relative; overflow-x: hidden; min-height: calc(100vh*var(--vhf,1));
     font-feature-settings: 'cv11', 'ss01'; transition: background .4s, color .4s;
   }
 html:not(.dark) .bp {
@@ -547,8 +547,8 @@ html:not(.reveal-ready) .bp .jdot { background: #FABE33; color: #05070B; }
 @media (max-width: 640px) { .bp .instructor { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; } }
 
 /* ---------- Sign in ---------- */
-.bp.auth-page { min-height: 100vh; }
-.bp .auth { display: flex; flex-wrap: wrap; min-height: calc(100vh - 6rem); }
+.bp.auth-page { min-height: calc(100vh*var(--vhf,1)); }
+.bp .auth { display: flex; flex-wrap: wrap; min-height: calc(calc(100vh*var(--vhf,1)) - 6rem); }
 .bp .auth-brand { flex: 1 1 520px; position: relative; overflow: hidden; border-right: 1px solid var(--line); background: var(--bg-soft); padding: 40px; display: flex; flex-direction: column; gap: 32px; }
 .bp .auth-form { flex: 1 1 480px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; position: relative; }
 .bp .formbox { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 20px; }
@@ -575,7 +575,7 @@ html:not(.reveal-ready) .bp .jdot { background: #FABE33; color: #05070B; }
 .bp .tagcard svg { width: 16px; height: 16px; }
 .bp .auth-phone { width: 270px; aspect-ratio: 1206 / 2622; padding: 9px; position: relative; z-index: 2; }
 .bp .auth-phone .phone-screen { border-radius: 38px; }
-.bp .auth-simple { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 6rem); padding: 64px 16px; }
+.bp .auth-simple { display: flex; align-items: center; justify-content: center; min-height: calc(calc(100vh*var(--vhf,1)) - 6rem); padding: 64px 16px; }
 .bp .auth-simple-card { width: 100%; max-width: 440px; padding: 36px 28px; }
 /* The split keeps one composition at every width: capped on wide screens, stacked on small ones. */
 .bp .auth { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); max-width: 1440px; margin: 0 auto; }
@@ -627,7 +627,7 @@ html:not(.reveal-ready) .bp .jdot { background: #FABE33; color: #05070B; }
 .bp .bento-tip { order: 10; }
 /* The sign-in split runs up behind the floating nav */
 .bp.auth-page { padding-top: 0; }
-.bp.auth-page .auth { min-height: 100vh; }
+.bp.auth-page .auth { min-height: calc(100vh*var(--vhf,1)); }
 .bp.auth-page .auth-brand, .bp.auth-page .auth-form { padding-top: 104px; }
 @media (max-width: 900px) { .bp.auth-page .auth { min-height: 0; } .bp.auth-page .auth-brand { padding-top: 88px; } .bp.auth-page .auth-form { padding-top: 32px; padding-bottom: 56px; } }
 
@@ -837,7 +837,7 @@ html:not(.reveal-ready) .bp .jdot { background: #FABE33; color: #05070B; }
 .bp .auth-store { position: relative; z-index: 2; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: -24px; }
 @media (min-width: 901px) {
   .bp .auth-show { gap: 0; }
-  .bp .auth-shots { height: min(560px, calc(100vh - 430px)); min-height: 330px; }
+  .bp .auth-shots { height: min(560px, calc(calc(100vh*var(--vhf,1)) - 430px)); min-height: 330px; }
   .bp .auth-mock.back { width: auto; height: 82%; transform: translateX(-42%) rotate(-8deg); }
   .bp .auth-mock.front { width: auto; height: 92%; transform: translateX(28%) rotate(5deg); }
   .bp .auth-store { margin-top: 8px; }
@@ -880,7 +880,7 @@ html:not(.reveal-ready) .bp .jdot { background: #FABE33; color: #05070B; }
 @media (prefers-reduced-motion: reduce) { .bp .auth-float { animation: none; } }
 @media (min-width: 901px) {
   .bp.auth-page .auth-brand { justify-content: center; }
-  .bp .auth-shots { height: min(640px, calc(100vh - 200px)); min-height: 420px; }
+  .bp .auth-shots { height: min(640px, calc(calc(100vh*var(--vhf,1)) - 200px)); min-height: 420px; }
 }
 @media (max-width: 900px) {
   .bp.auth-page .auth-brand { padding: 88px 16px 0; }
@@ -906,7 +906,7 @@ html:not(.reveal-ready) .bp .jdot { background: #FABE33; color: #05070B; }
 @media (min-width: 901px) {
   .bp.auth-page .auth { min-height: 0; }
   .bp.auth-page .auth-brand, .bp.auth-page .auth-form { padding-top: 112px; padding-bottom: 48px; justify-content: flex-start; }
-  .bp .auth-shots { height: min(600px, calc(100vh - 180px)); }
+  .bp .auth-shots { height: min(600px, calc(calc(100vh*var(--vhf,1)) - 180px)); }
 }
 @media (max-width: 900px) { .bp.auth-page .auth-brand { padding-top: 84px; } .bp.auth-page .auth-form { padding-top: 24px; } }
 
@@ -1358,3 +1358,26 @@ html.theme-switching, html.theme-switching *, html.theme-switching *::before, ht
 html:not(.dark) .bp .about-glow { width: min(330px, 74vw); background: radial-gradient(circle at 50% 38%, #2a2416 0%, #14110b 62%, #0b0907 100%); box-shadow: 0 0 0 1px rgba(224,142,0,.45), 0 0 0 8px rgba(250,190,51,.12), 0 34px 70px -24px rgba(60,40,0,.55); }
 html:not(.dark) .bp .about-bull { width: min(270px, 60%); filter: drop-shadow(0 10px 22px rgba(0,0,0,.55)); }
 html:not(.dark) .bp .about-ring { border-color: rgba(176,112,0,.45); }
+
+/* Desktop default scale: the site reads best at 80% on laptop and desktop screens.
+   Phones and tablets keep their own sizes. --vhf (set in the root head script)
+   corrects screen-height units for the zoom. */
+:root { --vhf: 1; }
+@media (min-width: 1024px) {
+  html { zoom: .8; }
+}
+.min-h-screen { min-height: calc(100vh * var(--vhf, 1)); }
+.min-h-svh { min-height: calc(100svh * var(--vhf, 1)); }
+.h-svh { height: calc(100svh * var(--vhf, 1)); }
+
+/* Sign in / sign up on desktop: exactly one window tall, content centred top-to-bottom */
+@media (min-width: 901px) {
+  .bp.auth-page > .auth { min-height: calc(100vh * var(--vhf, 1)) !important; align-items: stretch; }
+  .bp.auth-page .auth-form, .bp.auth-page .auth-brand { justify-content: center; padding-bottom: 40px; }
+}
+
+/* Contact on desktop: one window tall, content centred between the nav and the fold */
+@media (min-width: 1024px) {
+  .bp.contact-page { display: flex; flex-direction: column; justify-content: center; }
+  .bp.contact-page .contact-section { padding: 24px 0 40px !important; }
+}

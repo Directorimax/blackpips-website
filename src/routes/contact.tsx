@@ -22,9 +22,9 @@ function Contact() {
   const availability = useContactAvailability();
   const closed = availability.isReady && !availability.isOpen;
   return (
-    <div className="bp bp-page">
+    <div className="bp bp-page contact-page">
       <div className="page-bg" aria-hidden="true" />
-      <section style={{ padding: "32px 0 96px" }}>
+      <section className="contact-section" style={{ padding: "32px 0 96px" }}>
         <div className="wrap">
           <div className="orbit rise">
             <div className="orbit-in split contact-grid">

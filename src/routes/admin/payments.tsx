@@ -191,7 +191,7 @@ function AdminPayments() {
 
   if (adminLoading || !isAdmin)
     return (
-      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
+      <div className="flex min-h-[calc(calc(100vh*var(--vhf,1))-8rem)] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-gold" />
       </div>
     );
@@ -333,7 +333,7 @@ function PaymentProofDialog({
   const payment = preview?.payment;
   return (
     <Dialog open={Boolean(preview)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-5xl flex-col gap-0 overflow-hidden rounded-2xl border-border bg-card p-0 [&>button]:grid [&>button]:h-11 [&>button]:w-11 [&>button]:place-items-center sm:rounded-3xl">
+      <DialogContent className="flex max-h-[calc(calc(100dvh*var(--vhf,1))-1rem)] w-[calc(100vw-1rem)] max-w-5xl flex-col gap-0 overflow-hidden rounded-2xl border-border bg-card p-0 [&>button]:grid [&>button]:h-11 [&>button]:w-11 [&>button]:place-items-center sm:rounded-3xl">
         <DialogHeader className="shrink-0 border-b border-border bg-card px-4 py-4 pr-14 text-left sm:px-6">
           <DialogTitle>Payment proof</DialogTitle>
           <DialogDescription className="break-words">
@@ -345,14 +345,14 @@ function PaymentProofDialog({
         <div className="min-h-0 flex-1 overflow-auto overscroll-contain bg-muted/30 p-3 sm:p-5">
           {preview?.loading ? (
             <div
-              className="flex min-h-[50dvh] items-center justify-center gap-3 text-sm text-muted-foreground"
+              className="flex min-h-[calc(50dvh*var(--vhf,1))] items-center justify-center gap-3 text-sm text-muted-foreground"
               role="status"
             >
               <Loader2 className="h-6 w-6 animate-spin text-gold" /> Loading private proof…
             </div>
           ) : preview?.error ? (
             <div
-              className="mx-auto flex min-h-[40dvh] max-w-lg items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive"
+              className="mx-auto flex min-h-[calc(40dvh*var(--vhf,1))] max-w-lg items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive"
               role="alert"
             >
               {preview.error}
@@ -362,15 +362,15 @@ function PaymentProofDialog({
               src={preview.url}
               title="Payment proof PDF"
               referrerPolicy="no-referrer"
-              className="h-[70dvh] min-h-[28rem] w-full rounded-xl border border-border bg-background"
+              className="h-[calc(70dvh*var(--vhf,1))] min-h-[28rem] w-full rounded-xl border border-border bg-background"
             />
           ) : preview?.url ? (
-            <div className="flex min-h-[50dvh] w-full items-center justify-center overflow-auto rounded-xl bg-background/60">
+            <div className="flex min-h-[calc(50dvh*var(--vhf,1))] w-full items-center justify-center overflow-auto rounded-xl bg-background/60">
               <img
                 src={preview.url}
                 alt={`Payment proof from ${payment?.display_name || payment?.user_email || "learner"}`}
                 referrerPolicy="no-referrer"
-                className="max-h-[72dvh] max-w-full object-contain"
+                className="max-h-[calc(72dvh*var(--vhf,1))] max-w-full object-contain"
               />
             </div>
           ) : null}

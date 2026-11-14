@@ -128,7 +128,10 @@ function RootShell({ children }: { children: ReactNode }) {
           // Apply the saved theme before first paint so light mode doesn't flash dark.
           dangerouslySetInnerHTML={{
             __html:
-              'try{if(localStorage.getItem("bp-theme")==="light")document.documentElement.classList.remove("dark")}catch(e){}',
+              'try{if(localStorage.getItem("bp-theme")==="light")document.documentElement.classList.remove("dark")}catch(e){}' +
+              // Desktop renders at 80% scale; measure how this browser scales screen-height
+              // units under zoom so full-height layouts still fill the window exactly.
+              ';(function(){var d=document.documentElement;function f(){var p=document.createElement("div");p.style.cssText="position:absolute;top:0;left:0;width:1px;height:100vh;visibility:hidden;pointer-events:none";d.appendChild(p);var h=p.getBoundingClientRect().height;p.remove();d.style.setProperty("--vhf",h>0?String(innerHeight/h):"1")}f();addEventListener("resize",f)})();',
           }}
         />
       </head>

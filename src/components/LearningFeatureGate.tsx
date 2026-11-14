@@ -19,7 +19,7 @@ export function LearningFeatureGate({
 
   if (loading)
     return (
-      <div className="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-4xl items-center px-4">
+      <div className="mx-auto flex min-h-[calc(calc(100vh*var(--vhf,1))-8rem)] w-full max-w-4xl items-center px-4">
         <ContentSkeleton className="w-full" lines={4} label="Checking learning access" />
       </div>
     );

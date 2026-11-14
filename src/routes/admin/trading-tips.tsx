@@ -709,14 +709,14 @@ function AdminReactionViewer({
   const title = emoji ? `${emoji} Reactions` : "All reactions";
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[min(36rem,85dvh)] max-w-md overflow-hidden rounded-3xl border-gold/20 bg-card p-0">
+      <DialogContent className="max-h-[min(36rem,calc(85dvh*var(--vhf,1)))] max-w-md overflow-hidden rounded-3xl border-gold/20 bg-card p-0">
         <DialogHeader className="border-b border-border px-5 py-4 pr-12">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="line-clamp-1">
             {tip.title || "Trading tip"}
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[calc(min(36rem,85dvh)-5.75rem)] overflow-y-auto p-3">
+        <div className="max-h-[calc(min(36rem,calc(85dvh*var(--vhf,1)))-5.75rem)] overflow-y-auto p-3">
           {loading ? (
             <div className="grid min-h-32 place-items-center">
               <Loader2 className="h-5 w-5 animate-spin text-gold" />

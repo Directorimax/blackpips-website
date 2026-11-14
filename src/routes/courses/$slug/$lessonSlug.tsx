@@ -456,7 +456,7 @@ function PremiumLesson() {
           </nav>
         </main>
 
-        <aside className="glass sticky top-24 hidden max-h-[calc(100vh-7rem)] overflow-y-auto rounded-3xl p-4 lg:block">
+        <aside className="glass sticky top-24 hidden max-h-[calc(calc(100vh*var(--vhf,1))-7rem)] overflow-y-auto rounded-3xl p-4 lg:block">
           <h2 className="px-2 font-display text-lg font-semibold">{course.title}</h2>
           <p className="px-2 pt-1 text-xs text-muted-foreground">Course curriculum</p>
           <Curriculum

@@ -25,7 +25,7 @@ function AuthCallback() {
   const destination = getSafeRedirect(redirect) ?? DEFAULT_AUTH_DESTINATION;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-16">
+    <div className="mx-auto flex min-h-[calc(calc(100vh*var(--vhf,1))-8rem)] max-w-md items-center px-4 py-16">
       <div className="glass w-full rounded-3xl p-8 text-center shadow-elegant">
         <AlertCircle className="mx-auto h-7 w-7 text-gold" />
         <h1 className="mt-4 font-display text-2xl font-bold">Please start sign-in again</h1>

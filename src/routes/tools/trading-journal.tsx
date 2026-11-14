@@ -1174,7 +1174,7 @@ function JournalCalendar({
       </div>
       {loading ? <div className="card journal-skel" style={{ height: 112 }} /> : null}
       <Dialog open={Boolean(selectedDay)} onOpenChange={(open) => !open && onSelectDay(null)}>
-        <DialogContent className="journal-scrollbar max-h-[88vh] max-w-2xl overflow-y-auto rounded-3xl bg-card">
+        <DialogContent className="journal-scrollbar max-h-[calc(88vh*var(--vhf,1))] max-w-2xl overflow-y-auto rounded-3xl bg-card">
           <DialogHeader>
             <DialogTitle>
               {selectedDay
@@ -1346,7 +1346,7 @@ function TradeEditor({
   };
   return (
     <Dialog open onOpenChange={(open) => !open && !saving && onClose()}>
-      <DialogContent className="journal-scrollbar max-h-[92vh] max-w-3xl overflow-y-auto rounded-3xl bg-card text-card-foreground">
+      <DialogContent className="journal-scrollbar max-h-[calc(92vh*var(--vhf,1))] max-w-3xl overflow-y-auto rounded-3xl bg-card text-card-foreground">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">
             {entry ? "Edit trade" : "New Trade"}
@@ -1693,7 +1693,7 @@ function TradeDetails({
   ] as const;
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="journal-scrollbar max-h-[92vh] max-w-2xl overflow-y-auto rounded-3xl bg-card">
+      <DialogContent className="journal-scrollbar max-h-[calc(92vh*var(--vhf,1))] max-w-2xl overflow-y-auto rounded-3xl bg-card">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">{entry.pair} trade review</DialogTitle>
           <DialogDescription>{new Date(entry.trade_at).toLocaleString()}</DialogDescription>
@@ -1777,17 +1777,17 @@ function ScreenshotLightbox({
   const current = index === null ? null : items[index];
   return (
     <Dialog open={index !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="journal-scrollbar max-h-[94vh] max-w-6xl overflow-auto rounded-3xl bg-card p-3 sm:p-5">
+      <DialogContent className="journal-scrollbar max-h-[calc(94vh*var(--vhf,1))] max-w-6xl overflow-auto rounded-3xl bg-card p-3 sm:p-5">
         <DialogHeader className="pr-10">
           <DialogTitle>{current?.label ?? "Trade screenshot"}</DialogTitle>
           <DialogDescription>Private screenshot preview</DialogDescription>
         </DialogHeader>
         {current ? (
-          <div className="relative mt-3 flex min-h-[45vh] items-center justify-center overflow-hidden rounded-2xl bg-background">
+          <div className="relative mt-3 flex min-h-[calc(45vh*var(--vhf,1))] items-center justify-center overflow-hidden rounded-2xl bg-background">
             <img
               src={current.url}
               alt={current.label}
-              className="max-h-[70vh] max-w-full object-contain transition-transform duration-150"
+              className="max-h-[calc(70vh*var(--vhf,1))] max-w-full object-contain transition-transform duration-150"
               style={{ transform: `scale(${zoom})` }}
             />
             <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-border bg-card/95 p-1 shadow-elegant">

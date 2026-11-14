@@ -138,7 +138,7 @@ function FeaturedVideosAdmin() {
 
   if (adminLoading || !isAdmin)
     return (
-      <div className="grid min-h-[60vh] place-items-center">
+      <div className="grid min-h-[calc(60vh*var(--vhf,1))] place-items-center">
         <Loader2 className="size-6 animate-spin text-gold" />
       </div>
     );

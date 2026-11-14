@@ -91,7 +91,7 @@ export function TradingPlanPreview({ draft }: { draft: TradingPlanDraft }) {
 
   return (
     <aside className="orbit min-w-0">
-      <div className="orbit-in plan-preview max-h-[calc(100vh-8rem)] min-w-0 overflow-y-auto">
+      <div className="orbit-in plan-preview max-h-[calc(calc(100vh*var(--vhf,1))-8rem)] min-w-0 overflow-y-auto">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-gold">
             <BookOpenCheck className="h-5 w-5 shrink-0" />

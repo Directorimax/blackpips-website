@@ -19,7 +19,7 @@ export const Route = createFileRoute("/auth/confirm")({
 
 function EmailConfirmationFailure() {
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-16">
+    <div className="mx-auto flex min-h-[calc(calc(100vh*var(--vhf,1))-8rem)] max-w-md items-center px-4 py-16">
       <div className="glass w-full rounded-3xl p-8 text-center shadow-elegant">
         <Logo className="justify-center" />
         <AlertCircle className="mx-auto mt-6 h-8 w-8 text-gold" />

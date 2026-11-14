@@ -143,7 +143,7 @@ function AdminMentorshipApplications() {
 
   if (adminLoading || !isAdmin) {
     return (
-      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
+      <div className="flex min-h-[calc(calc(100vh*var(--vhf,1))-8rem)] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-gold" />
       </div>
     );

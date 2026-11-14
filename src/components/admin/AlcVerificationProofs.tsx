@@ -196,7 +196,7 @@ export function AlcVerificationProofs({ requestId }: { requestId: string }) {
       )}
 
       <Dialog open={Boolean(activeProof)} onOpenChange={(open) => !open && setActiveProofId(null)}>
-        <DialogContent className="max-h-[90dvh] max-w-4xl overflow-auto rounded-2xl border-gold/20 bg-card">
+        <DialogContent className="max-h-[calc(90dvh*var(--vhf,1))] max-w-4xl overflow-auto rounded-2xl border-gold/20 bg-card">
           <DialogHeader>
             <DialogTitle>Verification proof</DialogTitle>
             <DialogDescription>
@@ -207,7 +207,7 @@ export function AlcVerificationProofs({ requestId }: { requestId: string }) {
             <img
               src={activeSigned.url}
               alt={`Verification proof ${activeIndex + 1}`}
-              className="max-h-[72dvh] w-full rounded-xl object-contain"
+              className="max-h-[calc(72dvh*var(--vhf,1))] w-full rounded-xl object-contain"
               onError={() => markBroken(activeProof.proof_id)}
             />
           ) : activeProof ? (

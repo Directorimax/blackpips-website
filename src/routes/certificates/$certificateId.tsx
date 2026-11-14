@@ -101,14 +101,14 @@ function CertificatePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
+      <div className="flex min-h-[calc(calc(100vh*var(--vhf,1))-8rem)] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-gold" />
       </div>
     );
   }
   if (!certificate || error) {
     return (
-      <div className="mx-auto grid min-h-[calc(100vh-8rem)] max-w-xl place-items-center px-4 py-16">
+      <div className="mx-auto grid min-h-[calc(calc(100vh*var(--vhf,1))-8rem)] max-w-xl place-items-center px-4 py-16">
         <div className="glass rounded-3xl p-8 text-center shadow-elegant">
           <ShieldCheck className="mx-auto h-8 w-8 text-gold" />
           <h1 className="mt-4 font-display text-2xl font-bold">Certificate unavailable</h1>

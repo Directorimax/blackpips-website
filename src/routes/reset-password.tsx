@@ -132,7 +132,7 @@ function ResetPassword() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-16">
+    <div className="mx-auto flex min-h-[calc(calc(100vh*var(--vhf,1))-8rem)] max-w-md items-center px-4 py-16">
       <form onSubmit={onSubmit} className="glass w-full rounded-3xl p-8 shadow-elegant">
         {recovering ? (
           <div className="text-center">

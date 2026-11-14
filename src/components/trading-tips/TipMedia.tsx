@@ -43,7 +43,7 @@ export function SecureTipVideo({ src, className }: { src: string; className?: st
       onContextMenu={(event) => event.preventDefault()}
     >
       <video
-        className="aspect-video h-auto max-h-[80vh] w-full object-contain"
+        className="aspect-video h-auto max-h-[calc(80vh*var(--vhf,1))] w-full object-contain"
         controls
         controlsList="nodownload"
         disablePictureInPicture
@@ -218,7 +218,7 @@ export const TradingTipLightbox = memo(function TradingTipLightbox({
         startX.current = null;
       }}
     >
-      <div className="flex h-[90vh] w-[95vw] items-center justify-center">
+      <div className="flex h-[calc(90vh*var(--vhf,1))] w-[95vw] items-center justify-center">
         <button
           type="button"
           onClick={(event) => {
@@ -259,7 +259,7 @@ export const TradingTipLightbox = memo(function TradingTipLightbox({
         <img
           src={current.url}
           alt="Full-size trading chart"
-          className="h-auto max-h-[90vh] w-auto max-w-[95vw] select-none object-contain shadow-2xl transition-[opacity,transform] duration-200"
+          className="h-auto max-h-[calc(90vh*var(--vhf,1))] w-auto max-w-[95vw] select-none object-contain shadow-2xl transition-[opacity,transform] duration-200"
           onClick={(event) => event.stopPropagation()}
         />
         {multiple && (

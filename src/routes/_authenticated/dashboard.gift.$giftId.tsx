@@ -77,7 +77,7 @@ function WelcomeGiftPdfViewer() {
   }, [pdf]);
 
   return (
-    <div className="min-h-[calc(100vh-6rem)] bg-muted/30">
+    <div className="min-h-[calc(calc(100vh*var(--vhf,1))-6rem)] bg-muted/30">
       <header className="sticky top-20 z-40 border-b border-border bg-background/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2.5 sm:px-5">
           <Link
@@ -132,7 +132,7 @@ function WelcomeGiftPdfViewer() {
 
       <main className="mx-auto max-w-6xl px-2 py-4 sm:px-5 sm:py-6">
         {loading && (
-          <div className="grid min-h-[55vh] place-items-center rounded-3xl border border-border bg-card">
+          <div className="grid min-h-[calc(55vh*var(--vhf,1))] place-items-center rounded-3xl border border-border bg-card">
             <div className="text-center">
               <Loader2 className="mx-auto size-7 animate-spin text-gold" />
               <p className="mt-3 text-sm font-semibold">Preparing your Starter Guide…</p>

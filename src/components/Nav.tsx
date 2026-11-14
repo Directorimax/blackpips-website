@@ -271,7 +271,7 @@ export function Nav() {
         <nav
           id="mobile-navigation-menu"
           aria-label="Mobile"
-          className={`mob-menu max-h-[calc(100dvh-6rem)] overflow-y-auto ${open ? "open" : ""}`}
+          className={`mob-menu max-h-[calc(calc(100dvh*var(--vhf,1))-6rem)] overflow-y-auto ${open ? "open" : ""}`}
         >
           {NAV.map((n) =>
             n.to === "/tools" ? (
@@ -378,7 +378,7 @@ function AdminDropdown({
         id={menuId}
         align="end"
         sideOffset={8}
-        className="z-[80] max-h-[calc(100dvh-5rem)] w-60 max-w-[calc(100vw-2rem)] overflow-y-auto"
+        className="z-[80] max-h-[calc(calc(100dvh*var(--vhf,1))-5rem)] w-60 max-w-[calc(100vw-2rem)] overflow-y-auto"
       >
         <DropdownMenuLabel>Administration</DropdownMenuLabel>
         {ADMIN_NAV.map((item) => {
