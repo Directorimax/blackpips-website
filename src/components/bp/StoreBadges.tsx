@@ -45,18 +45,20 @@ export function GooglePlayBadge() {
   );
 }
 
-/** Not approved on the App Store yet, so it is shown but not a link. */
 export function AppStoreBadge() {
   return (
-    <span className="store-badge store-badge-soon" aria-label="App Store, coming soon">
+    <a
+      className="store-badge"
+      href="https://apps.apple.com/tz/app/blackpips/id6821567324"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Download on the App Store"
+    >
       <AppleLogo />
       <span className="store-badge-text">
         <small>Download on the</small>App Store
       </span>
-      <span className="store-badge-tag" aria-hidden="true">
-        Coming soon
-      </span>
-    </span>
+    </a>
   );
 }
 
@@ -68,7 +70,7 @@ const ANDROID_OPEN_APP_URL =
 
 /**
  * On Android it opens the BLACKPIPS app if installed, otherwise Chrome sends the
- * student to Google Play. Elsewhere it opens Google Play, the only live store.
+ * student to Google Play. Elsewhere it opens Google Play.
  */
 export function OpenAppButton({
   className = "btn btn-gold",
