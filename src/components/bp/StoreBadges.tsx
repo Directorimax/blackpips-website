@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 export const GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=com.blackpips.app";
 
@@ -62,16 +62,6 @@ export function AppStoreBadge() {
   );
 }
 
-// The app already handles blackpips://auth-callback, and ignores it when it
-// carries no sign-in response, so it is a safe way to just open the app.
-const ANDROID_OPEN_APP_URL =
-  "intent://auth-callback#Intent;scheme=blackpips;package=com.blackpips.app;" +
-  `S.browser_fallback_url=${encodeURIComponent(GOOGLE_PLAY_URL)};end`;
-
-/**
- * On Android it opens the BLACKPIPS app if installed, otherwise Chrome sends the
- * student to Google Play. Elsewhere it opens Google Play.
- */
 export function OpenAppButton({
   className = "btn btn-gold",
   children = "Continue in BLACKPIPS App",
@@ -79,19 +69,41 @@ export function OpenAppButton({
   className?: string;
   children?: ReactNode;
 }) {
+  const [platform, setPlatform] = useState<"ios" | "android" | "desktop" | null>(null);
+
+  function showAppOptions() {
+    const { userAgent, maxTouchPoints } = navigator;
+    if (/Android/i.test(userAgent)) setPlatform("android");
+    else if (
+      /iPhone|iPad|iPod/i.test(userAgent) ||
+      (/Macintosh/i.test(userAgent) && maxTouchPoints > 1)
+    )
+      setPlatform("ios");
+    else setPlatform("desktop");
+  }
+
   return (
-    <a
-      className={className}
-      href={GOOGLE_PLAY_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(event) => {
-        if (!/Android/i.test(navigator.userAgent)) return;
-        event.preventDefault();
-        window.location.href = ANDROID_OPEN_APP_URL;
-      }}
-    >
-      {children}
-    </a>
+    <div>
+      <button
+        type="button"
+        className={className}
+        aria-expanded={platform !== null}
+        onClick={() => (platform ? setPlatform(null) : showAppOptions())}
+      >
+        {children}
+      </button>
+      {platform && (
+        <div>
+          <p className="small">
+            Open BLACKPIPS on your device and sign in with the account you used to purchase. If you
+            need the app, download it below.
+          </p>
+          <div className="store-badges">
+            {platform !== "android" && <AppStoreBadge />}
+            {platform !== "ios" && <GooglePlayBadge />}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
